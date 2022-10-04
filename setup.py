@@ -28,6 +28,7 @@ setup(
     url='https://github.com/atav928/prisma-access-sase',
     keywords=['sase', 'prisma access', 'prisma'],
     long_description=readme,
+    long_description_content_type='text/markdown',
     entry_points={
         'console_scripts': [
             'prisma_yaml_script = prismasase.__main__:gen_yaml',
