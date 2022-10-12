@@ -26,7 +26,7 @@ setup(
     install_requires=requirements,
     test_suite="tests",
     url='https://github.com/atav928/prisma-access-sase',
-    keywords=['sase', 'prisma access', 'prisma'],
+    keywords=['sase', 'prisma access', 'prisma', 'paloalto'],
     long_description=readme,
     long_description_content_type='text/markdown',
     entry_points={

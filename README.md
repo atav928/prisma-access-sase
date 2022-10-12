@@ -13,7 +13,7 @@ GNU
  ```python
  python -m pip install .
  ```
- - pip install -r prisma-access-sase
+ - pip install prisma-access-sase
 
 ### Setup
 Requires configuraitons to be on the system to work properly. You can define them via one of 3 methods

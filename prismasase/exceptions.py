@@ -5,3 +5,6 @@ class SASEError(Exception):
 
 class SASEAuthError(SASEError):
     """Authorization Error"""
+
+class SASEMissingParam(SASEError):
+    """Missing parameters"""

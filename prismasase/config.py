@@ -46,7 +46,8 @@ class Config:
         "ipsec-crypto-profiles": f"{URL_BASE}/ipsec-crypto-profiles",
         "ipsec-tunnels": f"{URL_BASE}/ipsec-tunnels",
         "remote-networks": f"{URL_BASE}/remote-networks",
-        "config-version": f"{URL_BASE}/config-versions"
+        "config-version": f"{URL_BASE}/config-versions",
+        "locations": f"{URL_BASE}/locations"
     }
 
 
