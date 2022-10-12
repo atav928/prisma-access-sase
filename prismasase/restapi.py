@@ -4,6 +4,7 @@ import requests
 
 from prismasase.config import Auth
 from prismasase import config, auth
+from prismasase.exceptions import SASEMissingParam
 
 
 @auth.Decorators.refresh_token
@@ -25,8 +26,11 @@ def prisma_request(token: Auth, **kwargs):
     Returns:
         _type_: _description_
     """
-    url_type: str = kwargs['url_type']
-    method: str = kwargs['method'].Upper()
+    try:
+        url_type: str = kwargs['url_type']
+        method: str = kwargs['method'].upper()
+    except KeyError as err:
+        raise SASEMissingParam(str(err))
     params: dict = kwargs.get('params', None)
     url: str = config.REST_API[url_type]
     headers = {"authorization": f"Bearer {token}", "content-type": "application/json"}
