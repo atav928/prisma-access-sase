@@ -32,11 +32,14 @@ def prisma_request(token: Auth, **kwargs):
     except KeyError as err:
         raise SASEMissingParam(str(err))
     params: dict = kwargs.get('params', None)
-    url: str = config.REST_API[url_type]
+    try:
+        url: str = config.REST_API[url_type]
+    except KeyError as err:
+        raise SASEMissingParam(f'incorrect url type: {str(err)}')
     headers = {"authorization": f"Bearer {token}", "content-type": "application/json"}
     data: str = kwargs.get('data', None)
     verify = kwargs.get('verify', True)
-    timeout: int = kwargs.get('timeout', 60)
+    timeout: int = kwargs.get('timeout', 90)
     if method.lower() == 'delete':
         delete_object = kwargs['delete_object']
         url = f"{url}/{delete_object}"
@@ -45,5 +48,7 @@ def prisma_request(token: Auth, **kwargs):
         url = f"{url}/{put_object}"
     response = requests.request(method=method, url=url, headers=headers,
                                 data=data, params=params, verify=verify, timeout=timeout)
+    if response.status_code == 400:
+        return response.json()
     response.raise_for_status()
     return response.json()

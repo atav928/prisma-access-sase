@@ -289,6 +289,15 @@ _**Example** (showing defaults only):_
 
 Similarly you can POST commands changing the method and attaching json data to the command. Response should be the same.
 
+### Import
+
+Format requirements:
+
+| remote_network_name | region | spn_name | ike_crypto_profile | ipsec_crypto_profile | pre_shared_key | local_fqdn | peer_fqdn | tunnel_monitor | monitor_ip | static_enabled | static_routing | bgp_enabled | bgp_peer_as | bgp_peer_ip | bgp_local_ip | 
+| ------ | ----- | ----- | ------ | ------- | ------ | ------- | ------- | ------ | ------- | ------ | ------- | ------ | ------- | --------| ------|
+ | newyork-01 | us-east-1 | us-east-ash | IKE-default | IPSec-default | ThisIsMyKey2022 | local@example.com | peer-1@example.com | TRUE | 192.168.102.2 | TRUE | "192.168.100.0/24,192.168.101.0/24" | TRUE | 64512 | 192.168.102.2 | 192.168.102.1 | 
+ | boston-01 | us-east-1 | us-east-ash | IKE-default | IPSec-default | ThisIsMyKey2022 | local@example.com | peer-2@example.com | TRUE | 192.168.202.2 | TRUE | "192.168.200.0/24,192.168.201.0/24" | TRUE | 64512 | 192.168.202.2 | 192.168.202.1 | 
+
 ### Caveats and known issues:
  - This is a PREVIEW release; still under works
  - DELETE and PUT actions are still under testing
@@ -298,6 +307,9 @@ Similarly you can POST commands changing the method and attaching json data to t
 | Version | Build | Changes |
 | ------- | ----- | ------- |
 | **0.0.1** | **b1** | Initial Release. |
+| **0.0.4** | **a2** | fixed issues with re-auth|
+| **0.0.4**| **final** | fixed dependencies |
+| **0.0.5** | **a1** | build ability to create remote networks |
 
 #### For more info
  * Get help and additional Prisma Access Documentation at <https://pan.dev/sase/>
