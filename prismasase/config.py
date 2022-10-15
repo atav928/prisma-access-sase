@@ -30,7 +30,6 @@ def set_bool(value: str):
         value = False
     return value
 
-
 class Config:
     """
     Configuration Utility
@@ -40,14 +39,22 @@ class Config:
     CLIENT_ID = os.environ.get("CLIENT_ID", None)
     CLIENT_SECRET = os.environ.get("CLIENT_SECRET", None)
     REST_API = {
+        # Service Setup
         "bandwidth-allocations": f"{URL_BASE}/bandwidth-allocations",
         "ike-gateways": f"{URL_BASE}/ike-gateways",
         "ike-crypto-profiles": f"{URL_BASE}/ike-crypto-profiles",
         "ipsec-crypto-profiles": f"{URL_BASE}/ipsec-crypto-profiles",
         "ipsec-tunnels": f"{URL_BASE}/ipsec-tunnels",
-        "remote-networks": f"{URL_BASE}/remote-networks",
         "config-version": f"{URL_BASE}/config-versions",
-        "locations": f"{URL_BASE}/locations"
+        "infrastructure-settings": f"{URL_BASE}/shared-infrastructure-settings",
+        "internal-dns-servers": f"{URL_BASE}/internal-dns-servers",
+        "license-type": f"{URL_BASE}/licese-types",
+        "remote-networks": f"{URL_BASE}/remote-networks",
+        "locations": f"{URL_BASE}/locations",
+        "service-connections": f"{URL_BASE}/service-connections",
+        # Security Services
+        "profile-groups": f"{URL_BASE}/profile-groups",
+        "security-rules": f"{URL_BASE}/security-rules",
     }
 
 
@@ -105,6 +112,7 @@ class Auth:
             raise SASEAuthError(orjson.dumps(response.json()).decode('utf-8'))
         else:
             response.raise_for_status()
+        self.token = token
         return token
 
     class Decorators():

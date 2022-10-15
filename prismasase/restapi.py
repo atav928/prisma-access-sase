@@ -22,7 +22,10 @@ def prisma_request(token: Auth, **kwargs):
         timeout (int, optional): sets API call timeout. Defaults to 60
         delete_object (str, required|optional): Required if method is DELETE
         put_object (str, required|optional): Required if method is PUT
-
+        limit (int, Optional): The maximum number of results
+        offset (int, Optional): The offset of the result entry
+        name (string, Optional): The name of the entry
+        potition (str, Optional|Required): Required if inspecting Security Rules
     Returns:
         _type_: _description_
     """
@@ -31,7 +34,13 @@ def prisma_request(token: Auth, **kwargs):
         method: str = kwargs['method'].upper()
     except KeyError as err:
         raise SASEMissingParam(str(err))
-    params: dict = kwargs.get('params', None)
+    params: dict = kwargs.get('params', {})
+    if kwargs.get('name'):
+        params.update({'name': kwargs.get('name')})
+    if kwargs.get('limit'):
+        params.update({'limit': kwargs.get('limit')})
+    if kwargs.get('offset'):
+        params.update({'offset': kwargs.get('offset')})
     url: str = config.REST_API[url_type]
     headers = {"authorization": f"Bearer {token}", "content-type": "application/json"}
     data: str = kwargs.get('data', None)

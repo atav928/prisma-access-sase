@@ -298,6 +298,8 @@ Similarly you can POST commands changing the method and attaching json data to t
 | Version | Build | Changes |
 | ------- | ----- | ------- |
 | **0.0.1** | **b1** | Initial Release. |
+| **0.0.4**| | fixed dependencies |
+| **0.0.4** | **a1** | fixed issues with re-auth|
 
 #### For more info
  * Get help and additional Prisma Access Documentation at <https://pan.dev/sase/>
