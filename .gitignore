@@ -132,3 +132,4 @@ dmypy.json
 *.sh
 
 .DS_Store
+sample
