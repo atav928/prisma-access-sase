@@ -105,6 +105,7 @@ class Auth:
             raise SASEAuthError(orjson.dumps(response.json()).decode('utf-8'))
         else:
             response.raise_for_status()
+        self.token = token
         return token
 
     class Decorators():

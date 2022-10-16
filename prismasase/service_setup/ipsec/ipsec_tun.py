@@ -37,19 +37,22 @@ def ipsec_tunnel(remote_network_name: str,
         data["tunnel_monitor"] = {"destination_ip": kwargs["monitor_ip"], "enable": True}
     else:
         raise SASEMissingParam("Missing monitor_ip value since tunnel_monitor is set to enable")
-    ipsec_tunnels = prisma_request(token=auth, method='GET',
-                                   url_type='ipsec-tunnels', params=params, verify=config.CERT)
+    ipsec_tunnels = prisma_request(token=auth,
+                                   method='GET',
+                                   url_type='ipsec-tunnels',
+                                   params=params,
+                                   verify=config.CERT)
     for tunnel in ipsec_tunnels['data']:
         if tunnel['name'] == ipsec_tunnel_name:
             ipsec_tunnel_exists = True
             ipsec_tunnel_id = tunnel['id']
     if not ipsec_tunnel_exists:
-        create_ipsec_tunnel(data=data)
+        ipsec_tunnel_create(data=data)
     else:
-        update_ipsec_tunnel(data=data, ipsec_tunnel_id=ipsec_tunnel_id)
+        ipsec_tunnel_update(data=data, ipsec_tunnel_id=ipsec_tunnel_id)
 
 
-def create_ipsec_tunnel(data: Dict[str, Any]):
+def ipsec_tunnel_create(data: Dict[str, Any]):
     """Creates a new IPsec Tunnel
 
     Args:
@@ -58,15 +61,19 @@ def create_ipsec_tunnel(data: Dict[str, Any]):
     Raises:
         SASEBadRequest: _description_
     """
+    print(f"INFO: Creating IPSec Tunnel {data['name']}")
     params = REMOTE_FOLDER
-    response = prisma_request(
-        token=auth, method="POST", data=json.dumps(data),
-        params=params, verify=config.CERT)
+    response = prisma_request(token=auth,
+                              method="POST",
+                              url_type='ipsec-tunnels',
+                              data=json.dumps(data),
+                              params=params,
+                              verify=config.CERT)
     if '_error' in response:
-        raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))
+        raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
-def update_ipsec_tunnel(data: Dict[str, Any], ipsec_tunnel_id: str):
+def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str):
     """Updates an IPsec tunnel
 
     Args:
@@ -76,11 +83,17 @@ def update_ipsec_tunnel(data: Dict[str, Any], ipsec_tunnel_id: str):
     Raises:
         SASEBadRequest: _description_
     """
+    print(f"INFO: Updating IPSec Tunnel {data['name']}")
     params = REMOTE_FOLDER
-    response = prisma_request(token=auth, method="PUT", data=json.dumps(
-        data), params=params, put_object=ipsec_tunnel_id, verify=config.CERT)
+    response = prisma_request(token=auth,
+                              method="PUT",
+                              url_type='ipsec-tunnels',
+                              data=json.dumps(data),
+                              params=params,
+                              put_object=ipsec_tunnel_id,
+                              verify=config.CERT)
     if '_error' in response:
-        raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))
+        raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
 def create_ipsec_tunnel_payload(
@@ -110,26 +123,3 @@ def create_ipsec_tunnel_payload(
         "name": f"ipsec-tunnel-{remote_network_name}"
     }
     return data
-
-
-def get_ipsec_crypto_profile(ipsec_crypto_profile: str) -> bool:
-    """Checks if IPSec Crypto Profile Exists
-
-    Args:
-        ipsec_crypto_profile (str): _description_
-
-    Returns:
-        bool: _description_
-    """
-    ipsec_crypto_profile_exists: bool = False
-    params = REMOTE_FOLDER
-    ipsec_crypto_profiles = prisma_request(
-        token=auth,
-        url_type='ipsec-crypto-profiles',
-        method="GET",
-        params=params,
-        verify=config.CERT)
-    for entry in ipsec_crypto_profiles['data']:
-        if entry['name'] == ipsec_crypto_profile:
-            ipsec_crypto_profile_exists = True
-    return ipsec_crypto_profile_exists

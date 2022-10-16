@@ -11,3 +11,14 @@ def gen_pre_shared_key(length: int = 24) -> str:
         str: password
     """
     return secrets.token_urlsafe(length)
+
+def check_name_length(name: str) -> bool:
+    """Prisma SASE names must be <= 31 characters or else it will be rejected
+
+    Args:
+        name (str): _description_
+
+    Returns:
+        bool: _description_
+    """
+    return bool(len(name) <= 31)

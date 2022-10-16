@@ -1,14 +1,16 @@
 """Rest Calls"""
 
+from typing import Any, Dict
 import requests
+import orjson
 
 from prismasase.config import Auth
 from prismasase import config, auth
-from prismasase.exceptions import SASEMissingParam
+from prismasase.exceptions import SASEBadRequest, SASEMissingParam
 
 
 @auth.Decorators.refresh_token
-def prisma_request(token: Auth, **kwargs):
+def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]:
     """_summary_
 
     Args:
@@ -46,8 +48,15 @@ def prisma_request(token: Auth, **kwargs):
     if method.lower() == 'put':
         put_object = kwargs['put_object']
         url = f"{url}/{put_object}"
-    response = requests.request(method=method, url=url, headers=headers,
-                                data=data, params=params, verify=verify, timeout=timeout)
+    response = requests.request(method=method,
+                                url=url,
+                                headers=headers,
+                                data=data,
+                                params=params,
+                                verify=verify,
+                                timeout=timeout)
+    if '_error' in response.json():
+        raise SASEBadRequest(orjson.dumps(response.json()).decode('utf-8'))  # pylint: disable=no-member
     if response.status_code == 400:
         return response.json()
     response.raise_for_status()

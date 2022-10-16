@@ -298,7 +298,57 @@ Format requirements:
  | newyork-01 | us-east-1 | us-east-ash | IKE-default | IPSec-default | ThisIsMyKey2022 | local@example.com | peer-1@example.com | TRUE | 192.168.102.2 | TRUE | "192.168.100.0/24,192.168.101.0/24" | TRUE | 64512 | 192.168.102.2 | 192.168.102.1 | 
  | boston-01 | us-east-1 | us-east-ash | IKE-default | IPSec-default | ThisIsMyKey2022 | local@example.com | peer-2@example.com | TRUE | 192.168.202.2 | TRUE | "192.168.200.0/24,192.168.201.0/24" | TRUE | 64512 | 192.168.202.2 | 192.168.202.1 | 
 
+#### On Boarding a new Site
+
+You can now onboard a new site ensuring your settings are passed correctly. The Service Setup folder has all the required calls needed to create a new or update any existing profiles that you are referencing. You do not have to pass a pre-shared key if you do not want to as that will create one for you using a secrets package. You can see it inside the utilities that comes with the package
+__NOTE:__ There is a limit on names and they need to be <= 31 characters. This is a known issue and a function is built out to verify names, but please be sure to verify until that is fixed.
+
+**Example Create a Secret and name checks:**
+```python
+from prismasase import utilities
+pre_shared_key = utilities.gen_pre_shared_key(length=32)
+print(pre_shared_key)
+# Prints out
+#  'eKc9GK0op93VWBJHn0czI6Pf4zFsIL_7qABdHWC7DUs'
+utilities.check_name_length("ike-proto-gen-config-value-soemthing")
+# above will return False which will error eventually raise an error that user will need to handle in the naming convention
+```
+
+**Example of creating/onboarding a new remote site:**
+```python
+from prismasase import service_setup
+
+# Note building out full list of possible varibles that can always be passed using 
+# a settings config **settings if you have the dictionary created for 
+# all the required variables. This is going to be built out in future release
+new_network = service_setup.remote_networks.create_remote_network(remote_network_name="savannah01",region="us-southeast",spn_name="us-southeast-whitebeam",ike_crypto_profile="ike-crypto-profile-cisco",ipsec_crypto_profile="ipsec-crypto-prof-cisco",local_fqdn="sase@prisma.com",peer_fqdn="savannah01@example.com",tunnel_monitor="true",monitor_ip="192.168.102.1",static_enabled="true",static_routing="192.168.102.0/24",bgp_enabled="false")
+```
+
+**Below would be the output if running in an interactive shell:**
+
+```shell
+INFO: Verified region='us-southeast' and spn_name='us-southeast-whitebeam' exist
+INFO: Creating IKE Gateway: ike-gw-savannah01
+INFO: Creating IPSec Tunnel ipsec-tunnel-savannah01
+INFO: Created Remote Network 
+{
+    "@status": "success",
+    "created": {
+        "ipsec_tunnel": "ipsec-tunnel-savannah01",
+        "ipsec_crypto_profile": "ipsec-crypto-prof-cisco",
+        "ike_gateway": "ike-gw-savannah01",
+        "ike_crypto_profile": "ike-crypto-profile-cisco",
+        "pre_shared_key": "x_BwMCMiJHrf9LwfEvDGDksf88tZlcKF",
+        "local_fqdn": "sase@prisma.com",
+        "peer_fqdn": "savannah01@example.com"
+    }
+}
+```
+
+_NOTE:_ Since the response will give you the pre-shared-key, but default the length is set to 24.
+
 ### Caveats and known issues:
+
  - This is a PREVIEW release; still under works
  - DELETE and PUT actions are still under testing
  - Doing a push would require additional seetings see how to handle prisma_request()
@@ -310,6 +360,23 @@ Format requirements:
 | **0.0.4** | **a2** | fixed issues with re-auth|
 | **0.0.4**| **final** | fixed dependencies |
 | **0.0.5** | **a1** | build ability to create remote networks |
+| **0.0.5** | **a2** | built out ipsec and ike functionality |
+| **0.1.5** | **b1** | adjusted format of entire project based on how SASE Docs are created to better organize the calls |
+| **0.1.5** | **b2** | fixed some issues with erroring and started to build out messaging if interacting directly |
 
 #### For more info
- * Get help and additional Prisma Access Documentation at <https://pan.dev/sase/>
+
+* Get help and additional Prisma Access Documentation at <https://pan.dev/sase/>
+
+### Known Bugs/Future Features
+
+* Names longer than 31 characters will just fail this is a limitation need to put in a verification on all names to confirm to standards
+* BGP doesn't seem to work, but this looks more like a Prisma Access side issue; need to find out from Palo
+
+### Future Features
+
+* Get more details on possible variables
+* Create a bulk function that can onboard multiple sites all at once, but will need to handle errors to ensure that if one exists that one is skipped and noted in the response
+* Build out the config management section that will include reverting configurations viewing and pushing staged commits
+* Build in feature to be able to change or adjust the key length from configs if not providing a pre-shared key
+* Add support for different types of tunnels; currently only supports dynamic tunnels with ufqdn as the input
