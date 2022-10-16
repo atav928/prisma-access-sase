@@ -357,12 +357,14 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 | Version | Build | Changes |
 | ------- | ----- | ------- |
 | **0.0.1** | **b1** | Initial Release. |
+| **0.0.4** | **a1** | fixed dependencies |
 | **0.0.4** | **a2** | fixed issues with re-auth|
 | **0.0.4**| **final** | fixed dependencies |
 | **0.0.5** | **a1** | build ability to create remote networks |
 | **0.0.5** | **a2** | built out ipsec and ike functionality |
 | **0.1.5** | **b1** | adjusted format of entire project based on how SASE Docs are created to better organize the calls |
 | **0.1.5** | **b2** | fixed some issues with erroring and started to build out messaging if interacting directly |
+
 
 #### For more info
 
