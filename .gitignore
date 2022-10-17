@@ -132,3 +132,5 @@ dmypy.json
 *.sh
 
 .DS_Store
+sample
+test.yaml
