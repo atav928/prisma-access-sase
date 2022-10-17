@@ -363,6 +363,7 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 | **0.0.5** | **a2** | built out ipsec and ike functionality |
 | **0.1.5** | **b1** | adjusted format of entire project based on how SASE Docs are created to better organize the calls |
 | **0.1.5** | **b2** | fixed some issues with erroring and started to build out messaging if interacting directly |
+| **0.1.5** | **b3** | final release test before production merged some missing files from last merger |
 
 #### For more info
 
