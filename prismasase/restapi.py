@@ -44,9 +44,9 @@ def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]:
     if kwargs.get('name'):
         params.update({'name': kwargs.get('name')})
     if kwargs.get('limit'):
-        params.update({'limit': kwargs.get('limit')})
+        params.update({'limit': int(kwargs.get('limit'))})
     if kwargs.get('offset'):
-        params.update({'offset': kwargs.get('offset')})
+        params.update({'offset': int(kwargs.get('offset'))})
     url: str = config.REST_API[url_type]
     headers = {"authorization": f"Bearer {token}", "content-type": "application/json"}
     data: str = kwargs.get('data', None)

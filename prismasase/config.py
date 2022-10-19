@@ -45,7 +45,6 @@ class Config:
         "ike-crypto-profiles": f"{URL_BASE}/ike-crypto-profiles",
         "ipsec-crypto-profiles": f"{URL_BASE}/ipsec-crypto-profiles",
         "ipsec-tunnels": f"{URL_BASE}/ipsec-tunnels",
-        "config-version": f"{URL_BASE}/config-versions",
         "infrastructure-settings": f"{URL_BASE}/shared-infrastructure-settings",
         "internal-dns-servers": f"{URL_BASE}/internal-dns-servers",
         "license-type": f"{URL_BASE}/licese-types",
@@ -55,6 +54,8 @@ class Config:
         # Security Services
         "profile-groups": f"{URL_BASE}/profile-groups",
         "security-rules": f"{URL_BASE}/security-rules",
+        # Configuration Management
+        "config-versions": f"{URL_BASE}/config-versions"
     }
 
 
