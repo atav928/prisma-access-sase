@@ -15,5 +15,8 @@ class SASENoBandwidthAllocation(SASEError):
 class SASEBadRequest(SASEError):
     """Bad Request 400 error"""
 
+class SASEBadParam(SASEError):
+    """Bad Parameter provided"""
+
 class SASEMissingIkeOrIpsecProfile(SASEMissingParam):
     """Missing IKE or IPSEC Profile"""

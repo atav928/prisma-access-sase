@@ -20,15 +20,16 @@ def set_bool(value: str):
     Returns:
         (str|bool): String if certificate path is passed otherwise True|False
     """
+    value_bool: bool = False
     if isinstance(value, bool):
-        pass
+        value_bool = value
     elif str(value).lower() == 'true':
-        value = True
+        value_bool: bool = True
     elif str(value).lower() == 'false':
-        value = False
+        value_bool: bool = False
     else:
-        value = False
-    return value
+        value_bool: bool = False
+    return value_bool
 
 class Config:
     """
@@ -55,8 +56,11 @@ class Config:
         "profile-groups": f"{URL_BASE}/profile-groups",
         "security-rules": f"{URL_BASE}/security-rules",
         # Configuration Management
-        "config-versions": f"{URL_BASE}/config-versions"
+        "config-versions": f"{URL_BASE}/config-versions",
+        "jobs": f"{URL_BASE}/jobs"
     }
+    LIMIT: int = int(os.environ.get("LIMIT", "100"))
+    OFFSET: int = int(os.environ.get("OFFSET", "0"))
 
 
 class Auth:
@@ -104,6 +108,7 @@ class Auth:
         auth = (self.client_id, self.client_secret)
         response = requests.post(url=url, headers=headers, data=data,
                                  auth=auth, timeout=self.timeout, verify=self.verify)
+        token = ""
         if response.status_code == 200:
             response = response.json()
             token = response['access_token']

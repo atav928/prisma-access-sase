@@ -48,16 +48,16 @@ def create_remote_network(**kwargs) -> Dict[str, Any]: # pylint: disable=too-man
         local_fqdn: str = kwargs['local_fqdn']
         peer_fqdn: str = kwargs['peer_fqdn']
         tunnel_monitor: bool = bool(kwargs['tunnel_monitor'].lower() in ['true'])
-        monitor_ip: str = kwargs['monitor_ip'] if tunnel_monitor else None
+        monitor_ip: str = kwargs['monitor_ip'] if tunnel_monitor else ""
         static_enabled: bool = bool(kwargs['static_enabled'].lower() in ['true'])
-        static_routing: list = kwargs['static_routing'].split(',') if static_enabled else None
+        static_routing: list = kwargs['static_routing'].split(',') if static_enabled else []
         bgp_enabled: bool = bool(kwargs['bgp_enabled'].lower() in ['true'])
-        bgp_peer_ip: str = kwargs['bgp_peer_ip'] if bgp_enabled else None
-        bgp_local_ip: str = kwargs['bgp_local_ip'] if bgp_enabled else None
-        bgp_peer_as: str = kwargs['bgp_peer_as'] if bgp_enabled else None
+        bgp_peer_ip: str = kwargs['bgp_peer_ip'] if bgp_enabled else ""
+        bgp_local_ip: str = kwargs['bgp_local_ip'] if bgp_enabled else ""
+        bgp_peer_as: str = kwargs['bgp_peer_as'] if bgp_enabled else ""
     except KeyError as err:
         raise SASEMissingParam(f"Missing required parameter: {str(err)}")
-    pre_shared_key = kwargs.get('pre_shared_key') if kwargs.get(
+    pre_shared_key = kwargs['pre_shared_key'] if kwargs.get(
         'pre_shared_key') else gen_pre_shared_key()
 
     # Check Bandwdith allocations
@@ -178,7 +178,7 @@ def remote_network(
     """
     params = REMOTE_FOLDER
     remote_network_exists: bool = False
-    remote_network_id: str = None
+    remote_network_id: str = ""
     data = create_remote_network_payload(
         remote_network_name=remote_network_name, region=region, spn_name=spn_name)
     if static_enabled:
@@ -245,7 +245,7 @@ def remote_network_update(data: dict, remote_network_id: str):
                               data=json.dumps(data),
                               params=params,
                               verify=config.CERT,
-                              put_object=remote_network_id)
+                              put_object=f'/{remote_network_id}')
     if '_error' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8')) # pylint: disable=no-member
 
@@ -263,7 +263,7 @@ def remote_network_delete(remote_network_id: str) -> dict:
     response = prisma_request(token=auth,
                               method='DELETE',
                               params=params,
-                              delete_object=remote_network_id,
+                              delete_object=f'/{remote_network_id}',
                               verify=config.CERT)
     return response
 

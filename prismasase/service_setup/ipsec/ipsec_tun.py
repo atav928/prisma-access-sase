@@ -29,7 +29,7 @@ def ipsec_tunnel(remote_network_name: str,
     """
     params = REMOTE_FOLDER
     ipsec_tunnel_exists: bool = False
-    ipsec_tunnel_id: str = None
+    ipsec_tunnel_id: str = ""
     ipsec_tunnel_name = f'ipsec-tunnel-{remote_network_name}'
     data = create_ipsec_tunnel_payload(
         remote_network_name=remote_network_name, ipsec_crypto_profile=ipsec_crypto_profile)
@@ -90,7 +90,7 @@ def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str):
                               url_type='ipsec-tunnels',
                               data=json.dumps(data),
                               params=params,
-                              put_object=ipsec_tunnel_id,
+                              put_object=f'/{ipsec_tunnel_id}',
                               verify=config.CERT)
     if '_error' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member

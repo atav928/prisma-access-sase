@@ -24,7 +24,7 @@ def ike_gateway(pre_shared_key: str, remote_network_name: str, local_fqdn: str, 
     params = REMOTE_FOLDER
     ike_gateway_name = f"ike-gw-{remote_network_name}"
     ike_gateway_exists: bool = False
-    ike_gateway_id: str = None
+    ike_gateway_id: str = ""
     data = create_ike_gateway_payload(
         pre_shared_key=pre_shared_key, remote_network_name=remote_network_name,
         local_fqdn=local_fqdn, peer_fqdn=peer_fqdn, ike_crypto_profile=ike_crypto_profile)
@@ -61,7 +61,7 @@ def ike_gateway_update(data: dict, ike_gateway_id: str):
                               data=json.dumps(data),
                               params=params,
                               verify=config.CERT,
-                              put_object=ike_gateway_id)
+                              put_object=f'/{ike_gateway_id}')
     if '_error' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 

@@ -28,6 +28,7 @@ def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]:
         offset (int, Optional): The offset of the result entry
         name (string, Optional): The name of the entry
         potition (str, Optional|Required): Required if inspecting Security Rules
+        get_object (str, Optional): Used if method is "GET", but additional path parameters required
     Returns:
         _type_: _description_
     """
@@ -35,18 +36,18 @@ def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]:
         url_type: str = kwargs['url_type']
         method: str = kwargs['method'].upper()
     except KeyError as err:
-        raise SASEMissingParam(str(err))
+        raise SASEMissingParam(str(err)) # pylint: disable=raise-missing-from
     params: dict = kwargs.get('params', {})
     try:
         url: str = config.REST_API[url_type]
     except KeyError as err:
-        raise SASEMissingParam(f'incorrect url type: {str(err)}')
+        raise SASEMissingParam(f'incorrect url type: {str(err)}') # pylint: disable=raise-missing-from
     if kwargs.get('name'):
         params.update({'name': kwargs.get('name')})
     if kwargs.get('limit'):
-        params.update({'limit': int(kwargs.get('limit'))})
+        params.update({'limit': int(kwargs.get('limit', config.LIMIT))})
     if kwargs.get('offset'):
-        params.update({'offset': int(kwargs.get('offset'))})
+        params.update({'offset': int(kwargs.get('offset', config.OFFSET))})
     url: str = config.REST_API[url_type]
     headers = {"authorization": f"Bearer {token}", "content-type": "application/json"}
     data: str = kwargs.get('data', None)
@@ -54,10 +55,13 @@ def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]:
     timeout: int = kwargs.get('timeout', 90)
     if method.lower() == 'delete':
         delete_object = kwargs['delete_object']
-        url = f"{url}/{delete_object}"
+        url = f"{url}{delete_object}"
     if method.lower() == 'put':
         put_object = kwargs['put_object']
-        url = f"{url}/{put_object}"
+        url = f"{url}{put_object}"
+    if method.lower() == 'get' and kwargs.get('get_object'):
+        get_object = kwargs['get_object']
+        url = f"{url}{get_object}"
     response = requests.request(method=method,
                                 url=url,
                                 headers=headers,
