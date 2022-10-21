@@ -244,6 +244,7 @@ def remote_network_update(data: dict, remote_network_id: str):
                               method='PUT',
                               data=json.dumps(data),
                               params=params,
+                              url_type='remote-networks',
                               verify=config.CERT,
                               put_object=f'/{remote_network_id}')
     if '_error' in response:

@@ -365,6 +365,8 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 | **0.1.5** | **b2** | fixed some issues with erroring and started to build out messaging if interacting directly |
 | **0.1.5** | **b3** | final release test before production merged some missing files from last merger |
 | **0.1.5** | **final** | Production release|
+| **0.1.6** | **a1** | created baseline files and config management structure | 
+| **0.1.6** | **a2** | fixed issues with package names | 
 
 #### For more info
 
@@ -374,6 +376,11 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 
 * Names longer than 31 characters will just fail this is a limitation need to put in a verification on all names to confirm to standards
 * BGP doesn't seem to work, but this looks more like a Prisma Access side issue; need to find out from Palo
+* Configuration Management Bugs:
+  * get configuration by version doesn't work as it still only pulls the list of configurations. This seems like an api issue with Palo Alto
+  * No configuration changes are shown and no way to check diff remotely using config management. Again issue with the way the Pan API's are implemented.
+  * Configuration doesn't allow you to pull to even see if there are changes nor does it show the staged congfig changes that are being pushed. Therefore you cannot determine what folders to push to. Another API limitation
+  
 
 ### Future Features
 

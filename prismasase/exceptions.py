@@ -18,5 +18,8 @@ class SASEBadRequest(SASEError):
 class SASEBadParam(SASEError):
     """Bad Parameter provided"""
 
+class SASECommitError(SASEError):
+    """Commit Error"""
+
 class SASEMissingIkeOrIpsecProfile(SASEMissingParam):
     """Missing IKE or IPSEC Profile"""
