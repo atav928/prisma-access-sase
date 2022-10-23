@@ -354,6 +354,7 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
  - Doing a push would require additional seetings see how to handle prisma_request()
 
 #### Version
+
 | Version | Build | Changes |
 | ------- | ----- | ------- |
 | **0.0.1** | **b1** | Initial Release. |
@@ -365,8 +366,10 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 | **0.1.5** | **b2** | fixed some issues with erroring and started to build out messaging if interacting directly |
 | **0.1.5** | **b3** | final release test before production merged some missing files from last merger |
 | **0.1.5** | **final** | Production release|
-| **0.1.6** | **a1** | created baseline files and config management structure | 
-| **0.1.6** | **a2** | fixed issues with package names | 
+| **0.1.6** | **a1** | created baseline files and config management structure |
+| **0.1.6** | **a2** | fixed issues with package names |
+| **0.1.6** | **a5** | fixed issues with unable to commit due to how the IKE data was getting formated; strange issue with api call |
+| **0.1.6** | **a6** | merged feature to support tags |
 
 #### For more info
 
