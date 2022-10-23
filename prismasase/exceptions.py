@@ -23,3 +23,9 @@ class SASECommitError(SASEError):
 
 class SASEMissingIkeOrIpsecProfile(SASEMissingParam):
     """Missing IKE or IPSEC Profile"""
+
+class SASEObjectError(SASEError):
+    """Generic Object Error"""
+
+class SASEObjectExists(SASEObjectError):
+    """Object already exists"""

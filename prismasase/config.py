@@ -57,7 +57,9 @@ class Config:
         "security-rules": f"{URL_BASE}/security-rules",
         # Configuration Management
         "config-versions": f"{URL_BASE}/config-versions",
-        "jobs": f"{URL_BASE}/jobs"
+        "jobs": f"{URL_BASE}/jobs",
+        # Objects
+        "tags": f"{URL_BASE}/tags"
     }
     LIMIT: int = int(os.environ.get("LIMIT", "100"))
     OFFSET: int = int(os.environ.get("OFFSET", "0"))
