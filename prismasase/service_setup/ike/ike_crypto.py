@@ -14,7 +14,7 @@ def ike_crypto_profiles_get(ike_crypto_profile: str) -> str:
     Returns:
         str: _description_
     """
-    ike_crypto_profile_id = None
+    ike_crypto_profile_id = ""
     #ike_crypto_profile_exists: bool = False
     params = REMOTE_FOLDER
     ike_crypto_profiles = prisma_request(

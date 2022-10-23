@@ -59,6 +59,9 @@ def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]:
     if method.lower() == 'put':
         put_object = kwargs['put_object']
         url = f"{url}{put_object}"
+    if method.lower() == 'post' and kwargs.get('post_object'):
+        post_object = kwargs['post_object']
+        url = f"{url}{post_object}"
     if method.lower() == 'get' and kwargs.get('get_object'):
         get_object = kwargs['get_object']
         url = f"{url}{get_object}"
@@ -69,6 +72,9 @@ def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]:
                                 params=params,
                                 verify=verify,
                                 timeout=timeout)
+    if response.status_code == 404:
+        print(response.json())
+        print('fail')
     if '_error' in response.json():
         raise SASEBadRequest(orjson.dumps(response.json()).decode('utf-8'))  # pylint: disable=no-member
     if response.status_code == 400:

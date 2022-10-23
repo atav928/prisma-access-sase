@@ -14,7 +14,7 @@ def ipsec_crypto_profiles_get(ipsec_crypto_profile: str) -> str:
     Returns:
         bool: _description_
     """
-    ipsec_crypto_profile_id: str = None
+    ipsec_crypto_profile_id: str = ""
     # ipsec_crypto_profile_exists: bool = False
     params = REMOTE_FOLDER
     ipsec_crypto_profiles = prisma_request(token=auth,

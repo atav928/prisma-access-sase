@@ -16,6 +16,7 @@ from ..ipsec.ipsec_crypto import ipsec_crypto_profiles_get
 from ..ike.ike_crypto import ike_crypto_profiles_get
 from ..ike.ike_gtwy import ike_gateway
 
+
 def bulk_import_remote_networks(remote_sites: list):
     """_summary_
 
@@ -27,7 +28,7 @@ def bulk_import_remote_networks(remote_sites: list):
     pass
 
 
-def create_remote_network(**kwargs) -> Dict[str, Any]: # pylint: disable=too-many-locals
+def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-many-locals
     """Creates a Remote Nework IPSec Tunnel
 
     Args:
@@ -45,6 +46,10 @@ def create_remote_network(**kwargs) -> Dict[str, Any]: # pylint: disable=too-man
         spn_name: str = kwargs['spn_name']
         ike_crypto_profile: str = kwargs['ike_crypto_profile']
         ipsec_crypto_profile: str = kwargs['ipsec_crypto_profile']
+        ike_gateway_name: str = kwargs['ike_gateway_name'] if kwargs.get(
+            'ike_gateway_name') else f"ike-gwy-{remote_network_name}"
+        ipsec_tunnel_name: str = kwargs['ipsec_tunnel_name'] if kwargs.get(
+            'ipsec_tunnal_name') else f"ipsec-tunnel-{remote_network_name}"
         local_fqdn: str = kwargs['local_fqdn']
         peer_fqdn: str = kwargs['peer_fqdn']
         tunnel_monitor: bool = bool(kwargs['tunnel_monitor'].lower() in ['true'])
@@ -73,20 +78,23 @@ def create_remote_network(**kwargs) -> Dict[str, Any]: # pylint: disable=too-man
             f'Missing a profile in configurations {ike_crypto_profile=}, {ipsec_crypto_profile=}')
     print(f"INFO: Verified {region=} and {spn_name=} exist")
     # Create IKE Gateway
-    ike_gateway(remote_network_name=remote_network_name,
-                pre_shared_key=pre_shared_key,
+    print(f"INFO: IKE Gateway Name = {ike_gateway_name}")
+    ike_gateway(pre_shared_key=pre_shared_key,
                 local_fqdn=local_fqdn,
                 peer_fqdn=peer_fqdn,
-                ike_crypto_profile=ike_crypto_profile)
+                ike_crypto_profile=ike_crypto_profile,
+                ike_gateway_name=ike_gateway_name)
 
     # Create IPSec Tunnel
-    ipsec_tunnel(remote_network_name=remote_network_name,
+    ipsec_tunnel(ipsec_tunnel_name=ipsec_tunnel_name,
                  ipsec_crypto_profile=ipsec_crypto_profile,
+                 ike_gateway_name=ike_gateway_name,
                  tunnel_monitor=tunnel_monitor,
                  monitor_ip=monitor_ip)
 
     # Create Remote Network
     remote_network(remote_network_name=remote_network_name,
+                   ipsec_tunnel_name=ipsec_tunnel_name,
                    region=region,
                    spn_name=spn_name,
                    static_enabled=static_enabled,
@@ -98,9 +106,9 @@ def create_remote_network(**kwargs) -> Dict[str, Any]: # pylint: disable=too-man
     response = {
         "@status": "success",
         "created": {
-            "ipsec_tunnel": f"ipsec-tunnel-{remote_network_name}",
+            "ipsec_tunnel": ipsec_tunnel_name,
             "ipsec_crypto_profile": ipsec_crypto_profile,
-            "ike_gateway": f"ike-gw-{remote_network_name}",
+            "ike_gateway": ike_gateway_name,
             "ike_crypto_profile": ike_crypto_profile,
             "pre_shared_key": pre_shared_key,
             "local_fqdn": local_fqdn,
@@ -142,7 +150,7 @@ def get_bandwidth_allocations() -> List[Dict[str, Any]]:
     """
     params = REMOTE_FOLDER
     bandwidth = prisma_request(token=auth, url_type='bandwidth-allocations',
-                                method='GET', params=params, verify=config.CERT)
+                               method='GET', params=params, verify=config.CERT)
     return bandwidth['data']
 
 
@@ -160,9 +168,12 @@ def verify_ike_ipsec_profiles_exist(ike_crypto_profile: str, ipsec_crypto_profil
                ipsec_crypto_profiles_get(ipsec_crypto_profile=ipsec_crypto_profile)])
 
 
-def remote_network(
-    remote_network_name: str, region: str, spn_name: str, static_enabled: bool,
-        bgp_enabled: bool, **kwargs):
+def remote_network(remote_network_name: str,
+                   ipsec_tunnel_name: str,
+                   region: str,
+                   spn_name: str,
+                   static_enabled: bool,
+                   bgp_enabled: bool, **kwargs):
     """Create a Remote Network
 
     Args:
@@ -179,8 +190,10 @@ def remote_network(
     params = REMOTE_FOLDER
     remote_network_exists: bool = False
     remote_network_id: str = ""
-    data = create_remote_network_payload(
-        remote_network_name=remote_network_name, region=region, spn_name=spn_name)
+    data = create_remote_network_payload(remote_network_name=remote_network_name,
+                                         ipsec_tunnel_name=ipsec_tunnel_name,
+                                         region=region,
+                                         spn_name=spn_name)
     if static_enabled:
         try:
             data["subnets"] = kwargs['static_routing']
@@ -219,6 +232,7 @@ def remote_network_create(data: dict):
         SASEBadRequest: _description_
     """
     params = REMOTE_FOLDER
+    print(f"DEBUG: remote_network_create={json.dumps(data)}")
     response = prisma_request(token=auth,
                               method='POST',
                               url_type='remote-networks',
@@ -226,7 +240,7 @@ def remote_network_create(data: dict):
                               params=params,
                               verify=config.CERT)
     if '_error' in response:
-        raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))# pylint: disable=no-member
+        raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
 def remote_network_update(data: dict, remote_network_id: str):
@@ -248,7 +262,7 @@ def remote_network_update(data: dict, remote_network_id: str):
                               verify=config.CERT,
                               put_object=f'/{remote_network_id}')
     if '_error' in response:
-        raise SASEBadRequest(orjson.dumps(response).decode('utf-8')) # pylint: disable=no-member
+        raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
 def remote_network_delete(remote_network_id: str) -> dict:
@@ -303,6 +317,7 @@ def create_remote_network_bgp_payload(data: dict,
 
 
 def create_remote_network_payload(remote_network_name: str,
+                                  ipsec_tunnel_name: str,
                                   region: str,
                                   spn_name: str) -> Dict[str, Any]:
     """Creates Remote Network Payload
@@ -316,7 +331,7 @@ def create_remote_network_payload(remote_network_name: str,
         Dict[str,Any]: _description_
     """
     data = {
-        "ipsec_tunnel": f"ipsec-tunnel-{remote_network_name}",
+        "ipsec_tunnel": ipsec_tunnel_name,
         "license_type": "FWAAS-AGGREGATE",
         "name": remote_network_name,
         "region": region,
@@ -324,3 +339,44 @@ def create_remote_network_payload(remote_network_name: str,
     }
 
     return data
+
+
+def remote_network_list(limit: int = 200, offset: int = 0) -> dict:
+    """Retrieves a list of all Remote Networks
+
+    Args:
+        limit (int, optional): _description_. Defaults to 200.
+        offset (int, optional): _description_. Defaults to 0.
+
+    Returns:
+        dict: _description_
+    """
+    params = {
+        "limit": limit,
+        "offset": offset
+    }
+    params = {**REMOTE_FOLDER, **params}
+    response = prisma_request(token=auth,
+                              method='GET',
+                              url_type='remote-networks',
+                              params=params,
+                              verify=config.CERT)
+    return response
+
+
+def remote_network_identifier(name: str) -> dict:
+    """Returns Remote Newtork Data Information
+
+    Args:
+        name (str): _description_
+
+    Returns:
+        dict: _description_
+    """
+    response: dict = {}
+    remote_net_list = remote_network_list()
+    for remote_net in remote_net_list['data']:
+        if name in remote_net_list['name']:
+            response = remote_net
+            break
+    return response
