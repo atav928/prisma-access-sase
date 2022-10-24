@@ -370,7 +370,7 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 | **0.1.6** | **a2** | fixed issues with package names |
 | **0.1.6** | **a5** | fixed issues with unable to commit due to how the IKE data was getting formated; strange issue with api call |
 | **0.1.6** | **a6** | merged feature to support tags |
-
+| **0.1.6** | **a7** | added ability to specify folder location for generizing loction defaults it to Remote Networks for reverse compatability |
 #### For more info
 
 * Get help and additional Prisma Access Documentation at <https://pan.dev/sase/>

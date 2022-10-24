@@ -14,6 +14,7 @@ def ipsec_tunnel(ipsec_tunnel_name: str,
                  ipsec_crypto_profile: str,
                  ike_gateway_name: str,
                  tunnel_monitor: bool,
+                 folder: dict,
                  **kwargs):
     """Creates or updates an IPSec Tunnel based on passed parameters.
      Naming convention follows "ipsec-tunnel-<remote_network_name>".
@@ -29,7 +30,7 @@ def ipsec_tunnel(ipsec_tunnel_name: str,
     Raises:
         SASEMissingParam: _description_
     """
-    params = REMOTE_FOLDER
+    params = folder
     ipsec_tunnel_exists: bool = False
     ipsec_tunnel_id: str = ""
     data = create_ipsec_tunnel_payload(ipsec_tunnel_name=ipsec_tunnel_name,
@@ -49,12 +50,12 @@ def ipsec_tunnel(ipsec_tunnel_name: str,
             ipsec_tunnel_exists = True
             ipsec_tunnel_id = tunnel['id']
     if not ipsec_tunnel_exists:
-        ipsec_tunnel_create(data=data)
+        ipsec_tunnel_create(data=data, folder=folder)
     else:
-        ipsec_tunnel_update(data=data, ipsec_tunnel_id=ipsec_tunnel_id)
+        ipsec_tunnel_update(data=data, ipsec_tunnel_id=ipsec_tunnel_id, folder=folder)
 
 
-def ipsec_tunnel_create(data: Dict[str, Any]):
+def ipsec_tunnel_create(data: Dict[str, Any], folder: dict):
     """Creates a new IPsec Tunnel
 
     Args:
@@ -65,7 +66,7 @@ def ipsec_tunnel_create(data: Dict[str, Any]):
     """
     print(f"INFO: Creating IPSec Tunnel {data['name']}")
     print(f"DEBUG: Creating IPSec Tunnel Using data={json.dumps(data)}")
-    params = REMOTE_FOLDER
+    params = folder
     response = prisma_request(token=auth,
                               method="POST",
                               url_type='ipsec-tunnels',
@@ -77,7 +78,7 @@ def ipsec_tunnel_create(data: Dict[str, Any]):
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
-def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str):
+def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str, folder: dict):
     """Updates an IPsec tunnel
 
     Args:
@@ -89,7 +90,7 @@ def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str):
     """
     print(f"INFO: Updating IPSec Tunnel {data['name']}")
     print(f"DEBUG: Updating IPSec Tunnel Using data={json.dumps(data)}")
-    params = REMOTE_FOLDER
+    params = folder
     response = prisma_request(token=auth,
                               method="PUT",
                               url_type='ipsec-tunnels',

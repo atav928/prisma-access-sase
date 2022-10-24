@@ -60,6 +60,8 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
         bgp_peer_ip: str = kwargs['bgp_peer_ip'] if bgp_enabled else ""
         bgp_local_ip: str = kwargs['bgp_local_ip'] if bgp_enabled else ""
         bgp_peer_as: str = kwargs['bgp_peer_as'] if bgp_enabled else ""
+        # Default folder to "Remote Networks" for reverse compatability
+        folder: dict = kwargs['folder'] if kwargs.get('folder') else REMOTE_FOLDER
     except KeyError as err:
         raise SASEMissingParam(f"Missing required parameter: {str(err)}")
     pre_shared_key = kwargs['pre_shared_key'] if kwargs.get(
@@ -67,13 +69,14 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
 
     # Check Bandwdith allocations
     # print(f"{region=},{spn_name=}")
-    bandwidth_check = verify_bandwidth_allocations(name=region, spn_name=spn_name)
+    bandwidth_check = verify_bandwidth_allocations(name=region, spn_name=spn_name, folder=folder)
     if not bandwidth_check:
         raise SASENoBandwidthAllocation(
             "No Bandwidth Association or allocations exists for " + f"{region=} {spn_name=}")
     # Verify IKE and IPSec Profiles exist
-    if not verify_ike_ipsec_profiles_exist(
-            ike_crypto_profile=ike_crypto_profile, ipsec_crypto_profile=ipsec_crypto_profile):
+    if not verify_ike_ipsec_profiles_exist(ike_crypto_profile=ike_crypto_profile,
+                                           ipsec_crypto_profile=ipsec_crypto_profile,
+                                           folder=folder):
         raise SASEMissingIkeOrIpsecProfile(
             f'Missing a profile in configurations {ike_crypto_profile=}, {ipsec_crypto_profile=}')
     print(f"INFO: Verified {region=} and {spn_name=} exist")
@@ -83,7 +86,8 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
                 local_fqdn=local_fqdn,
                 peer_fqdn=peer_fqdn,
                 ike_crypto_profile=ike_crypto_profile,
-                ike_gateway_name=ike_gateway_name)
+                ike_gateway_name=ike_gateway_name,
+                folder=folder)
 
     # Create IPSec Tunnel
     ipsec_tunnel(ipsec_tunnel_name=ipsec_tunnel_name,
@@ -102,7 +106,8 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
                    static_routing=static_routing,
                    bgp_local_ip=bgp_local_ip,
                    bgp_peer_as=bgp_peer_as,
-                   bgp_peer_ip=bgp_peer_ip)
+                   bgp_peer_ip=bgp_peer_ip,
+                   folder=folder)
     response = {
         "@status": "success",
         "created": {
@@ -130,7 +135,7 @@ def verify_bandwidth_allocations(name: str, spn_name: str) -> bool:
         bool: True if exists
     """
     bandwidth_check = False
-    bandwidth = get_bandwidth_allocations()
+    bandwidth = get_bandwidth_allocations(folder=folder)
     if bandwidth:
         for entry in bandwidth:
             if entry['name'].lower() in name.lower():
@@ -139,7 +144,7 @@ def verify_bandwidth_allocations(name: str, spn_name: str) -> bool:
     return bandwidth_check
 
 
-def get_bandwidth_allocations() -> List[Dict[str, Any]]:
+def get_bandwidth_allocations(folder: dict) -> List[Dict[str, Any]]:
     """Gets Bandwith Allocations for Tenant
 
     Args:
@@ -148,13 +153,14 @@ def get_bandwidth_allocations() -> List[Dict[str, Any]]:
     Returns:
         List[Dict[str,Any]]: List of region information and the amount of bdwth allocated
     """
-    params = REMOTE_FOLDER
+    params = folder
     bandwidth = prisma_request(token=auth, url_type='bandwidth-allocations',
                                method='GET', params=params, verify=config.CERT)
     return bandwidth['data']
 
 
-def verify_ike_ipsec_profiles_exist(ike_crypto_profile: str, ipsec_crypto_profile: str) -> bool:
+def verify_ike_ipsec_profiles_exist(
+        ike_crypto_profile: str, ipsec_crypto_profile: str, folder: dict) -> bool:
     """Verifies that both IKE Profile and IPsec Profiles exist
 
     Args:
@@ -164,8 +170,8 @@ def verify_ike_ipsec_profiles_exist(ike_crypto_profile: str, ipsec_crypto_profil
     Returns:
         bool: _description_
     """
-    return all([ike_crypto_profiles_get(ike_crypto_profile=ike_crypto_profile),
-               ipsec_crypto_profiles_get(ipsec_crypto_profile=ipsec_crypto_profile)])
+    return all([ike_crypto_profiles_get(ike_crypto_profile=ike_crypto_profile, folder=folder),
+               ipsec_crypto_profiles_get(ipsec_crypto_profile=ipsec_crypto_profile, folder=folder)])
 
 
 def remote_network(remote_network_name: str,
@@ -173,7 +179,9 @@ def remote_network(remote_network_name: str,
                    region: str,
                    spn_name: str,
                    static_enabled: bool,
-                   bgp_enabled: bool, **kwargs):
+                   bgp_enabled: bool,
+                   folder: dict,
+                   **kwargs):
     """Create a Remote Network
 
     Args:
@@ -187,7 +195,7 @@ def remote_network(remote_network_name: str,
         SASEMissingParam: _description_
         SASEMissingParam: _description_
     """
-    params = REMOTE_FOLDER
+    params = folder
     remote_network_exists: bool = False
     remote_network_id: str = ""
     data = create_remote_network_payload(remote_network_name=remote_network_name,
@@ -217,12 +225,14 @@ def remote_network(remote_network_name: str,
             remote_network_id = network['id']
     # Run create or update functions
     if not remote_network_exists:
-        remote_network_create(data=data)
+        remote_network_create(data=data, folder=folder)
     else:
-        remote_network_update(data=data, remote_network_id=remote_network_id)
+        remote_network_update(data=data,
+                              remote_network_id=remote_network_id,
+                              folder=folder)
 
 
-def remote_network_create(data: dict):
+def remote_network_create(data: dict, folder: dict):
     """Create a new remote nework connection
 
     Args:
@@ -231,7 +241,7 @@ def remote_network_create(data: dict):
     Raises:
         SASEBadRequest: _description_
     """
-    params = REMOTE_FOLDER
+    params = folder
     print(f"DEBUG: remote_network_create={json.dumps(data)}")
     response = prisma_request(token=auth,
                               method='POST',
@@ -243,7 +253,7 @@ def remote_network_create(data: dict):
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
-def remote_network_update(data: dict, remote_network_id: str):
+def remote_network_update(data: dict, remote_network_id: str, folder: dict):
     """Update an existing remote network
 
     Args:
@@ -253,7 +263,7 @@ def remote_network_update(data: dict, remote_network_id: str):
     Raises:
         SASEBadRequest: _description_
     """
-    params = REMOTE_FOLDER
+    params = folder
     response = prisma_request(token=auth,
                               method='PUT',
                               data=json.dumps(data),
@@ -265,7 +275,7 @@ def remote_network_update(data: dict, remote_network_id: str):
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
-def remote_network_delete(remote_network_id: str) -> dict:
+def remote_network_delete(remote_network_id: str, folder: dict) -> dict:
     """DELETE a remote network
 
     Args:
@@ -274,7 +284,7 @@ def remote_network_delete(remote_network_id: str) -> dict:
     Returns:
         dict: _description_
     """
-    params = REMOTE_FOLDER
+    params = folder
     response = prisma_request(token=auth,
                               method='DELETE',
                               params=params,
@@ -341,7 +351,7 @@ def create_remote_network_payload(remote_network_name: str,
     return data
 
 
-def remote_network_list(limit: int = 200, offset: int = 0) -> dict:
+def remote_network_list(folder: dict, limit: int = 200, offset: int = 0) -> dict:
     """Retrieves a list of all Remote Networks
 
     Args:
@@ -355,7 +365,7 @@ def remote_network_list(limit: int = 200, offset: int = 0) -> dict:
         "limit": limit,
         "offset": offset
     }
-    params = {**REMOTE_FOLDER, **params}
+    params = {**folder, **params}
     response = prisma_request(token=auth,
                               method='GET',
                               url_type='remote-networks',
@@ -364,7 +374,7 @@ def remote_network_list(limit: int = 200, offset: int = 0) -> dict:
     return response
 
 
-def remote_network_identifier(name: str) -> dict:
+def remote_network_identifier(name: str, folder: dict) -> dict:
     """Returns Remote Newtork Data Information
 
     Args:
@@ -374,7 +384,7 @@ def remote_network_identifier(name: str) -> dict:
         dict: _description_
     """
     response: dict = {}
-    remote_net_list = remote_network_list()
+    remote_net_list = remote_network_list(folder=folder)
     for remote_net in remote_net_list['data']:
         if name in remote_net_list['name']:
             response = remote_net
