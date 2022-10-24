@@ -59,7 +59,8 @@ class Config:
         "config-versions": f"{URL_BASE}/config-versions",
         "jobs": f"{URL_BASE}/jobs",
         # Objects
-        "tags": f"{URL_BASE}/tags"
+        "tags": f"{URL_BASE}/tags",
+        "addresses": f"{URL_BASE}/"
     }
     LIMIT: int = int(os.environ.get("LIMIT", "100"))
     OFFSET: int = int(os.environ.get("OFFSET", "0"))

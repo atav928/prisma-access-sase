@@ -68,7 +68,7 @@ def config_manage_push(folders: list, description: str = "No Description Provide
         "folders": folders,
         "description": description
     }
-    print(f"{data=}")
+    print(f"DEBUG: {data=}")
     response = prisma_request(token=auth,
                               method='POST',
                               url_type='config-versions',
@@ -92,6 +92,14 @@ def config_manage_show_run() -> dict:
     return response
 
 def config_manage_commit_subjobs(job_id: str) -> list:
+    """Check subjobs
+
+    Args:
+        job_id (str): _description_
+
+    Returns:
+        list: _description_
+    """
     ## list out all jobs then check any job that is higher than the value that you just pushed
     # once that is done than you will need to check the status of each sub commit job
     config_jobs_list = []
@@ -99,6 +107,7 @@ def config_manage_commit_subjobs(job_id: str) -> list:
     for jobs in config_jobs['data']:
         if int(jobs['id']) > int(job_id):
             config_jobs_list.append(jobs['id'])
+    print(f"DEBUG: {','.join(config_jobs_list)}")
     return config_jobs_list
 
 def config_manage_get_config(version_num: str) -> dict:
@@ -242,6 +251,7 @@ def config_commit(
             f"{orjson.dumps(config_job).decode('utf-8')}")  # pylint: disable=no-member
     # check all sub jobs created
     if config_job_subs:
+        # TODO: fix issue here it causes ere
         response['data'].append(config_check_job_id(jobs) for jobs in config_job_subs)
     #if 'error' in config_job_status['status']:
     #    raise SASECommitError(
