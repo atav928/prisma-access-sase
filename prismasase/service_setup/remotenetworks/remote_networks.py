@@ -94,7 +94,8 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
                  ipsec_crypto_profile=ipsec_crypto_profile,
                  ike_gateway_name=ike_gateway_name,
                  tunnel_monitor=tunnel_monitor,
-                 monitor_ip=monitor_ip)
+                 monitor_ip=monitor_ip,
+                 folder=folder)
 
     # Create Remote Network
     remote_network(remote_network_name=remote_network_name,
