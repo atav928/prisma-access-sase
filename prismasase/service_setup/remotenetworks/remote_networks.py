@@ -125,7 +125,7 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
     return response
 
 
-def verify_bandwidth_allocations(name: str, spn_name: str) -> bool:
+def verify_bandwidth_allocations(name: str, spn_name: str, folder: dict) -> bool:
     """Verifies that the region has allocated bandwidth and that the spn exists
 
     Args:
