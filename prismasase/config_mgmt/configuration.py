@@ -1,7 +1,9 @@
+# pylint: disable=no-member
 """Configuration Management Calls"""
 
 import json
 import time
+import datetime
 
 import orjson
 
@@ -75,6 +77,7 @@ def config_manage_push(folders: list, description: str = "No Description Provide
                               post_object='/candidate:push',
                               data=json.dumps(data),
                               verify=config.CERT)
+    print(f"INFO: response={orjson.dumps(response).decode('utf-8')}")
     return response
 
 
@@ -92,7 +95,7 @@ def config_manage_show_run() -> dict:
     return response
 
 def config_manage_commit_subjobs(job_id: str) -> list:
-    """Check subjobs
+    """Check subjobs that were created possibly after Parent Push completes
 
     Args:
         job_id (str): _description_
@@ -107,7 +110,7 @@ def config_manage_commit_subjobs(job_id: str) -> list:
     for jobs in config_jobs['data']:
         if int(jobs['id']) > int(job_id):
             config_jobs_list.append(jobs['id'])
-    print(f"DEBUG: {','.join(config_jobs_list)}")
+    print(f"DEBUG: Config Manage Commit Subjobs returned {','.join(config_jobs_list)}")
     return config_jobs_list
 
 def config_manage_get_config(version_num: str) -> dict:
@@ -167,7 +170,7 @@ def config_manage_list_jobs(limit: int = 5, offset: int = 0) -> dict:
 
 
 def config_manage_list_job_id(job_id: str) -> dict:
-    """List configuration Job by ID
+    """List configuration Job by ID Status Information
 
     Args:
         job_id (str): _description_
@@ -183,48 +186,62 @@ def config_manage_list_job_id(job_id: str) -> dict:
     return response
 
 
-def config_check_job_id(job_id: str, timeout: int = 900) -> dict:
+def config_check_job_id(job_id: str, timeout: int = 2700, interval: int = 30) -> dict:
     """Used to continual check on job id status
 
     Args:
         job_id (str): _description_
-        timeout (int, optional): _description_. Defaults to 900.
+        timeout (int, optional): Prevents infinite loop. Defaults to 2700s (45minutes).
+        interval (int, optional): How often to check
 
     Returns:
         dict: _description_
     """
-    interval = timeout/30
     ending_time = time.time() + timeout
+    start_time = datetime.datetime.now()
     status = ""
     response = {
         'status': 'error',
-        'job_id': job_id,
+        'job_id': {str(job_id): {}},
         }
+    config_job_check = config_manage_list_job_id(job_id=job_id)
+    status = config_job_check['data'][0]['status_str']
+    results = config_job_check['data'][0]['result_str']
     # TODO: When a push is done a CommitAll is set up once that
     #  is completed multiple jobs get spawned and you than have to look 
     # for the new jobs and monitor tose for the commit portion of the 
     # script as that is not returned in the response
     while time.time() < ending_time:
+        if status == 'FIN' and results == 'OK':
+            response['status'] = 'success'
+            response['job_id'][str(job_id)] = config_job_check['data'][0]
+            delta = datetime.datetime.now() - start_time
+            response['job_id'][str(job_id)]['total_time'] = str(delta.seconds)
+            print("INFO: Push returned success")
+            print(f"DEBUG: response={orjson.dumps(config_job_check['data'][0]).decode('utf-8')}")
+            break
+        if status == 'FIN' and results == 'FAIL':
+            response['status'] = 'failure'
+            response['job_id'][str(job_id)] = config_job_check['data'][0]
+            delta = datetime.datetime.now() - start_time
+            response['job_id'][str(job_id)]['total_time'] = str(delta.seconds)
+            print(f"DEBUG: response={orjson.dumps(config_job_check['data'][0]).decode('utf-8')}")
+            break
+        print(f"DEBUG: response={orjson.dumps(config_job_check['data'][0]).decode('utf-8')}")
         time.sleep(interval)
         config_job_check = config_manage_list_job_id(job_id=job_id)
         status = config_job_check['data'][0]['status_str']
-        if status == 'FIN':
-            response['status'] = 'success'
-            response['data'] = config_job_check['data'][0]
-            print("INFO: Push returned success")
-            break
-        response = {**response, **config_job_check['data'][0]}
-        print(f"INFO: response={orjson.dumps(response).decode('utf-8')}") # pylint: disable=no-member
+        results = config_job_check['data'][0]['result_str']
     return response
 
 def config_commit(
-        folders: list, description: str = "No description Provided", timeout: int = 900) -> dict:
+        folders: list, description: str = "No description Provided", timeout: int = 2700) -> dict:
     """Monitor Commit Job for error or success
 
     Args:
         folders (list): _description_
         description (str, optional): _description_. Defaults to "No description Provided".
-        timeout (int, optional): _description_. Defaults to 900.
+        timeout (int, optional): _description_. Defaults to 2700.
 
     Raises:
         SASECommitError: _description_
@@ -233,27 +250,41 @@ def config_commit(
     Returns:
         _type_: _description_
     """
-    response = {'data': []}
+    response = {
+        'status': 'error',
+        'message': '',
+        'parent_job': ''
+    }
     config_job_subs = []
     # initial push of configurations
     config_job = config_manage_push(folders=folders, description=description)
     if 'success' in config_job and config_job.get('success'):
         job_id = config_job['job_id']
         message = config_job['message']
+        response['status'] = 'success'
+        response['message'] = message
+        response['parent_job'] = str(job_id)
         print(f"INFO: Pushed successfully {job_id=}|{message=}")
-        response['data'].append(config_job)
+        print(f"DEBUG: Current Response {orjson.dumps(response).decode('utf-8')}")
         # Check original push appends it to response
-        response['data'].append(config_check_job_id(job_id=job_id, timeout=timeout))
-        # Once that commit is completed there may be additional sub jobs
-        config_job_subs = config_manage_commit_subjobs(job_id=job_id)
+        response_config_check_job = config_check_job_id(job_id=job_id, timeout=timeout)
+        response = {**response, **response_config_check_job}
+        if response['status'] not in ['success']:
+            raise SASECommitError(
+                f"Intial Push failure message=\"{orjson.dumps(response).decode('utf-8')}\"")
     else:
         raise SASECommitError(
-            f"{orjson.dumps(config_job).decode('utf-8')}")  # pylint: disable=no-member
-    # check all sub jobs created
+            f"Error with Push message=\"{orjson.dumps(config_job).decode('utf-8')}\"")
+    # Once that commit is completed there may be additional sub jobs
+    time.sleep(5) # Provide time to create children
+    config_job_subs = config_manage_commit_subjobs(job_id=job_id)
+    print(f"INFO: Additional job search returned Jobs {','.join(config_job_subs)}")
     if config_job_subs:
-        # TODO: fix issue here it causes ere
-        response['data'].append(config_check_job_id(jobs) for jobs in config_job_subs)
-    #if 'error' in config_job_status['status']:
-    #    raise SASECommitError(
-    #        f"{orjson.dumps(config_job).decode('utf-8')}")  # pylint: disable=no-member
+        # TODO: fix issue here it causes here
+        for job in config_job_subs:
+            print(f"INFO: Checking on job_id {job}")
+            response_config_check_job = config_check_job_id(job_id=job, timeout=timeout)
+            response = {**response, **response_config_check_job}
+            print(f"DEBUG: Current Response {orjson.dumps(response).decode('utf-8')}")
+    print(f"INFO: Final Response:\n{json.dumps(response, indent=4)}")
     return response
