@@ -110,7 +110,7 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
                    bgp_peer_ip=bgp_peer_ip,
                    folder=folder)
     response = {
-        "@status": "success",
+        "status": "success",
         "created": {
             "ipsec_tunnel": ipsec_tunnel_name,
             "ipsec_crypto_profile": ipsec_crypto_profile,
@@ -243,7 +243,7 @@ def remote_network_create(data: dict, folder: dict):
         SASEBadRequest: _description_
     """
     params = folder
-    print(f"DEBUG: remote_network_create={json.dumps(data)}")
+    # print(f"DEBUG: remote_network_create={json.dumps(data)}")
     response = prisma_request(token=auth,
                               method='POST',
                               url_type='remote-networks',

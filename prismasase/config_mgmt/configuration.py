@@ -70,7 +70,7 @@ def config_manage_push(folders: list, description: str = "No Description Provide
         "folders": folders,
         "description": description
     }
-    print(f"DEBUG: {data=}")
+    # print(f"DEBUG: {data=}")
     response = prisma_request(token=auth,
                               method='POST',
                               url_type='config-versions',
@@ -110,7 +110,7 @@ def config_manage_commit_subjobs(job_id: str) -> list:
     for jobs in config_jobs['data']:
         if int(jobs['id']) > int(job_id):
             config_jobs_list.append(jobs['id'])
-    print(f"DEBUG: Config Manage Commit Subjobs returned {','.join(config_jobs_list)}")
+    # print(f"DEBUG: Config Manage Commit Subjobs returned {','.join(config_jobs_list)}")
     return config_jobs_list
 
 def config_manage_get_config(version_num: str) -> dict:
@@ -218,16 +218,16 @@ def config_check_job_id(job_id: str, timeout: int = 2700, interval: int = 30) ->
             delta = datetime.datetime.now() - start_time
             response['job_id'][str(job_id)]['total_time'] = str(delta.seconds)
             print("INFO: Push returned success")
-            print(f"DEBUG: response={orjson.dumps(config_job_check['data'][0]).decode('utf-8')}")
+            # print(f"DEBUG: response={orjson.dumps(config_job_check['data'][0]).decode('utf-8')}")
             break
         if status == 'FIN' and results == 'FAIL':
             response['status'] = 'failure'
             response['job_id'][str(job_id)] = config_job_check['data'][0]
             delta = datetime.datetime.now() - start_time
             response['job_id'][str(job_id)]['total_time'] = str(delta.seconds)
-            print(f"DEBUG: response={orjson.dumps(config_job_check['data'][0]).decode('utf-8')}")
+            # print(f"DEBUG: response={orjson.dumps(config_job_check['data'][0]).decode('utf-8')}")
             break
-        print(f"DEBUG: response={orjson.dumps(config_job_check['data'][0]).decode('utf-8')}")
+        # print(f"DEBUG: response={orjson.dumps(config_job_check['data'][0]).decode('utf-8')}")
         time.sleep(interval)
         config_job_check = config_manage_list_job_id(job_id=job_id)
         status = config_job_check['data'][0]['status_str']
@@ -265,10 +265,10 @@ def config_commit(
         response['message'] = message
         response['parent_job'] = str(job_id)
         print(f"INFO: Pushed successfully {job_id=}|{message=}")
-        print(f"DEBUG: Current Response {orjson.dumps(response).decode('utf-8')}")
         # Check original push appends it to response
         response_config_check_job = config_check_job_id(job_id=job_id, timeout=timeout)
         response = {**response, **response_config_check_job}
+        # print(f"DEBUG: Current Response {orjson.dumps(response).decode('utf-8')}")
         if response['status'] not in ['success']:
             raise SASECommitError(
                 f"Intial Push failure message=\"{orjson.dumps(response).decode('utf-8')}\"")
@@ -280,11 +280,18 @@ def config_commit(
     config_job_subs = config_manage_commit_subjobs(job_id=job_id)
     print(f"INFO: Additional job search returned Jobs {','.join(config_job_subs)}")
     if config_job_subs:
-        # TODO: fix issue here it causes here
-        for job in config_job_subs:
-            print(f"INFO: Checking on job_id {job}")
-            response_config_check_job = config_check_job_id(job_id=job, timeout=timeout)
-            response = {**response, **response_config_check_job}
-            print(f"DEBUG: Current Response {orjson.dumps(response).decode('utf-8')}")
+        # TODO: Multithread this as each job runs in parallel and isnt' giving the full picture
+        # Once the status is not success exit out and return the error as it's a problem
+        count = len(config_job_subs)
+        while response['status'] == 'success' and count > 0:
+            for job in config_job_subs:
+                print(f"INFO: Checking on job_id {job}")
+                # uses this to append each job id to the existing job to keep all info
+                response_config_check_job = config_check_job_id(job_id=job, timeout=timeout)
+                response_jobs = {**response['job_id'], **response_config_check_job['job_id']}
+                response['status'] = response['status']
+                response['job_id'] = response_jobs
+                # print(f"DEBUG: Current Response {orjson.dumps(response).decode('utf-8')}")
+                count -= 1
     print(f"INFO: Final Response:\n{json.dumps(response, indent=4)}")
     return response

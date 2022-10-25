@@ -25,7 +25,7 @@ def address_grp_list(folder: str, **kwargs) -> dict:
                               url_type="addresses",
                               params=params,
                               verify=config.CERT)
-    print(f"DEBUG: {response}")
+    #print(f"DEBUG: {response}")
     return response
 
 
