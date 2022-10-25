@@ -1,3 +1,4 @@
 include requirements.txt
 include sample.yaml
 include LICENSE
+include remote_networks.csv

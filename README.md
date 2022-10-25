@@ -349,11 +349,12 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 
 ### Caveats and known issues:
 
- - This is a PREVIEW release; still under works
- - DELETE and PUT actions are still under testing
- - Doing a push would require additional seetings see how to handle prisma_request()
+* This is a PREVIEW release; still under works
+* DELETE and PUT actions are still under testing
+* Doing a push would require additional seetings see how to handle prisma_request()
 
 #### Version
+
 | Version | Build | Changes |
 | ------- | ----- | ------- |
 | **0.0.1** | **b1** | Initial Release. |
@@ -365,6 +366,12 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 | **0.1.5** | **b2** | fixed some issues with erroring and started to build out messaging if interacting directly |
 | **0.1.5** | **b3** | final release test before production merged some missing files from last merger |
 | **0.1.5** | **final** | Production release|
+| **0.1.6** | **a1** | created baseline files and config management structure |
+| **0.1.6** | **a2** | fixed issues with package names |
+| **0.1.6** | **a5** | fixed issues with unable to commit due to how the IKE data was getting formated; strange issue with api call |
+| **0.1.6** | **a6** | merged feature to support tags |
+| **0.1.6** | **a7** | added ability to specify folder location for generizing loction defaults it to Remote Networks for reverse compatability |
+| **0.1.6** | **a8** | fixes issues with config checks and monitors both parent push and all children pushed in configuration to return a response with all the information for each job |
 
 #### For more info
 
@@ -374,6 +381,18 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 
 * Names longer than 31 characters will just fail this is a limitation need to put in a verification on all names to confirm to standards
 * BGP doesn't seem to work, but this looks more like a Prisma Access side issue; need to find out from Palo
+* Configuration Management Bugs:
+  * get configuration by version doesn't work as it still only pulls the list of configurations. This seems like an api issue with Palo Alto
+  * No configuration changes are shown and no way to check diff remotely using config management. Again issue with the way the Pan API's are implemented.
+  * Configuration doesn't allow you to pull to even see if there are changes nor does it show the staged congfig changes that are being pushed. Therefore you cannot determine what folders to push to. Another API limitation
+  * When pushing configuration the job that gets returned is the parent job id and will return a pass if any job passes, but does not report the individual failures. This is a limitation with the SASE API which needs to evaluate all sub jobs.
+  * Error messages are difficult toget as summary of job does not provide error.
+  * Load configuration or previous configuration continues to get access deny error. Which requires super user permissions.
+    * No way to restore, just push an old configuration.
+    * Even with full permission Loading any configuration continually reports success, but message always reads: "Config loaded from <config_id>. Migration of old configuration was not successful. Some features may not work as expected and/or parts of configuration may have been lost." leading to nothing actually being done.
+  * No way to get Configuration Status or Last Good Config easily
+  * issues with how IKE api calls are made. When done according to documenation it does not work; I copied a duplicate configuration that should not work, but actually works. Compared original to new code and difference is location of key,value pairs plus duplicate keys, which goes against a proper dictionary creation and could possibly cause issues.
+  
 
 ### Future Features
 

@@ -10,29 +10,32 @@ from prismasase.restapi import prisma_request
 from prismasase.statics import REMOTE_FOLDER
 
 
-def ipsec_tunnel(remote_network_name: str,
+def ipsec_tunnel(ipsec_tunnel_name: str,
                  ipsec_crypto_profile: str,
+                 ike_gateway_name: str,
                  tunnel_monitor: bool,
+                 folder: dict,
                  **kwargs):
     """Creates or updates an IPSec Tunnel based on passed parameters.
      Naming convention follows "ipsec-tunnel-<remote_network_name>".
      example: "ipsec-tunnel-newyork"
 
     Args:
-        remote_network_name (str): _description_
+        ipsec_tunnel_name (str): _description_
         ipsec_crypto_profile (str): _description_
+        ike_gateway_name (str): ike gateway name
         tunnel_monitor (bool): _description_
         monitor_ip (str, Optional): needed if tunnel_monitor is set to True
 
     Raises:
         SASEMissingParam: _description_
     """
-    params = REMOTE_FOLDER
+    params = folder
     ipsec_tunnel_exists: bool = False
-    ipsec_tunnel_id: str = None
-    ipsec_tunnel_name = f'ipsec-tunnel-{remote_network_name}'
-    data = create_ipsec_tunnel_payload(
-        remote_network_name=remote_network_name, ipsec_crypto_profile=ipsec_crypto_profile)
+    ipsec_tunnel_id: str = ""
+    data = create_ipsec_tunnel_payload(ipsec_tunnel_name=ipsec_tunnel_name,
+                                       ipsec_crypto_profile=ipsec_crypto_profile,
+                                       ike_gateway_name=ike_gateway_name)
     if tunnel_monitor and kwargs.get('monitor_ip'):
         data["tunnel_monitor"] = {"destination_ip": kwargs["monitor_ip"], "enable": True}
     else:
@@ -47,12 +50,12 @@ def ipsec_tunnel(remote_network_name: str,
             ipsec_tunnel_exists = True
             ipsec_tunnel_id = tunnel['id']
     if not ipsec_tunnel_exists:
-        ipsec_tunnel_create(data=data)
+        ipsec_tunnel_create(data=data, folder=folder)
     else:
-        ipsec_tunnel_update(data=data, ipsec_tunnel_id=ipsec_tunnel_id)
+        ipsec_tunnel_update(data=data, ipsec_tunnel_id=ipsec_tunnel_id, folder=folder)
 
 
-def ipsec_tunnel_create(data: Dict[str, Any]):
+def ipsec_tunnel_create(data: Dict[str, Any], folder: dict):
     """Creates a new IPsec Tunnel
 
     Args:
@@ -62,18 +65,20 @@ def ipsec_tunnel_create(data: Dict[str, Any]):
         SASEBadRequest: _description_
     """
     print(f"INFO: Creating IPSec Tunnel {data['name']}")
-    params = REMOTE_FOLDER
+    print(f"DEBUG: Creating IPSec Tunnel Using data={json.dumps(data)}")
+    params = folder
     response = prisma_request(token=auth,
                               method="POST",
                               url_type='ipsec-tunnels',
                               data=json.dumps(data),
                               params=params,
                               verify=config.CERT)
+    print(f"DEBUG: response={response}")
     if '_error' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
-def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str):
+def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str, folder: dict):
     """Updates an IPsec tunnel
 
     Args:
@@ -84,26 +89,30 @@ def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str):
         SASEBadRequest: _description_
     """
     print(f"INFO: Updating IPSec Tunnel {data['name']}")
-    params = REMOTE_FOLDER
+    print(f"DEBUG: Updating IPSec Tunnel Using data={json.dumps(data)}")
+    params = folder
     response = prisma_request(token=auth,
                               method="PUT",
                               url_type='ipsec-tunnels',
                               data=json.dumps(data),
                               params=params,
-                              put_object=ipsec_tunnel_id,
+                              put_object=f'/{ipsec_tunnel_id}',
                               verify=config.CERT)
+    print(f"DEBUG: response={response}")
     if '_error' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
-def create_ipsec_tunnel_payload(
-        remote_network_name: str,
-        ipsec_crypto_profile: str) -> Dict[str, Any]:
+def  create_ipsec_tunnel_payload(
+        ipsec_tunnel_name: str,
+        ipsec_crypto_profile: str,
+        ike_gateway_name) -> Dict[str, Any]:
     """Creates a brand new IPsec Tunnel
 
     Args:
         remote_network_name (str): _description_
         ipsec_crypto_profile (str): _description_
+        ike_gateway_name (str)
 
     Returns:
         Dict[str, Any]: _description_
@@ -113,13 +122,13 @@ def create_ipsec_tunnel_payload(
         "auto_key": {
             "ike_gateway": [
                 {
-                    "name": f"ike-gw-{remote_network_name}"
+                    "name": ike_gateway_name
                 }
             ],
             "ipsec_crypto_profile": ipsec_crypto_profile
         },
         "copy_tos": False,
         "enable_gre_encapsulation": False,
-        "name": f"ipsec-tunnel-{remote_network_name}"
+        "name": ipsec_tunnel_name
     }
     return data
