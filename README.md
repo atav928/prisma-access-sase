@@ -349,9 +349,9 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 
 ### Caveats and known issues:
 
- - This is a PREVIEW release; still under works
- - DELETE and PUT actions are still under testing
- - Doing a push would require additional seetings see how to handle prisma_request()
+* This is a PREVIEW release; still under works
+* DELETE and PUT actions are still under testing
+* Doing a push would require additional seetings see how to handle prisma_request()
 
 #### Version
 
