@@ -5,7 +5,8 @@ from typing import Any, Dict, List
 import json
 import orjson
 
-from prismasase import auth, config
+from prismasase import config
+from prismasase.config import Auth
 from prismasase.exceptions import (
     SASEBadRequest, SASEMissingIkeOrIpsecProfile, SASEMissingParam, SASENoBandwidthAllocation)
 from prismasase.restapi import prisma_request
@@ -41,6 +42,9 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
     """
     response = {}
     try:
+        auth = kwargs['auth'] if kwargs.get('auth') else ""
+        if not auth:
+            auth = Auth(config.CLIENT_ID, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
         remote_network_name: str = kwargs['remote_network_name']
         region: str = kwargs['region']
         spn_name: str = kwargs['spn_name']
@@ -69,25 +73,27 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
 
     # Check Bandwdith allocations
     # print(f"{region=},{spn_name=}")
-    bandwidth_check = verify_bandwidth_allocations(name=region, spn_name=spn_name, folder=folder)
+    bandwidth_check = verify_bandwidth_allocations(
+        name=region, spn_name=spn_name, folder=folder, auth=auth)
     if not bandwidth_check:
         raise SASENoBandwidthAllocation(
             "No Bandwidth Association or allocations exists for " + f"{region=} {spn_name=}")
     # Verify IKE and IPSec Profiles exist
     if not verify_ike_ipsec_profiles_exist(ike_crypto_profile=ike_crypto_profile,
                                            ipsec_crypto_profile=ipsec_crypto_profile,
-                                           folder=folder):
+                                           folder=folder, auth=auth):
         raise SASEMissingIkeOrIpsecProfile(
             f'Missing a profile in configurations {ike_crypto_profile=}, {ipsec_crypto_profile=}')
     print(f"INFO: Verified {region=} and {spn_name=} exist")
     # Create IKE Gateway
     print(f"INFO: IKE Gateway Name = {ike_gateway_name}")
+    # Create IKE Gateway
     ike_gateway(pre_shared_key=pre_shared_key,
                 local_fqdn=local_fqdn,
                 peer_fqdn=peer_fqdn,
                 ike_crypto_profile=ike_crypto_profile,
                 ike_gateway_name=ike_gateway_name,
-                folder=folder)
+                folder=folder, auth=auth)
 
     # Create IPSec Tunnel
     ipsec_tunnel(ipsec_tunnel_name=ipsec_tunnel_name,
@@ -95,7 +101,7 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
                  ike_gateway_name=ike_gateway_name,
                  tunnel_monitor=tunnel_monitor,
                  monitor_ip=monitor_ip,
-                 folder=folder)
+                 folder=folder, auth=auth)
 
     # Create Remote Network
     remote_network(remote_network_name=remote_network_name,
@@ -108,7 +114,7 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
                    bgp_local_ip=bgp_local_ip,
                    bgp_peer_as=bgp_peer_as,
                    bgp_peer_ip=bgp_peer_ip,
-                   folder=folder)
+                   folder=folder, auth=auth)
     response = {
         "status": "success",
         "created": {
@@ -125,7 +131,7 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
     return response
 
 
-def verify_bandwidth_allocations(name: str, spn_name: str, folder: dict) -> bool:
+def verify_bandwidth_allocations(name: str, spn_name: str, folder: dict, **kwargs) -> bool:
     """Verifies that the region has allocated bandwidth and that the spn exists
 
     Args:
@@ -135,8 +141,11 @@ def verify_bandwidth_allocations(name: str, spn_name: str, folder: dict) -> bool
     Returns:
         bool: True if exists
     """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
     bandwidth_check = False
-    bandwidth = get_bandwidth_allocations(folder=folder)
+    bandwidth = get_bandwidth_allocations(folder=folder, auth=auth)
     if bandwidth:
         for entry in bandwidth:
             if entry['name'].lower() in name.lower():
@@ -145,7 +154,7 @@ def verify_bandwidth_allocations(name: str, spn_name: str, folder: dict) -> bool
     return bandwidth_check
 
 
-def get_bandwidth_allocations(folder: dict) -> List[Dict[str, Any]]:
+def get_bandwidth_allocations(folder: dict, **kwargs) -> List[Dict[str, Any]]:
     """Gets Bandwith Allocations for Tenant
 
     Args:
@@ -154,14 +163,19 @@ def get_bandwidth_allocations(folder: dict) -> List[Dict[str, Any]]:
     Returns:
         List[Dict[str,Any]]: List of region information and the amount of bdwth allocated
     """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
     params = folder
     bandwidth = prisma_request(token=auth, url_type='bandwidth-allocations',
                                method='GET', params=params, verify=config.CERT)
     return bandwidth['data']
 
 
-def verify_ike_ipsec_profiles_exist(
-        ike_crypto_profile: str, ipsec_crypto_profile: str, folder: dict) -> bool:
+def verify_ike_ipsec_profiles_exist(ike_crypto_profile: str,
+                                    ipsec_crypto_profile: str,
+                                    folder: dict,
+                                    **kwargs) -> bool:
     """Verifies that both IKE Profile and IPsec Profiles exist
 
     Args:
@@ -171,8 +185,13 @@ def verify_ike_ipsec_profiles_exist(
     Returns:
         bool: _description_
     """
-    return all([ike_crypto_profiles_get(ike_crypto_profile=ike_crypto_profile, folder=folder),
-               ipsec_crypto_profiles_get(ipsec_crypto_profile=ipsec_crypto_profile, folder=folder)])
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
+    return all([ike_crypto_profiles_get(
+        ike_crypto_profile=ike_crypto_profile, folder=folder, **kwargs),
+        ipsec_crypto_profiles_get(
+        ipsec_crypto_profile=ipsec_crypto_profile, folder=folder, **kwargs)])
 
 
 def remote_network(remote_network_name: str,
@@ -196,6 +215,9 @@ def remote_network(remote_network_name: str,
         SASEMissingParam: _description_
         SASEMissingParam: _description_
     """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
     params = folder
     remote_network_exists: bool = False
     remote_network_id: str = ""
@@ -226,14 +248,14 @@ def remote_network(remote_network_name: str,
             remote_network_id = network['id']
     # Run create or update functions
     if not remote_network_exists:
-        remote_network_create(data=data, folder=folder)
+        remote_network_create(data=data, folder=folder, auth=auth)
     else:
         remote_network_update(data=data,
                               remote_network_id=remote_network_id,
-                              folder=folder)
+                              folder=folder, auth=auth)
 
 
-def remote_network_create(data: dict, folder: dict):
+def remote_network_create(data: dict, folder: dict, **kwargs):
     """Create a new remote nework connection
 
     Args:
@@ -242,6 +264,9 @@ def remote_network_create(data: dict, folder: dict):
     Raises:
         SASEBadRequest: _description_
     """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
     params = folder
     # print(f"DEBUG: remote_network_create={json.dumps(data)}")
     response = prisma_request(token=auth,
@@ -254,7 +279,7 @@ def remote_network_create(data: dict, folder: dict):
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
-def remote_network_update(data: dict, remote_network_id: str, folder: dict):
+def remote_network_update(data: dict, remote_network_id: str, folder: dict, **kwargs):
     """Update an existing remote network
 
     Args:
@@ -264,6 +289,9 @@ def remote_network_update(data: dict, remote_network_id: str, folder: dict):
     Raises:
         SASEBadRequest: _description_
     """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
     params = folder
     response = prisma_request(token=auth,
                               method='PUT',
@@ -276,7 +304,7 @@ def remote_network_update(data: dict, remote_network_id: str, folder: dict):
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
-def remote_network_delete(remote_network_id: str, folder: dict) -> dict:
+def remote_network_delete(remote_network_id: str, folder: dict, **kwargs) -> dict:
     """DELETE a remote network
 
     Args:
@@ -285,6 +313,9 @@ def remote_network_delete(remote_network_id: str, folder: dict) -> dict:
     Returns:
         dict: _description_
     """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
     params = folder
     response = prisma_request(token=auth,
                               method='DELETE',
@@ -352,7 +383,7 @@ def create_remote_network_payload(remote_network_name: str,
     return data
 
 
-def remote_network_list(folder: dict, limit: int = 200, offset: int = 0) -> dict:
+def remote_network_list(folder: dict, limit: int = 200, offset: int = 0, **kwargs) -> dict:
     """Retrieves a list of all Remote Networks
 
     Args:
@@ -362,6 +393,9 @@ def remote_network_list(folder: dict, limit: int = 200, offset: int = 0) -> dict
     Returns:
         dict: _description_
     """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
     params = {
         "limit": limit,
         "offset": offset
@@ -375,7 +409,7 @@ def remote_network_list(folder: dict, limit: int = 200, offset: int = 0) -> dict
     return response
 
 
-def remote_network_identifier(name: str, folder: dict) -> dict:
+def remote_network_identifier(name: str, folder: dict, **kwargs) -> dict:
     """Returns Remote Newtork Data Information
 
     Args:
@@ -384,8 +418,11 @@ def remote_network_identifier(name: str, folder: dict) -> dict:
     Returns:
         dict: _description_
     """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
     response: dict = {}
-    remote_net_list = remote_network_list(folder=folder)
+    remote_net_list = remote_network_list(folder=folder, auth=auth)
     for remote_net in remote_net_list['data']:
         if name in remote_net_list['name']:
             response = remote_net

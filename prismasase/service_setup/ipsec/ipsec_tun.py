@@ -4,7 +4,8 @@ import json
 from typing import Any, Dict
 import orjson
 
-from prismasase import auth, config
+from prismasase import config
+from prismasase.config import Auth
 from prismasase.exceptions import SASEBadRequest, SASEMissingParam
 from prismasase.restapi import prisma_request
 from prismasase.statics import REMOTE_FOLDER
@@ -30,6 +31,9 @@ def ipsec_tunnel(ipsec_tunnel_name: str,
     Raises:
         SASEMissingParam: _description_
     """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
     params = folder
     ipsec_tunnel_exists: bool = False
     ipsec_tunnel_id: str = ""
@@ -50,12 +54,12 @@ def ipsec_tunnel(ipsec_tunnel_name: str,
             ipsec_tunnel_exists = True
             ipsec_tunnel_id = tunnel['id']
     if not ipsec_tunnel_exists:
-        ipsec_tunnel_create(data=data, folder=folder)
+        ipsec_tunnel_create(data=data, folder=folder, auth=auth)
     else:
-        ipsec_tunnel_update(data=data, ipsec_tunnel_id=ipsec_tunnel_id, folder=folder)
+        ipsec_tunnel_update(data=data, ipsec_tunnel_id=ipsec_tunnel_id, folder=folder, auth=auth)
 
 
-def ipsec_tunnel_create(data: Dict[str, Any], folder: dict):
+def ipsec_tunnel_create(data: Dict[str, Any], folder: dict, **kwargs):
     """Creates a new IPsec Tunnel
 
     Args:
@@ -64,6 +68,9 @@ def ipsec_tunnel_create(data: Dict[str, Any], folder: dict):
     Raises:
         SASEBadRequest: _description_
     """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
     print(f"INFO: Creating IPSec Tunnel {data['name']}")
     print(f"DEBUG: Creating IPSec Tunnel Using data={json.dumps(data)}")
     params = folder
@@ -78,7 +85,7 @@ def ipsec_tunnel_create(data: Dict[str, Any], folder: dict):
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
-def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str, folder: dict):
+def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str, folder: dict, **kwargs):
     """Updates an IPsec tunnel
 
     Args:
@@ -88,6 +95,9 @@ def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str, folder: dict
     Raises:
         SASEBadRequest: _description_
     """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
     print(f"INFO: Updating IPSec Tunnel {data['name']}")
     print(f"DEBUG: Updating IPSec Tunnel Using data={json.dumps(data)}")
     params = folder

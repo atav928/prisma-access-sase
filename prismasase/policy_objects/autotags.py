@@ -2,7 +2,8 @@
 
 import json
 
-from prismasase import config, auth
+from prismasase import config
+from prismasase.config import Auth
 from prismasase.exceptions import SASEAutoTagError, SASEAutoTagExists, SASEAutoTagTooLong
 from prismasase.utilities import default_params, check_name_length
 from prismasase.statics import AUTOTAG_ACTIONS, AUTOTAG_TARGET, SHARED_FOLDER
@@ -16,6 +17,9 @@ def auto_tag_list(**kwargs) -> dict:
     Returns:
         dict: _description_
     """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
     params = default_params(**kwargs)
     params = {**params, **SHARED_FOLDER}
     # Check for a named tag that may already exist
@@ -43,6 +47,9 @@ def auto_tag_create(name: str, tag_filter: str, actions: list, **kwargs) -> dict
     Returns:
         dict: _description_
     """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
     params = SHARED_FOLDER
     # Confirm doesn't already exist
     response = auto_tag_list(name=name)

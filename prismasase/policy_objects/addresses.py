@@ -1,6 +1,7 @@
 """Address Objects"""
 
-from prismasase import config, auth
+from prismasase import config
+from prismasase.config import Auth
 from prismasase.statics import FOLDER
 from prismasase.utilities import default_params
 from prismasase.restapi import prisma_request
@@ -15,6 +16,9 @@ def addresses_list(folder: str, **kwargs) -> dict:
     Returns:
         dict: _description_
     """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
     params = default_params(**kwargs)
     params = {**FOLDER[folder], **params}
     if kwargs.get('name'):
