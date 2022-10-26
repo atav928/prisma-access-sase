@@ -29,3 +29,12 @@ class SASEObjectError(SASEError):
 
 class SASEObjectExists(SASEObjectError):
     """Object already exists"""
+
+class SASEAutoTagError(SASEObjectError):
+    """Auto Tag Generic Error"""
+
+class SASEAutoTagExists(SASEAutoTagError):
+    """Auto Tag Already Exists Cannot Create"""
+
+class SASEAutoTagTooLong(SASEAutoTagError):
+    """Problem arrises when filter is too long"""

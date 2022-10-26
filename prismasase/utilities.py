@@ -14,8 +14,9 @@ def gen_pre_shared_key(length: int = 24) -> str:
     return secrets.token_urlsafe(length)
 
 
-def check_name_length(name: str) -> bool:
-    """Prisma SASE names must be <= 31 characters or else it will be rejected
+def check_name_length(name: str, length: int = 31) -> bool:
+    """Prisma SASE names must be <= 31 characters or else it will be rejected.
+    Filtered objects can be <= 2047 and some names can be <=63, Need to adjust as needed.
 
     Args:
         name (str): _description_
@@ -23,7 +24,7 @@ def check_name_length(name: str) -> bool:
     Returns:
         bool: _description_
     """
-    return bool(len(name) <= 31)
+    return bool(len(name) <= length)
 
 
 def check_items_in_list(list_of_items: list, full_list: list) -> bool:

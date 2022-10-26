@@ -60,7 +60,8 @@ class Config:
         "jobs": f"{URL_BASE}/jobs",
         # Objects
         "tags": f"{URL_BASE}/tags",
-        "addresses": f"{URL_BASE}/"
+        "addresses": f"{URL_BASE}/addresses",
+        "auto-tag-actions": f"{URL_BASE}/auto-tag-actions"
     }
     LIMIT: int = int(os.environ.get("LIMIT", "100"))
     OFFSET: int = int(os.environ.get("OFFSET", "0"))
