@@ -83,7 +83,8 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
                                            ipsec_crypto_profile=ipsec_crypto_profile,
                                            folder=folder, auth=auth):
         raise SASEMissingIkeOrIpsecProfile(
-            f'Missing a profile in configurations {ike_crypto_profile=}, {ipsec_crypto_profile=}')
+            'message=\"Missing a profile in configurations\"|' +
+            f'{ike_crypto_profile=}|{ipsec_crypto_profile=}')
     print(f"INFO: Verified {region=} and {spn_name=} exist")
     # Create IKE Gateway
     print(f"INFO: IKE Gateway Name = {ike_gateway_name}")
@@ -229,7 +230,8 @@ def remote_network(remote_network_name: str,
         try:
             data["subnets"] = kwargs['static_routing']
         except KeyError as err:
-            raise SASEMissingParam(f'{str(err)} required when static_enabled is True')
+            raise SASEMissingParam(
+                f'message=\"required when static_enabled is True\"|missing={str(err)}')
     if bgp_enabled:
         try:
             data = create_remote_network_bgp_payload(data=data,
@@ -239,8 +241,11 @@ def remote_network(remote_network_name: str,
         except KeyError as err:
             raise SASEMissingParam(f"{str(err)} is required when bgp_enabled set to True")
     # Check if remote network already exists
-    remote_networks = prisma_request(
-        token=auth, url_type='remote-networks', method='GET', params=params, verify=config.CERT)
+    remote_networks = prisma_request(token=auth,
+                                     url_type='remote-networks',
+                                     method='GET',
+                                     params=params,
+                                     verify=config.CERT)
     # Check if remote network already exists
     for network in remote_networks['data']:
         if network['name'] == remote_network_name:
@@ -248,11 +253,14 @@ def remote_network(remote_network_name: str,
             remote_network_id = network['id']
     # Run create or update functions
     if not remote_network_exists:
-        remote_network_create(data=data, folder=folder, auth=auth)
+        remote_network_create(data=data,
+                              folder=folder,
+                              auth=auth)
     else:
         remote_network_update(data=data,
                               remote_network_id=remote_network_id,
-                              folder=folder, auth=auth)
+                              folder=folder,
+                              auth=auth)
 
 
 def remote_network_create(data: dict, folder: dict, **kwargs):
@@ -358,28 +366,30 @@ def create_remote_network_bgp_payload(data: dict,
     return data
 
 
-def create_remote_network_payload(remote_network_name: str,
-                                  ipsec_tunnel_name: str,
-                                  region: str,
-                                  spn_name: str) -> Dict[str, Any]:
+def create_remote_network_payload(**kwargs) -> dict:
     """Creates Remote Network Payload
 
     Args:
         remote_network_name (str): _description_
         region (str): _description_
         spn_name (str): _description_
+        name (str): remote network name
+        ipsec_tunnel (str): IPSec Tunnel Name
+        license_type (str): License type
 
     Returns:
-        Dict[str,Any]: _description_
+        dict: data dictionary used for body of request
     """
-    data = {
-        "ipsec_tunnel": ipsec_tunnel_name,
-        "license_type": "FWAAS-AGGREGATE",
-        "name": remote_network_name,
-        "region": region,
-        "spn_name": spn_name
-    }
-
+    try:
+        data = {
+            "ipsec_tunnel": kwargs['ipsec_tunnel_name'],
+            "license_type": kwargs['license_type']
+            if kwargs.get('license_type') else "FWAAS-AGGREGATE",
+            "name": kwargs['remote_network_name'],
+            "region": kwargs['region'],
+            "spn_name": kwargs['spn_name']}
+    except KeyError as err:
+        raise SASEMissingParam(f"message=\"missing param for payload\"|key={str(err)}")
     return data
 
 
