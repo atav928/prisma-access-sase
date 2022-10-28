@@ -81,7 +81,7 @@ def ipsec_tunnel_create(data: Dict[str, Any], folder: dict, **kwargs):
                               params=params,
                               verify=config.CERT)
     print(f"DEBUG: response={response}")
-    if '_error' in response:
+    if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
@@ -109,7 +109,7 @@ def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str, folder: dict
                               put_object=f'/{ipsec_tunnel_id}',
                               verify=config.CERT)
     print(f"DEBUG: response={response}")
-    if '_error' in response:
+    if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 

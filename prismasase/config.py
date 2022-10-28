@@ -99,7 +99,7 @@ class Auth:
         @staticmethod
         def refresh_token(decorated):
             """refreshes token"""
-            def wrapper(token, *args, **kwargs):
+            def wrapper(token: Auth, *args, **kwargs):
                 if time.time() > token.access_token_expiration:
                     # regenerate token and reset timmer
                     token.get_token()
@@ -110,7 +110,7 @@ class Auth:
 
 def refresh_token(decorated):
     """refreshes token"""
-    def wrapper(token, *args, **kwargs):
+    def wrapper(token: Auth, *args, **kwargs):
         if time.time() > token.access_token_expiration:
             # regenerate token and reset timmer
             token.get_token()

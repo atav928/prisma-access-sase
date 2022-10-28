@@ -4,11 +4,12 @@
 from typing import Any, Dict, List
 import json
 import orjson
+import ipaddress
 
 from prismasase import config
 from prismasase.config import Auth
 from prismasase.exceptions import (
-    SASEBadRequest, SASEMissingIkeOrIpsecProfile, SASEMissingParam, SASENoBandwidthAllocation)
+    SASEBadParam, SASEBadRequest, SASEMissingIkeOrIpsecProfile, SASEMissingParam, SASENoBandwidthAllocation)
 from prismasase.restapi import prisma_request
 from prismasase.statics import REMOTE_FOLDER
 from prismasase.utilities import gen_pre_shared_key
@@ -44,7 +45,8 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
     try:
         auth = kwargs['auth'] if kwargs.get('auth') else ""
         if not auth:
-            auth = Auth(config.CLIENT_ID, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
+            auth = Auth(config.CLIENT_ID, config.CLIENT_ID,
+                        config.CLIENT_SECRET, verify=config.CERT)
         remote_network_name: str = kwargs['remote_network_name']
         region: str = kwargs['region']
         spn_name: str = kwargs['spn_name']
@@ -115,7 +117,8 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
                    bgp_local_ip=bgp_local_ip,
                    bgp_peer_as=bgp_peer_as,
                    bgp_peer_ip=bgp_peer_ip,
-                   folder=folder, auth=auth)
+                   folder=folder,
+                   auth=auth)
     response = {
         "status": "success",
         "created": {
@@ -126,6 +129,19 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
             "pre_shared_key": pre_shared_key,
             "local_fqdn": local_fqdn,
             "peer_fqdn": peer_fqdn,
+            "remote_network_name": remote_network_name,
+            "region": region,
+            "spn_name": spn_name,
+            "ike_gateway_name": ike_gateway_name,
+            "ipsec_tunnel_name": ipsec_tunnel_name,
+            "tunnel_monitor": tunnel_monitor,
+            "monitor_ip": monitor_ip,
+            "static_enabled": static_enabled,
+            "static_routing": static_routing,
+            "bgp_enabled": bgp_enabled,
+            "bgp_peer_ip": bgp_peer_ip,
+            "bgp_local_ip": bgp_local_ip,
+            "bgp_peer_as": bgp_peer_as
         }
     }
     print(f"INFO: Created Remote Network \n{json.dumps(response, indent=4)}")
@@ -168,8 +184,12 @@ def get_bandwidth_allocations(folder: dict, **kwargs) -> List[Dict[str, Any]]:
     if not auth:
         auth = Auth(config.CLIENT_ID, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
     params = folder
-    bandwidth = prisma_request(token=auth, url_type='bandwidth-allocations',
-                               method='GET', params=params, verify=config.CERT)
+    # print(f"DEBUG: {auth.verify}")
+    bandwidth = prisma_request(token=auth,
+                               url_type='bandwidth-allocations',
+                               method='GET',
+                               params=params,
+                               verify=auth.verify)
     return bandwidth['data']
 
 
@@ -229,6 +249,11 @@ def remote_network(remote_network_name: str,
     if static_enabled:
         try:
             data["subnets"] = kwargs['static_routing']
+            for subnet in data['subnets']:
+                try:
+                    ipaddress.ip_network(subnet)
+                except ValueError:
+                    raise SASEBadParam(f"message=\"incorrect IP Network\"|{subnet=}")
         except KeyError as err:
             raise SASEMissingParam(
                 f'message=\"required when static_enabled is True\"|missing={str(err)}')
@@ -245,7 +270,7 @@ def remote_network(remote_network_name: str,
                                      url_type='remote-networks',
                                      method='GET',
                                      params=params,
-                                     verify=config.CERT)
+                                     verify=auth.verify)
     # Check if remote network already exists
     for network in remote_networks['data']:
         if network['name'] == remote_network_name:
@@ -276,14 +301,15 @@ def remote_network_create(data: dict, folder: dict, **kwargs):
     if not auth:
         auth = Auth(config.CLIENT_ID, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
     params = folder
-    # print(f"DEBUG: remote_network_create={json.dumps(data)}")
+    print(f"DEBUG: remote_network_create={json.dumps(data)}")
     response = prisma_request(token=auth,
                               method='POST',
                               url_type='remote-networks',
                               data=json.dumps(data),
                               params=params,
-                              verify=config.CERT)
-    if '_error' in response:
+                              verify=auth.verify)
+    print(f"DEBUG: response={response}")
+    if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
@@ -301,14 +327,16 @@ def remote_network_update(data: dict, remote_network_id: str, folder: dict, **kw
     if not auth:
         auth = Auth(config.CLIENT_ID, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
     params = folder
+    print(f"DEBUG: remote_network_create={json.dumps(data)}")
     response = prisma_request(token=auth,
                               method='PUT',
                               data=json.dumps(data),
                               params=params,
                               url_type='remote-networks',
-                              verify=config.CERT,
+                              verify=auth.verify,
                               put_object=f'/{remote_network_id}')
-    if '_error' in response:
+    print(f"DEBUG: response={response}")
+    if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
@@ -329,7 +357,7 @@ def remote_network_delete(remote_network_id: str, folder: dict, **kwargs) -> dic
                               method='DELETE',
                               params=params,
                               delete_object=f'/{remote_network_id}',
-                              verify=config.CERT)
+                              verify=auth.verify)
     return response
 
 
@@ -415,7 +443,7 @@ def remote_network_list(folder: dict, limit: int = 200, offset: int = 0, **kwarg
                               method='GET',
                               url_type='remote-networks',
                               params=params,
-                              verify=config.CERT)
+                              verify=auth.verify)
     return response
 
 
