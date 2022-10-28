@@ -7,13 +7,26 @@ import datetime
 
 import orjson
 
-from prismasase import auth, config
+from prismasase import config
+from prismasase.config import Auth
 from prismasase.exceptions import SASEBadParam, SASECommitError
 from prismasase.restapi import prisma_request
 from prismasase.utilities import check_items_in_list
 
 
-def config_manage_list_versions(limit: int = 50, offset: int = 0):
+def return_auth(**kwargs) -> Auth:
+    """_summary_
+
+    Returns:
+        Auth: _description_
+    """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
+    return auth
+
+
+def config_manage_list_versions(limit: int = 50, offset: int = 0, **kwargs):
     """List the Candidate Configurations
 
     Args:
@@ -23,30 +36,32 @@ def config_manage_list_versions(limit: int = 50, offset: int = 0):
     Returns:
         _type_: _description_
     """
+    auth = return_auth(**kwargs)
     response = prisma_request(token=auth,
                               method='GET',
                               url_type='config-versions',
                               offset=offset,
                               limit=limit,
-                              verify=config.CERT)
+                              verify=auth.verify)
     return response
 
 
-def config_manage_rollback() -> dict:
+def config_manage_rollback(**kwargs) -> dict:
     """Rollback to the running configuration; undoes all staged configs
 
     Returns:
         _type_: _description_
     """
+    auth = return_auth(**kwargs)
     response = prisma_request(token=auth,
                               method='DELETE',
                               url_type='config-versions',
                               delete_object='/candidate',
-                              verify=config.CERT)
+                              verify=auth.verify)
     return response
 
 
-def config_manage_push(folders: list, description: str = "No Description Provided"):
+def config_manage_push(folders: list, description: str = "No Description Provided", **kwargs):
     """Push the Candidate Configuration
 
     Args:
@@ -65,6 +80,7 @@ def config_manage_push(folders: list, description: str = "No Description Provide
     print(f"INFO: pushing candiate config for {str(', '.join(folders))}")
     if not check_items_in_list(list_of_items=folders, full_list=folders_valid):
         raise SASEBadParam(f"Invalid list of folders {str(', '.join(folders))}")
+    auth = return_auth(**kwargs)
     # Set up json body
     data = {
         "folders": folders,
@@ -76,25 +92,27 @@ def config_manage_push(folders: list, description: str = "No Description Provide
                               url_type='config-versions',
                               post_object='/candidate:push',
                               data=json.dumps(data),
-                              verify=config.CERT)
+                              verify=auth.verify)
     print(f"INFO: response={orjson.dumps(response).decode('utf-8')}")
     return response
 
 
-def config_manage_show_run() -> dict:
+def config_manage_show_run(**kwargs) -> dict:
     """Show the running configuratio
 
     Returns:
         dict: _description_
     """
+    auth = return_auth(**kwargs)
     response = prisma_request(token=auth,
                               method='GET',
                               url_type='config-versions',
                               get_object='/running',
-                              verify=config.CERT)
+                              verify=auth.verify)
     return response
 
-def config_manage_commit_subjobs(job_id: str) -> list:
+
+def config_manage_commit_subjobs(job_id: str, **kwargs) -> list:
     """Check subjobs that were created possibly after Parent Push completes
 
     Args:
@@ -103,17 +121,19 @@ def config_manage_commit_subjobs(job_id: str) -> list:
     Returns:
         list: _description_
     """
-    ## list out all jobs then check any job that is higher than the value that you just pushed
+    # list out all jobs then check any job that is higher than the value that you just pushed
     # once that is done than you will need to check the status of each sub commit job
+    auth = return_auth(**kwargs)
     config_jobs_list = []
-    config_jobs = config_manage_list_jobs()
+    config_jobs = config_manage_list_jobs(auth=auth)
     for jobs in config_jobs['data']:
         if int(jobs['id']) > int(job_id):
             config_jobs_list.append(jobs['id'])
     # print(f"DEBUG: Config Manage Commit Subjobs returned {','.join(config_jobs_list)}")
     return config_jobs_list
 
-def config_manage_get_config(version_num: str) -> dict:
+
+def config_manage_get_config(version_num: str, **kwargs) -> dict:
     """Get configuration by version number
 
     Args:
@@ -122,15 +142,16 @@ def config_manage_get_config(version_num: str) -> dict:
     Returns:
         dict: _description_
     """
+    auth = return_auth(**kwargs)
     response = prisma_request(token=auth,
                               method='GET',
                               url_type='config-versions',
                               post_object=f'/{version_num}',
-                              verify=config.CERT)
+                              verify=auth.verify)
     return response
 
 
-def config_manage_load(version_num: str) -> dict:
+def config_manage_load(version_num: str, **kwargs) -> dict:
     """Load a configuration by version number
 
     Args:
@@ -139,6 +160,7 @@ def config_manage_load(version_num: str) -> dict:
     Returns:
         dict: _description_
     """
+    auth = return_auth(**kwargs)
     data = {
         'version': version_num
     }
@@ -147,16 +169,17 @@ def config_manage_load(version_num: str) -> dict:
                               url_type='config-versions',
                               data=json.dumps(data),
                               post_object=':load',
-                              verify=config.CERT)
+                              verify=auth.verify)
     return response
 
 
-def config_manage_list_jobs(limit: int = 5, offset: int = 0) -> dict:
+def config_manage_list_jobs(limit: int = 5, offset: int = 0, **kwargs) -> dict:
     """List configuration Jobs
 
     Returns:
         dict: _description_
     """
+    auth = return_auth(**kwargs)
     params = {
         'limit': limit,
         'offset': offset
@@ -165,11 +188,11 @@ def config_manage_list_jobs(limit: int = 5, offset: int = 0) -> dict:
                               method='GET',
                               url_type='jobs',
                               params=params,
-                              verify=config.CERT)
+                              verify=auth.verify)
     return response
 
 
-def config_manage_list_job_id(job_id: str) -> dict:
+def config_manage_list_job_id(job_id: str, **kwargs) -> dict:
     """List configuration Job by ID Status Information
 
     Args:
@@ -178,15 +201,16 @@ def config_manage_list_job_id(job_id: str) -> dict:
     Returns:
         dict: _description_
     """
+    auth = return_auth(**kwargs)
     response = prisma_request(token=auth,
                               method='GET',
                               url_type='jobs',
                               get_object=f'/{job_id}',
-                              verify=config.CERT)
+                              verify=auth.verify)
     return response
 
 
-def config_check_job_id(job_id: str, timeout: int = 2700, interval: int = 30) -> dict:
+def config_check_job_id(job_id: str, timeout: int = 2700, interval: int = 30, **kwargs) -> dict:
     """Used to continual check on job id status
 
     Args:
@@ -197,19 +221,20 @@ def config_check_job_id(job_id: str, timeout: int = 2700, interval: int = 30) ->
     Returns:
         dict: _description_
     """
+    auth = return_auth(**kwargs)
     ending_time = time.time() + timeout
     start_time = datetime.datetime.now()
     status = ""
     response = {
         'status': 'error',
         'job_id': {str(job_id): {}},
-        }
-    config_job_check = config_manage_list_job_id(job_id=job_id)
+    }
+    config_job_check = config_manage_list_job_id(job_id=job_id, auth=auth)
     status = config_job_check['data'][0]['status_str']
     results = config_job_check['data'][0]['result_str']
     # TODO: When a push is done a CommitAll is set up once that
-    #  is completed multiple jobs get spawned and you than have to look 
-    # for the new jobs and monitor tose for the commit portion of the 
+    #  is completed multiple jobs get spawned and you than have to look
+    # for the new jobs and monitor tose for the commit portion of the
     # script as that is not returned in the response
     while time.time() < ending_time:
         if status == 'FIN' and results == 'OK':
@@ -229,13 +254,14 @@ def config_check_job_id(job_id: str, timeout: int = 2700, interval: int = 30) ->
             break
         # print(f"DEBUG: response={orjson.dumps(config_job_check['data'][0]).decode('utf-8')}")
         time.sleep(interval)
-        config_job_check = config_manage_list_job_id(job_id=job_id)
+        config_job_check = config_manage_list_job_id(job_id=job_id, auth=auth)
         status = config_job_check['data'][0]['status_str']
         results = config_job_check['data'][0]['result_str']
     return response
 
+
 def config_commit(
-        folders: list, description: str = "No description Provided", timeout: int = 2700) -> dict:
+        folders: list, description: str = "No description Provided", timeout: int = 2700, **kwargs) -> dict:
     """Monitor Commit Job for error or success
 
     Args:
@@ -250,6 +276,7 @@ def config_commit(
     Returns:
         _type_: _description_
     """
+    auth = return_auth(**kwargs)
     response = {
         'status': 'error',
         'message': '',
@@ -257,7 +284,7 @@ def config_commit(
     }
     config_job_subs = []
     # initial push of configurations
-    config_job = config_manage_push(folders=folders, description=description)
+    config_job = config_manage_push(folders=folders, description=description, auth=auth)
     if 'success' in config_job and config_job.get('success'):
         job_id = config_job['job_id']
         message = config_job['message']
@@ -266,7 +293,7 @@ def config_commit(
         response['parent_job'] = str(job_id)
         print(f"INFO: Pushed successfully {job_id=}|{message=}")
         # Check original push appends it to response
-        response_config_check_job = config_check_job_id(job_id=job_id, timeout=timeout)
+        response_config_check_job = config_check_job_id(job_id=job_id, timeout=timeout, auth=auth)
         response = {**response, **response_config_check_job}
         # print(f"DEBUG: Current Response {orjson.dumps(response).decode('utf-8')}")
         if response['status'] not in ['success']:
@@ -276,8 +303,8 @@ def config_commit(
         raise SASECommitError(
             f"Error with Push message=\"{orjson.dumps(config_job).decode('utf-8')}\"")
     # Once that commit is completed there may be additional sub jobs
-    time.sleep(5) # Provide time to create children
-    config_job_subs = config_manage_commit_subjobs(job_id=job_id)
+    time.sleep(5)  # Provide time to create children
+    config_job_subs = config_manage_commit_subjobs(job_id=job_id, auth=auth)
     print(f"INFO: Additional job search returned Jobs {','.join(config_job_subs)}")
     if config_job_subs:
         # TODO: Multithread this as each job runs in parallel and isnt' giving the full picture
@@ -287,7 +314,8 @@ def config_commit(
             for job in config_job_subs:
                 print(f"INFO: Checking on job_id {job}")
                 # uses this to append each job id to the existing job to keep all info
-                response_config_check_job = config_check_job_id(job_id=job, timeout=timeout)
+                response_config_check_job = config_check_job_id(
+                    job_id=job, timeout=timeout, auth=auth)
                 response_jobs = {**response['job_id'], **response_config_check_job['job_id']}
                 response['status'] = response['status']
                 response['job_id'] = response_jobs

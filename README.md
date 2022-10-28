@@ -372,6 +372,7 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 | **0.1.6** | **a6** | merged feature to support tags |
 | **0.1.6** | **a7** | added ability to specify folder location for generizing loction defaults it to Remote Networks for reverse compatability |
 | **0.1.6** | **a8** | fixes issues with config checks and monitors both parent push and all children pushed in configuration to return a response with all the information for each job |
+| **0.2.1** | **a1** | Changed entire initial build on how the tenants are read in. If yaml exists you can use that, but you now have to specify the auth in each request to manage mulitple tenants; you can leave it alone and not pass the auth and an auth will be generated off the init config if you are only managing a single tenant based on the standad inputs. |
 
 #### For more info
 
@@ -391,7 +392,7 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
     * No way to restore, just push an old configuration.
     * Even with full permission Loading any configuration continually reports success, but message always reads: "Config loaded from <config_id>. Migration of old configuration was not successful. Some features may not work as expected and/or parts of configuration may have been lost." leading to nothing actually being done.
   * No way to get Configuration Status or Last Good Config easily
-  * issues with how IKE api calls are made. When done according to documenation it does not work; I copied a duplicate configuration that should not work, but actually works. Compared original to new code and difference is location of key,value pairs plus duplicate keys, which goes against a proper dictionary creation and could possibly cause issues.
+  * issues with how IKE api calls are made. When done according to documenation it does not work; I copied a duplicate configuration that should not work, but actually works. Compared original to new code and difference is location of key,value pairs plus duplicate keys, which goes against a proper dictionary creation and could possibly cause issues. I think there should be an error returned if the profiles are not sent correctly, but I'm not getting them and the API endpoint is just selecting it's own.
   
 
 ### Future Features
@@ -401,3 +402,5 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 * Build out the config management section that will include reverting configurations viewing and pushing staged commits
 * Build in feature to be able to change or adjust the key length from configs if not providing a pre-shared key
 * Add support for different types of tunnels; currently only supports dynamic tunnels with ufqdn as the input
+* Updates to response when successful
+* Updates to be able to run as a cli script as well as a imported package

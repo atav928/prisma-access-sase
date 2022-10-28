@@ -110,7 +110,7 @@ def ike_gateway_update(data: dict, ike_gateway_id: str, folder: dict, **kwargs):
                               verify=config.CERT,
                               put_object=f'/{ike_gateway_id}')
     print(f"DEBUG: response={response}")
-    if '_error' in response:
+    if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
@@ -137,7 +137,7 @@ def ike_gateway_create(data: dict, folder: dict, **kwargs):
                               params=params,
                               verify=config.CERT)
     print(f"DEBUG: response={response}")
-    if '_error' in response:
+    if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 

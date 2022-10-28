@@ -18,9 +18,13 @@ if not all([config.CLIENT_ID, config.CLIENT_SECRET, config.TSG]):
         config.TSG = yaml_config['TSG']
         config.CERT = yaml_config.get('CERT', False)
     else:
-        config.CLIENT_ID = input("Please input Client ID: ")
-        config.CLIENT_SECRET = getpass("Please input Client Secret: ")
-        config.TSG = input("Please enter TSG ID: ")
-        config.CERT = input("Please enter custom cert location" +
-                            "('true'|'false'|<custom_cert_location>): ")
+        config.CLIENT_ID = ""
+        config.CLIENT_SECRET = ""
+        config.TSG = ""
+        config.CERT = "false"
+        #config.CLIENT_ID = input("Please input Client ID: ")
+        #config.CLIENT_SECRET = getpass("Please input Client Secret: ")
+        #config.TSG = input("Please enter TSG ID: ")
+        #config.CERT = input("Please enter custom cert location" +
+        #                    "('true'|'false'|<custom_cert_location>): ")
 config.CERT = set_bool(config.CERT)  # type: ignore
