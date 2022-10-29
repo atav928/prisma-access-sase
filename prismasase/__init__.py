@@ -12,7 +12,7 @@ if not all([config.CLIENT_ID, config.CLIENT_SECRET, config.TSG]):
     filename = f"{home}/.config/.prismasase"
     if exists(filename):
         with open(filename, 'r', encoding='utf-8') as yam:
-            yaml_config = yaml.load(yam, Loader=yaml.FullLoader)
+            yaml_config = yaml.safe_load(yam)
         config.CLIENT_ID = yaml_config['CLIENT_ID']
         config.CLIENT_SECRET = yaml_config['CLIENT_SECRET']
         config.TSG = yaml_config['TSG']

@@ -373,6 +373,7 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 | **0.1.6** | **a7** | added ability to specify folder location for generizing loction defaults it to Remote Networks for reverse compatability |
 | **0.1.6** | **a8** | fixes issues with config checks and monitors both parent push and all children pushed in configuration to return a response with all the information for each job |
 | **0.2.1** | **a1** | Changed entire initial build on how the tenants are read in. If yaml exists you can use that, but you now have to specify the auth in each request to manage mulitple tenants; you can leave it alone and not pass the auth and an auth will be generated off the init config if you are only managing a single tenant based on the standad inputs. |
+| **0.2.1** | **a3** | fixed issues with auth in config management moved auth to utilities file and reorg structure; also fixed issue with reading in yaml config file when using yaml for self contained config outside of pushing in the auth credentials |
 
 #### For more info
 
