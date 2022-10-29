@@ -5,7 +5,6 @@ from typing import Any, Dict, List
 import ipaddress
 import json
 import orjson
-import ipaddress
 
 from prismasase import config
 from prismasase.config import Auth
