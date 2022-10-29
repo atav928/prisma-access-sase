@@ -9,7 +9,8 @@ import ipaddress
 from prismasase import config
 from prismasase.config import Auth
 from prismasase.exceptions import (
-    SASEBadParam, SASEBadRequest, SASEMissingIkeOrIpsecProfile, SASEMissingParam, SASENoBandwidthAllocation)
+    SASEBadParam, SASEBadRequest, SASEMissingIkeOrIpsecProfile, SASEMissingParam,
+    SASENoBandwidthAllocation)
 from prismasase.restapi import prisma_request
 from prismasase.statics import REMOTE_FOLDER
 from prismasase.utilities import gen_pre_shared_key
