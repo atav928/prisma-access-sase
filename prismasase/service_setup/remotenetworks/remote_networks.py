@@ -2,6 +2,7 @@
 """Remote Networks"""
 
 from typing import Any, Dict, List
+import ipaddress
 import json
 import orjson
 import ipaddress
