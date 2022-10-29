@@ -4,12 +4,12 @@ from typing import Any, Dict
 import requests
 import orjson
 
-from prismasase.config import Auth
-from prismasase import config, auth
+from prismasase.config import Auth, refresh_token
+from prismasase import config
 from prismasase.exceptions import SASEBadRequest, SASEMissingParam
 
 
-@auth.Decorators.refresh_token
+@refresh_token
 def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]:
     """_summary_
 

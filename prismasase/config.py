@@ -31,40 +31,6 @@ def set_bool(value: str):
         value_bool: bool = False
     return value_bool
 
-class Config:
-    """
-    Configuration Utility
-    """
-    CERT = os.environ.get("CERT", False)
-    TSG = os.environ.get("TSG", None)
-    CLIENT_ID = os.environ.get("CLIENT_ID", None)
-    CLIENT_SECRET = os.environ.get("CLIENT_SECRET", None)
-    REST_API = {
-        # Service Setup
-        "bandwidth-allocations": f"{URL_BASE}/bandwidth-allocations",
-        "ike-gateways": f"{URL_BASE}/ike-gateways",
-        "ike-crypto-profiles": f"{URL_BASE}/ike-crypto-profiles",
-        "ipsec-crypto-profiles": f"{URL_BASE}/ipsec-crypto-profiles",
-        "ipsec-tunnels": f"{URL_BASE}/ipsec-tunnels",
-        "infrastructure-settings": f"{URL_BASE}/shared-infrastructure-settings",
-        "internal-dns-servers": f"{URL_BASE}/internal-dns-servers",
-        "license-type": f"{URL_BASE}/licese-types",
-        "remote-networks": f"{URL_BASE}/remote-networks",
-        "locations": f"{URL_BASE}/locations",
-        "service-connections": f"{URL_BASE}/service-connections",
-        # Security Services
-        "profile-groups": f"{URL_BASE}/profile-groups",
-        "security-rules": f"{URL_BASE}/security-rules",
-        # Configuration Management
-        "config-versions": f"{URL_BASE}/config-versions",
-        "jobs": f"{URL_BASE}/jobs",
-        # Objects
-        "tags": f"{URL_BASE}/tags",
-        "addresses": f"{URL_BASE}/"
-    }
-    LIMIT: int = int(os.environ.get("LIMIT", "100"))
-    OFFSET: int = int(os.environ.get("OFFSET", "0"))
-
 
 class Auth:
     """Authorization to SASE API and refresh Decorator
@@ -133,10 +99,56 @@ class Auth:
         @staticmethod
         def refresh_token(decorated):
             """refreshes token"""
-            def wrapper(token, *args, **kwargs):
+            def wrapper(token: Auth, *args, **kwargs):
                 if time.time() > token.access_token_expiration:
                     # regenerate token and reset timmer
                     token.get_token()
                 # send back just token from auth class
                 return decorated(token.token, *args, **kwargs)
             return wrapper
+
+
+def refresh_token(decorated):
+    """refreshes token"""
+    def wrapper(token: Auth, *args, **kwargs):
+        if time.time() > token.access_token_expiration:
+            # regenerate token and reset timmer
+            token.get_token()
+        # send back just token from auth class
+        return decorated(token.token, *args, **kwargs)
+    return wrapper
+
+class Config:
+    """
+    Configuration Utility
+    """
+    CERT = os.environ.get("CERT", False)
+    TSG = os.environ.get("TSG", "")
+    CLIENT_ID = os.environ.get("CLIENT_ID", "")
+    CLIENT_SECRET = os.environ.get("CLIENT_SECRET", "")
+    REST_API = {
+        # Service Setup
+        "bandwidth-allocations": f"{URL_BASE}/bandwidth-allocations",
+        "ike-gateways": f"{URL_BASE}/ike-gateways",
+        "ike-crypto-profiles": f"{URL_BASE}/ike-crypto-profiles",
+        "ipsec-crypto-profiles": f"{URL_BASE}/ipsec-crypto-profiles",
+        "ipsec-tunnels": f"{URL_BASE}/ipsec-tunnels",
+        "infrastructure-settings": f"{URL_BASE}/shared-infrastructure-settings",
+        "internal-dns-servers": f"{URL_BASE}/internal-dns-servers",
+        "license-type": f"{URL_BASE}/licese-types",
+        "remote-networks": f"{URL_BASE}/remote-networks",
+        "locations": f"{URL_BASE}/locations",
+        "service-connections": f"{URL_BASE}/service-connections",
+        # Security Services
+        "profile-groups": f"{URL_BASE}/profile-groups",
+        "security-rules": f"{URL_BASE}/security-rules",
+        # Configuration Management
+        "config-versions": f"{URL_BASE}/config-versions",
+        "jobs": f"{URL_BASE}/jobs",
+        # Objects
+        "tags": f"{URL_BASE}/tags",
+        "addresses": f"{URL_BASE}/addresses",
+        "auto-tag-actions": f"{URL_BASE}/auto-tag-actions"
+    }
+    LIMIT: int = int(os.environ.get("LIMIT", "100"))
+    OFFSET: int = int(os.environ.get("OFFSET", "0"))

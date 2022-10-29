@@ -2,7 +2,8 @@
 
 import json
 
-from prismasase import config, auth
+from prismasase import config
+from prismasase.config import Auth
 from prismasase.exceptions import SASEObjectExists
 from prismasase.restapi import prisma_request
 from prismasase.statics import FOLDER, TAG_COLORS
@@ -18,6 +19,9 @@ def tags_list(folder: str, **kwargs) -> dict:
     Returns:
         dict: _description_
     """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
     params = default_params(**kwargs)
     params = {**FOLDER[folder], **params}
     response = prisma_request(token=auth,
@@ -37,6 +41,9 @@ def tags_create(folder: str, tag_name: str, **kwargs) -> dict:
     Returns:
         dict: _description_
     """
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
     response = {}
     params = default_params(**kwargs)
     params = {**FOLDER[folder], **params}
@@ -55,7 +62,7 @@ def tags_create(folder: str, tag_name: str, **kwargs) -> dict:
     return response
 
 
-def tags_get(folder: str, tag_name: str) -> dict:
+def tags_get(folder: str, tag_name: str, **kwargs) -> dict:
     """Retrieve a Tag if it exists empty dict if none is found
 
     Args:
@@ -66,8 +73,11 @@ def tags_get(folder: str, tag_name: str) -> dict:
         dict: _description_
     """
     # TODO: only getting 500 limit if over that check the total values for more
+    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    if not auth:
+        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
     response = {}
-    tag_get_list = tags_list(folder=folder, limit=500)
+    tag_get_list = tags_list(folder=folder, limit=500, auth=auth)
     tag_get_list = tag_get_list['data']
     for tag in tag_get_list:
         if tag_name == tag['name']:

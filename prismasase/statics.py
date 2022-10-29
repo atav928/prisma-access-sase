@@ -19,3 +19,6 @@ TAG_COLORS = [
     'Cerulean', 'Blue', 'Midnight', 'Blue', 'Medium', 'Blue', 'Cobalt', 'Blue', 'Violet', 'Blue',
     'Blue', 'Violet', 'Medium', 'Violet', 'Medium', 'Rose', 'Lavender', 'Orchid', 'Thistle', 'Peach',
     'Salmon', 'Magenta', 'Red', 'Violet', 'Mahogany', 'Burnt', 'Sienna', 'Chestnut']
+
+AUTOTAG_ACTIONS = ["add-tag", "remove-tag"]
+AUTOTAG_TARGET = ["Source Address", "Destination Address", "User", "X-Forwarded-For Address"]
