@@ -3,14 +3,19 @@
 import json
 import orjson
 
-from prismasase import config
 from prismasase.config import Auth
 from prismasase.exceptions import SASEBadRequest
 from prismasase.restapi import prisma_request
+from prismasase.utilities import return_auth
 
 
-def ike_gateway(pre_shared_key: str, local_fqdn: str, peer_fqdn: str,
-                ike_crypto_profile: str, ike_gateway_name: str, folder: dict, **kwargs):
+def ike_gateway(pre_shared_key: str,
+                local_fqdn: str,
+                peer_fqdn: str,
+                ike_crypto_profile: str,
+                ike_gateway_name: str,
+                folder: dict,
+                **kwargs):
     """Reviews if an IKE Gateway exists or not and overwrites
      it with new configs or creates the IKE Gateway.
 
@@ -21,9 +26,7 @@ def ike_gateway(pre_shared_key: str, local_fqdn: str, peer_fqdn: str,
         peer_fqdn (str): _description_
         ike_crypto_profile (str): _description_
     """
-    auth = kwargs['auth'] if kwargs.get('auth') else ""
-    if not auth:
-        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
+    auth: Auth = return_auth(**kwargs)
     params = folder
     ike_gateway_exists: bool = False
     ike_gateway_id: str = ""
@@ -71,7 +74,7 @@ def ike_gateway(pre_shared_key: str, local_fqdn: str, peer_fqdn: str,
                                   url_type='ike-gateways',
                                   method='GET',
                                   params=params,
-                                  verify=config.CERT)
+                                  verify=auth.verify)
     # Check if ike_gateway already exists
     for ike_gw in ike_gateways['data']:
         if ike_gw['name'] == ike_gateway_name:
@@ -83,7 +86,8 @@ def ike_gateway(pre_shared_key: str, local_fqdn: str, peer_fqdn: str,
     else:
         ike_gateway_update(data=data,
                            ike_gateway_id=ike_gateway_id,
-                           folder=folder, auth=auth)
+                           folder=folder,
+                           auth=auth)
 
 
 def ike_gateway_update(data: dict, ike_gateway_id: str, folder: dict, **kwargs):
@@ -96,9 +100,7 @@ def ike_gateway_update(data: dict, ike_gateway_id: str, folder: dict, **kwargs):
     Raises:
         SASEBadRequest: _description_
     """
-    auth = kwargs['auth'] if kwargs.get('auth') else ""
-    if not auth:
-        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
+    auth: Auth = return_auth(**kwargs)
     print(f"INFO: Updating IKE Gateway: {data['name']}")
     print(f"DEBUG: Updating IKE Gateway Using data={json.dumps(data)}")
     params = folder
@@ -107,7 +109,7 @@ def ike_gateway_update(data: dict, ike_gateway_id: str, folder: dict, **kwargs):
                               url_type='ike-gateways',
                               data=json.dumps(data),
                               params=params,
-                              verify=config.CERT,
+                              verify=auth.verify,
                               put_object=f'/{ike_gateway_id}')
     print(f"DEBUG: response={response}")
     if '_errors' in response:
@@ -123,9 +125,7 @@ def ike_gateway_create(data: dict, folder: dict, **kwargs):
     Raises:
         SASEBadRequest: _description_
     """
-    auth = kwargs['auth'] if kwargs.get('auth') else ""
-    if not auth:
-        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
+    auth: Auth = return_auth(**kwargs)
     print(f"INFO: Creating IKE Gateway: {data['name']}")
     # print(f"data={json.dumps(data)}")
     print(f"DEBUG: Creating IKE Gateway Using data={json.dumps(data)}")
@@ -135,15 +135,17 @@ def ike_gateway_create(data: dict, folder: dict, **kwargs):
                               url_type='ike-gateways',
                               data=json.dumps(data),
                               params=params,
-                              verify=config.CERT)
+                              verify=auth.verify)
     print(f"DEBUG: response={response}")
     if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
 
 
-def create_ike_gateway_payload(
-        pre_shared_key: str, local_fqdn: str, peer_fqdn: str,
-        ike_crypto_profile: str, ike_gateway_name) -> dict:
+def create_ike_gateway_payload(pre_shared_key: str,
+                               local_fqdn: str,
+                               peer_fqdn: str,
+                               ike_crypto_profile: str,
+                               ike_gateway_name) -> dict:
     """Creates IKE Gateway Payload used to create an IKE Gateway.
     Uses format "ike-gw-<remote_network_name>"
 

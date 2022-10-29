@@ -7,23 +7,10 @@ import datetime
 
 import orjson
 
-from prismasase import config
 from prismasase.config import Auth
-from prismasase.exceptions import SASEBadParam, SASECommitError
+from prismasase.exceptions import (SASEBadParam, SASECommitError)
 from prismasase.restapi import prisma_request
-from prismasase.utilities import check_items_in_list
-
-
-def return_auth(**kwargs) -> Auth:
-    """_summary_
-
-    Returns:
-        Auth: _description_
-    """
-    auth = kwargs['auth'] if kwargs.get('auth') else ""
-    if not auth:
-        auth = Auth(config.CLIENT_ID, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
-    return auth
+from prismasase.utilities import (check_items_in_list, return_auth)
 
 
 def config_manage_list_versions(limit: int = 50, offset: int = 0, **kwargs):
@@ -36,7 +23,7 @@ def config_manage_list_versions(limit: int = 50, offset: int = 0, **kwargs):
     Returns:
         _type_: _description_
     """
-    auth = return_auth(**kwargs)
+    auth: Auth = return_auth(**kwargs)
     response = prisma_request(token=auth,
                               method='GET',
                               url_type='config-versions',
@@ -52,7 +39,7 @@ def config_manage_rollback(**kwargs) -> dict:
     Returns:
         _type_: _description_
     """
-    auth = return_auth(**kwargs)
+    auth: Auth = return_auth(**kwargs)
     response = prisma_request(token=auth,
                               method='DELETE',
                               url_type='config-versions',
@@ -80,7 +67,7 @@ def config_manage_push(folders: list, description: str = "No Description Provide
     print(f"INFO: pushing candiate config for {str(', '.join(folders))}")
     if not check_items_in_list(list_of_items=folders, full_list=folders_valid):
         raise SASEBadParam(f"Invalid list of folders {str(', '.join(folders))}")
-    auth = return_auth(**kwargs)
+    auth: Auth = return_auth(**kwargs)
     # Set up json body
     data = {
         "folders": folders,
@@ -103,7 +90,7 @@ def config_manage_show_run(**kwargs) -> dict:
     Returns:
         dict: _description_
     """
-    auth = return_auth(**kwargs)
+    auth: Auth = return_auth(**kwargs)
     response = prisma_request(token=auth,
                               method='GET',
                               url_type='config-versions',
@@ -123,7 +110,7 @@ def config_manage_commit_subjobs(job_id: str, **kwargs) -> list:
     """
     # list out all jobs then check any job that is higher than the value that you just pushed
     # once that is done than you will need to check the status of each sub commit job
-    auth = return_auth(**kwargs)
+    auth: Auth = return_auth(**kwargs)
     config_jobs_list = []
     config_jobs = config_manage_list_jobs(auth=auth)
     for jobs in config_jobs['data']:
@@ -142,7 +129,7 @@ def config_manage_get_config(version_num: str, **kwargs) -> dict:
     Returns:
         dict: _description_
     """
-    auth = return_auth(**kwargs)
+    auth: Auth = return_auth(**kwargs)
     response = prisma_request(token=auth,
                               method='GET',
                               url_type='config-versions',
@@ -160,7 +147,7 @@ def config_manage_load(version_num: str, **kwargs) -> dict:
     Returns:
         dict: _description_
     """
-    auth = return_auth(**kwargs)
+    auth: Auth = return_auth(**kwargs)
     data = {
         'version': version_num
     }
@@ -179,7 +166,7 @@ def config_manage_list_jobs(limit: int = 5, offset: int = 0, **kwargs) -> dict:
     Returns:
         dict: _description_
     """
-    auth = return_auth(**kwargs)
+    auth: Auth = return_auth(**kwargs)
     params = {
         'limit': limit,
         'offset': offset
@@ -201,7 +188,7 @@ def config_manage_list_job_id(job_id: str, **kwargs) -> dict:
     Returns:
         dict: _description_
     """
-    auth = return_auth(**kwargs)
+    auth: Auth = return_auth(**kwargs)
     response = prisma_request(token=auth,
                               method='GET',
                               url_type='jobs',
@@ -221,7 +208,7 @@ def config_check_job_id(job_id: str, timeout: int = 2700, interval: int = 30, **
     Returns:
         dict: _description_
     """
-    auth = return_auth(**kwargs)
+    auth: Auth = return_auth(**kwargs)
     ending_time = time.time() + timeout
     start_time = datetime.datetime.now()
     status = ""
@@ -276,7 +263,7 @@ def config_commit(
     Returns:
         _type_: _description_
     """
-    auth = return_auth(**kwargs)
+    auth: Auth = return_auth(**kwargs)
     response = {
         'status': 'error',
         'message': '',
