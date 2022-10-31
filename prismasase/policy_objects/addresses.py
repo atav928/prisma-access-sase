@@ -124,10 +124,28 @@ def addresses_get_address_by_id(address_id: str, folder: str, **kwargs) -> dict:
     response = prisma_request(token=auth,
                               method='GET',
                               params=params,
-                              get_object=address_id,
+                              get_object=f'/{address_id}',
+                              url_type='addresses',
                               verify=auth.verify)
     return response
 
 
-def addresses_edit():
-    pass
+def addresses_edit(address_id: str, folder: str, **kwargs) -> dict:
+    """Address Edit an existing address object
+
+    Returns:
+        _type_: _description_
+    """
+    # check if address ID exists
+    address_exists = addresses_get_address_by_id(address_id=address_id, folder=folder, **kwargs)
+    # if error is not returned we can continue
+    auth: Auth = return_auth(**kwargs)
+    params = FOLDER[folder]
+    data = addresses_create_payload(name=address_exists['name'], folder=folder, **kwargs)
+    response = prisma_request(token=auth,
+                              method="PUT",
+                              put_object=f"/{address_id}",
+                              params=params,
+                              data=json.dumps(data),
+                              verify=auth.verify)
+    return response

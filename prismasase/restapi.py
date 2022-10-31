@@ -72,11 +72,11 @@ def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]:
                                 params=params,
                                 verify=verify,
                                 timeout=timeout)
+    if '_errors' in response.json():
+        raise SASEBadRequest(orjson.dumps(response.json()).decode('utf-8'))  # pylint: disable=no-member
     if response.status_code == 404:
         print(response.json())
         print('fail')
-    if '_errors' in response.json():
-        raise SASEBadRequest(orjson.dumps(response.json()).decode('utf-8'))  # pylint: disable=no-member
     if response.status_code == 400:
         return response.json()
     response.raise_for_status()
