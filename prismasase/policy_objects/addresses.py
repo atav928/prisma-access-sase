@@ -4,10 +4,10 @@ import json
 from prismasase import config
 from prismasase.config import Auth
 from prismasase.exceptions import (SASEBadParam, SASEMissingParam, SASEObjectExists)
-from prismasase.policy_objects.tags import tags_exist
 from prismasase.statics import FOLDER
 from prismasase.utilities import default_params, return_auth
 from prismasase.restapi import prisma_request
+from .tags import tags_exist
 
 
 def addresses_list(folder: str, **kwargs) -> dict:
@@ -57,7 +57,7 @@ def addresses_create(name: str, folder: str, **kwargs) -> dict:
     auth: Auth = return_auth(**kwargs)
     params = default_params(**kwargs)
     params = {**FOLDER[folder], **params}
-    data = addresses_create_payload(name=name, **kwargs)
+    data = addresses_create_payload(name=name, folder=folder, **kwargs)
     response = prisma_request(token=auth,
                               method="POST",
                               url_type="addresses",
@@ -109,8 +109,24 @@ def addresses_delete():
     pass
 
 
-def addresses_get_address_by_id():
-    pass
+def addresses_get_address_by_id(address_id: str, folder: str, **kwargs) -> dict:
+    """Get Address by ID requires folder
+
+    Args:
+        address_id (str): _description_
+        folder (str): _description_
+
+    Returns:
+        dict: _description_
+    """
+    auth: Auth = return_auth(**kwargs)
+    params = FOLDER[folder]
+    response = prisma_request(token=auth,
+                              method='GET',
+                              params=params,
+                              get_object=address_id,
+                              verify=auth.verify)
+    return response
 
 
 def addresses_edit():
