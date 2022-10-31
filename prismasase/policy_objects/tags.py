@@ -4,10 +4,10 @@ import json
 
 from prismasase import config
 from prismasase.config import Auth
-from prismasase.exceptions import SASEObjectExists
+from prismasase.exceptions import SASEError, SASEObjectExists
 from prismasase.restapi import prisma_request
 from prismasase.statics import FOLDER, TAG_COLORS
-from prismasase.utilities import default_params
+from prismasase.utilities import default_params, return_auth
 
 
 def tags_list(folder: str, **kwargs) -> dict:
@@ -19,9 +19,7 @@ def tags_list(folder: str, **kwargs) -> dict:
     Returns:
         dict: _description_
     """
-    auth = kwargs['auth'] if kwargs.get('auth') else ""
-    if not auth:
-        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
+    auth: Auth = return_auth(**kwargs)
     params = default_params(**kwargs)
     params = {**FOLDER[folder], **params}
     response = prisma_request(token=auth,
@@ -41,9 +39,7 @@ def tags_create(folder: str, tag_name: str, **kwargs) -> dict:
     Returns:
         dict: _description_
     """
-    auth = kwargs['auth'] if kwargs.get('auth') else ""
-    if not auth:
-        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
+    auth: Auth = return_auth(**kwargs)
     response = {}
     params = default_params(**kwargs)
     params = {**FOLDER[folder], **params}
@@ -73,9 +69,7 @@ def tags_get(folder: str, tag_name: str, **kwargs) -> dict:
         dict: _description_
     """
     # TODO: only getting 500 limit if over that check the total values for more
-    auth = kwargs['auth'] if kwargs.get('auth') else ""
-    if not auth:
-        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
+    auth: Auth = return_auth(**kwargs)
     response = {}
     tag_get_list = tags_list(folder=folder, limit=500, auth=auth)
     tag_get_list = tag_get_list['data']
@@ -104,3 +98,25 @@ def tags_create_data(tag_name: str, **kwargs) -> dict:
     if kwargs.get('tag_color') and kwargs.get('tag_color') in TAG_COLORS:
         data.update({'color': kwargs['tag_color']})
     return data
+
+
+def tags_exist(tag_list: list, folder: str, **kwargs) -> bool:
+    """Verifies if tag exists in configs
+
+    Args:
+        tag_list (list): _description_
+        folder (str): _description_
+
+    Raises:
+        SASEError: _description_
+
+    Returns:
+        bool: _description_
+    """
+    if not isinstance(tag_list, list):
+        raise SASEError(f"message=\"requires a list of tagnames\"|{tag_list=}")
+    for tag in tag_list:
+        if not tags_get(tag_name=tag, folder=folder, **kwargs):
+            print(f"DEBUG: {tag=} doesnot exist")
+            return False
+    return True

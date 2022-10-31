@@ -75,7 +75,7 @@ def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]:
     if response.status_code == 404:
         print(response.json())
         print('fail')
-    if '_error' in response.json():
+    if '_errors' in response.json():
         raise SASEBadRequest(orjson.dumps(response.json()).decode('utf-8'))  # pylint: disable=no-member
     if response.status_code == 400:
         return response.json()
