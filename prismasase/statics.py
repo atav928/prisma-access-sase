@@ -22,3 +22,6 @@ TAG_COLORS = [
 
 AUTOTAG_ACTIONS = ["add-tag", "remove-tag"]
 AUTOTAG_TARGET = ["Source Address", "Destination Address", "User", "X-Forwarded-For Address"]
+
+# IKE Static
+DYNAMIC = {'dynamic': {}}
