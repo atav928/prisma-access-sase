@@ -2,7 +2,6 @@
 
 import json
 
-from prismasase import config
 from prismasase.config import Auth
 from prismasase.exceptions import SASEError, SASEObjectExists
 from prismasase.restapi import prisma_request
@@ -26,7 +25,7 @@ def tags_list(folder: str, **kwargs) -> dict:
                               method="GET",
                               url_type='tags',
                               params=params,
-                              verify=config.CERT)
+                              verify=auth.verify)
     return response
 
 
@@ -54,7 +53,7 @@ def tags_create(folder: str, tag_name: str, **kwargs) -> dict:
                               url_type='tags',
                               params=params,
                               data=json.dumps(data),
-                              verify=config.CERT)
+                              verify=auth.verify)
     return response
 
 

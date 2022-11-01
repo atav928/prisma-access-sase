@@ -2,7 +2,6 @@
 
 import json
 
-from prismasase import config
 from prismasase.config import Auth
 from prismasase.exceptions import (SASEAutoTagError, SASEAutoTagExists, SASEAutoTagTooLong)
 from prismasase.utilities import (default_params, check_name_length, return_auth)
@@ -27,7 +26,7 @@ def auto_tag_list(**kwargs) -> dict:
                               method="GET",
                               url_type='auto-tag-actions',
                               params=params,
-                              verify=config.CERT)
+                              verify=auth.verify)
     return response
 
 
@@ -58,7 +57,7 @@ def auto_tag_create(name: str, tag_filter: str, actions: list, **kwargs) -> dict
                               url_type='auto-tag-actions',
                               params=params,
                               data=json.dumps(data),
-                              verify=config.CERT)
+                              verify=auth.verify)
     return response
 
 

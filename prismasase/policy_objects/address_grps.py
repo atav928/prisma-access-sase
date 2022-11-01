@@ -1,6 +1,5 @@
 """Address Group"""
 
-from prismasase import config
 from prismasase.config import Auth
 from prismasase.statics import FOLDER
 from prismasase.utilities import default_params, return_auth
@@ -24,9 +23,9 @@ def address_grp_list(folder: str, **kwargs) -> dict:
         params = {**params, **{"name": name}}
     response = prisma_request(token=auth,
                               method="GET",
-                              url_type="addresses",
+                              url_type="address-groups",
                               params=params,
-                              verify=config.CERT)
+                              verify=auth.verify)
     #print(f"DEBUG: {response}")
     return response
 

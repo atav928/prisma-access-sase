@@ -386,6 +386,7 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 | **0.2.1** | **a1** | Changed entire initial build on how the tenants are read in. If yaml exists you can use that, but you now have to specify the auth in each request to manage mulitple tenants; you can leave it alone and not pass the auth and an auth will be generated off the init config if you are only managing a single tenant based on the standad inputs. |
 | **0.2.1** | **a3** | fixed issues with auth in config management moved auth to utilities file and reorg structure; also fixed issue with reading in yaml config file when using yaml for self contained config outside of pushing in the auth credentials |
 | **0.2.1** | **a4** | fixed a few bugs around auth that was carried over from previous changes; found issue with autotagging that doesnot want to work, but fixed tagging through Addresses so DAGs could be used for auto tagging for now, added ability to retrieve address by ID; adds address edit function; fixes issue with address get by id |
+| **0.2.1** | **a5** | Fixed api calls to use auth.verify instead of config.CERT, which was legacy way; added addtional config url endpoints for future support |
 
 #### For more info
 

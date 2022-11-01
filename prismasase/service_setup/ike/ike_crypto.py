@@ -1,6 +1,5 @@
 """IKE Crypto"""
 
-from prismasase import config
 from prismasase.config import Auth
 from prismasase.restapi import prisma_request
 from prismasase.utilities import return_auth
@@ -24,7 +23,7 @@ def ike_crypto_profiles_get(ike_crypto_profile: str, folder: dict, **kwargs) -> 
         url_type='ike-crypto-profiles',
         method="GET",
         params=params,
-        verify=config.CERT)
+        verify=auth.verify)
     for entry in ike_crypto_profiles['data']:
         if entry['name'] == ike_crypto_profile:
             # ike_crypto_profile_exists = True

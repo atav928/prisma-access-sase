@@ -1,6 +1,5 @@
 """IPSec Crypto Configurations"""
 
-from prismasase import config
 from prismasase.config import Auth
 from prismasase.restapi import prisma_request
 from prismasase.utilities import return_auth
@@ -23,7 +22,7 @@ def ipsec_crypto_profiles_get(ipsec_crypto_profile: str, folder: dict, **kwargs)
                                            url_type='ipsec-crypto-profiles',
                                            method="GET",
                                            params=params,
-                                           verify=config.CERT)
+                                           verify=auth.verify)
     for entry in ipsec_crypto_profiles['data']:
         if entry['name'] == ipsec_crypto_profile:
             # ipsec_crypto_profile_exists = True
