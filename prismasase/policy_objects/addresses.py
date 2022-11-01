@@ -1,7 +1,6 @@
 """Address Objects"""
 import json
 
-from prismasase import config
 from prismasase.config import Auth
 from prismasase.exceptions import (SASEBadParam, SASEMissingParam, SASEObjectExists)
 from prismasase.statics import FOLDER
@@ -29,7 +28,7 @@ def addresses_list(folder: str, **kwargs) -> dict:
                               method="GET",
                               url_type="addresses",
                               params=params,
-                              verify=config.CERT)
+                              verify=auth.verify)
     print(f"DEBUG: {response}")
     return response
 

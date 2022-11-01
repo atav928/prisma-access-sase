@@ -146,9 +146,16 @@ class Config:
         "config-versions": f"{URL_BASE}/config-versions",
         "jobs": f"{URL_BASE}/jobs",
         # Objects
-        "tags": f"{URL_BASE}/tags",
+        "address-groups": f"{URL_BASE}/address-groups",
         "addresses": f"{URL_BASE}/addresses",
-        "auto-tag-actions": f"{URL_BASE}/auto-tag-actions"
+        "application-filters": f"{URL_BASE}/application-filters",
+        "application-groups": f"{URL_BASE}/application-groups",
+        "auto-tag-actions": f"{URL_BASE}/auto-tag-actions",
+        "dynamic-user-groups": f"{URL_BASE}/dynamic-user-groups",
+        "external-dynamic-lists": f"{URL_BASE}/external-dynamic-lists",
+        "tags": f"{URL_BASE}/tags",
+        "url-categories": f"{URL_BASE}/url-categories",
+        "url-filtering-categories": f"{URL_BASE}/url-filtering-categories"
     }
     LIMIT: int = int(os.environ.get("LIMIT", "100"))
     OFFSET: int = int(os.environ.get("OFFSET", "0"))
