@@ -92,7 +92,7 @@ def addresses_create_payload(name: str, folder: str, **kwargs) -> dict:
     elif kwargs.get("fqdn"):
         data.update({"fqdn": kwargs["fqdn"]})
     else:
-        raise SASEMissingParam(f"message=\"Missing address type to create address\"")
+        raise SASEMissingParam("message=\"Missing address type to create address\"")
     if kwargs.get("description"):
         data.update({"description": kwargs["description"]})
     if kwargs.get("tag"):
@@ -132,6 +132,9 @@ def addresses_get_address_by_id(address_id: str, folder: str, **kwargs) -> dict:
 
 def addresses_edit(address_id: str, folder: str, **kwargs) -> dict:
     """Address Edit an existing address object
+    Args:
+        address_id (str): _description_
+        folder (str): _description_
 
     Returns:
         _type_: _description_
