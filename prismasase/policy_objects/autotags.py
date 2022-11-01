@@ -144,7 +144,7 @@ def auto_tag_confirm_actions(actions: list):
                 raise SASEAutoTagError(f"message=\"invalid target\"|{target=}")
             if not check_name_length(name=name, length=63):
                 raise SASEAutoTagTooLong(f"message=\"greater than allowed 63\"|{name=}")
-            if len(tags) >= 64:
+            if len(tags) <= 64:
                 raise SASEAutoTagTooLong(
                     f"message=\"list of tags too long\"|tags=\"{','.join(tags)}\"")
             for tag in tags:
