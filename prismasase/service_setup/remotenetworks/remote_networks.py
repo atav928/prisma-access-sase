@@ -6,13 +6,12 @@ import ipaddress
 import json
 import orjson
 
-from prismasase import config
 from prismasase.config import Auth
 from prismasase.exceptions import (
     SASEBadParam, SASEBadRequest, SASEMissingIkeOrIpsecProfile, SASEMissingParam,
     SASENoBandwidthAllocation)
 from prismasase.restapi import prisma_request
-from prismasase.statics import REMOTE_FOLDER
+from prismasase.statics import FOLDER, REMOTE_FOLDER
 from prismasase.utilities import gen_pre_shared_key, return_auth
 from ..ipsec.ipsec_tun import ipsec_tunnel
 from ..ipsec.ipsec_crypto import ipsec_crypto_profiles_get
@@ -35,39 +34,66 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
     """Creates a Remote Nework IPSec Tunnel
 
     Args:
-        name (str): region checking for bandwidth allocation
+        remote_network_name (str): Remote Network Name used to set up Remote Network
+        region (str): region checking for bandwidth allocation
         spn_name (str): IPSec Termination Node name
+        ike_crypto_profile (str): IKE Crypto Profile to use (must exist in tenant)
+        ipsec_crypto_profile (str): IPSec Crypto profile to use (must exist in tenant)
+        ike_gateway_name (str, Optional): The IKE Gateway Name. Default: ike-gw-{remote_network_name}
+        ipsec_tunnel_name (str, Optional): The IPsec Tunnel Name. Default: ipsec-tunnel-{remote_network_name}
+        auth (Auth, Optional): Authorization if none supplied it defaults to the Yaml Config
+        fragmentation (str): IKE Protocol Fragmentation. Default False
+        nat_traversal (str): IKE Protocal Allow NAT Traversal. Default True
+        peer_id_type (str): Requires one of 'ipaddr'|'fqdn'|'keyid'|'ufqdn'. Defaults 'ufqdn
+        peer_id_value (str): Dependign on peer_id_type this requires the corresponding value
+        peer_address_type (str): Requires one of 'ipaddr'|'fqdn'|'dynamic'
+        peer_address (str): Requires literal "dynamic" for ufqdn or ip_address or fqdn_name or key if other is selected as peer_id_type
+        local_id_type (str): Requires one of 'ipaddr'|'fqdn'|'keyid'|'ufqdn'. Defaults 'ufqdn'
+        local_id_value (str): Depending on the local_id_type will determine the type of value needed
+        passive_mode (str): Sets IKE passive mode deafaults to 'true'
+        bgp_enabled (str): Sets BGP routing enabled or disabled use string 'true' or 'false' Defaults 'false'
+        bgp_peer_ip (str): Required if bgp_enabled is 'true'
+        bgp_local_ip (str): Required if bgp_enabled is 'true'
+        bgp_peer_as (str): Required if bgp_enabled is 'true'
+
 
     Raises:
         SASEMissingParam: _description_
         SASENoBandwidthAllocation: _description_
     """
-    response = {}
+    response = {
+        "status": "error",
+        "message": {},
+    }
     try:
         auth: Auth = return_auth(**kwargs)
-        remote_network_name: str = kwargs['remote_network_name']
-        region: str = kwargs['region']
-        spn_name: str = kwargs['spn_name']
-        ike_crypto_profile: str = kwargs['ike_crypto_profile']
-        ipsec_crypto_profile: str = kwargs['ipsec_crypto_profile']
-        ike_gateway_name: str = kwargs['ike_gateway_name'] if kwargs.get(
+        remote_network_name: str = kwargs.pop('remote_network_name')
+        region: str = kwargs.pop('region')
+        spn_name: str = kwargs.pop('spn_name')
+        ike_crypto_profile: str = kwargs.pop('ike_crypto_profile')
+        ipsec_crypto_profile: str = kwargs.pop('ipsec_crypto_profile')
+        ike_gateway_name: str = kwargs.pop('ike_gateway_name') if kwargs.get(
             'ike_gateway_name') else f"ike-gwy-{remote_network_name}"
         ipsec_tunnel_name: str = kwargs['ipsec_tunnel_name'] if kwargs.get(
             'ipsec_tunnal_name') else f"ipsec-tunnel-{remote_network_name}"
-        local_fqdn: str = kwargs['local_fqdn']
-        peer_fqdn: str = kwargs['peer_fqdn']
-        tunnel_monitor: bool = bool(kwargs['tunnel_monitor'].lower() in ['true'])
-        monitor_ip: str = kwargs['monitor_ip'] if tunnel_monitor else ""
-        static_enabled: bool = bool(kwargs['static_enabled'].lower() in ['true'])
-        static_routing: list = kwargs['static_routing'].split(',') if static_enabled else []
-        bgp_enabled: bool = bool(kwargs['bgp_enabled'].lower() in ['true'])
-        bgp_peer_ip: str = kwargs['bgp_peer_ip'] if bgp_enabled else ""
-        bgp_local_ip: str = kwargs['bgp_local_ip'] if bgp_enabled else ""
-        bgp_peer_as: str = kwargs['bgp_peer_as'] if bgp_enabled else ""
+        # TODO: Build support for anything other than type 'ufqdn'
+        #local_fqdn: str = kwargs['local_fqdn']
+        #peer_fqdn: str = kwargs['peer_fqdn']
+        tunnel_monitor: bool = bool(kwargs.pop('tunnel_monitor').lower() in ['true'])
+        # monitor_ip: str = kwargs['monitor_ip'] if tunnel_monitor else ""
+        static_enabled: bool = bool(kwargs.pop('static_enabled').lower() in ['true'])
+        #static_routing: list = kwargs.pop('static_routing').split(',') if static_enabled else []
+        bgp_enabled: bool = bool(kwargs.pop('bgp_enabled').lower() in ['true'])
+        #bgp_peer_ip: str = kwargs['bgp_peer_ip'] if bgp_enabled else ""
+        #bgp_local_ip: str = kwargs['bgp_local_ip'] if bgp_enabled else ""
+        #bgp_peer_as: str = kwargs['bgp_peer_as'] if bgp_enabled else ""
         # Default folder to "Remote Networks" for reverse compatability
-        folder: dict = kwargs['folder'] if kwargs.get('folder') else REMOTE_FOLDER
+        if kwargs.get("folder_name"):
+            folder: dict = FOLDER[kwargs.pop('folder_name')]
+        else:
+            folder: dict = kwargs['folder'] if kwargs.get('folder') else REMOTE_FOLDER
     except KeyError as err:
-        raise SASEMissingParam(f"Missing required parameter: {str(err)}")
+        raise SASEMissingParam(f"message=\"missing required parameter\"|param={str(err)}")
     pre_shared_key = kwargs['pre_shared_key'] if kwargs.get(
         'pre_shared_key') else gen_pre_shared_key()
 
@@ -89,59 +115,61 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
     # Create IKE Gateway
     print(f"INFO: IKE Gateway Name = {ike_gateway_name}")
     # Create IKE Gateway
-    ike_gateway(pre_shared_key=pre_shared_key,
-                local_fqdn=local_fqdn,
-                peer_fqdn=peer_fqdn,
-                ike_crypto_profile=ike_crypto_profile,
-                ike_gateway_name=ike_gateway_name,
-                folder=folder, auth=auth)
-
+    response_ike_gateway = ike_gateway(pre_shared_key=pre_shared_key,
+                                       ike_crypto_profile=ike_crypto_profile,
+                                       ike_gateway_name=ike_gateway_name,
+                                       folder=folder,
+                                       **kwargs)
+    print(f"DEBUG: IKE Gateway {response_ike_gateway=}")
+    response['message'].update({'ike_gateway': response_ike_gateway})
+    if response['message']['ike_gateway']['authentication'].get('pre_shared_key'):
+        response['message']['ike_gateway']['authentication']['pre_shared_key']['key'] = pre_shared_key
     # Create IPSec Tunnel
-    ipsec_tunnel(ipsec_tunnel_name=ipsec_tunnel_name,
-                 ipsec_crypto_profile=ipsec_crypto_profile,
-                 ike_gateway_name=ike_gateway_name,
-                 tunnel_monitor=tunnel_monitor,
-                 monitor_ip=monitor_ip,
-                 folder=folder, auth=auth)
-
+    response_ipsec_tunnel = ipsec_tunnel(ipsec_tunnel_name=ipsec_tunnel_name,
+                                         ipsec_crypto_profile=ipsec_crypto_profile,
+                                         ike_gateway_name=ike_gateway_name,
+                                         tunnel_monitor=tunnel_monitor,
+                                         folder=folder,
+                                         **kwargs)
+    response['message'].update({'ipsec_tunnel': response_ipsec_tunnel})
+    print(f"DEBUG: IPSec Tunnel {response_ipsec_tunnel=}")
     # Create Remote Network
-    remote_network(remote_network_name=remote_network_name,
-                   ipsec_tunnel_name=ipsec_tunnel_name,
-                   region=region,
-                   spn_name=spn_name,
-                   static_enabled=static_enabled,
-                   bgp_enabled=bgp_enabled,
-                   static_routing=static_routing,
-                   bgp_local_ip=bgp_local_ip,
-                   bgp_peer_as=bgp_peer_as,
-                   bgp_peer_ip=bgp_peer_ip,
-                   folder=folder,
-                   auth=auth)
-    response = {
-        "status": "success",
-        "created": {
-            "ipsec_tunnel": ipsec_tunnel_name,
-            "ipsec_crypto_profile": ipsec_crypto_profile,
-            "ike_gateway": ike_gateway_name,
-            "ike_crypto_profile": ike_crypto_profile,
-            "pre_shared_key": pre_shared_key,
-            "local_fqdn": local_fqdn,
-            "peer_fqdn": peer_fqdn,
-            "remote_network_name": remote_network_name,
-            "region": region,
-            "spn_name": spn_name,
-            "ike_gateway_name": ike_gateway_name,
-            "ipsec_tunnel_name": ipsec_tunnel_name,
-            "tunnel_monitor": tunnel_monitor,
-            "monitor_ip": monitor_ip,
-            "static_enabled": static_enabled,
-            "static_routing": static_routing,
-            "bgp_enabled": bgp_enabled,
-            "bgp_peer_ip": bgp_peer_ip,
-            "bgp_local_ip": bgp_local_ip,
-            "bgp_peer_as": bgp_peer_as
-        }
-    }
+    response_remote_network = remote_network(remote_network_name=remote_network_name,
+                                             ipsec_tunnel_name=ipsec_tunnel_name,
+                                             region=region,
+                                             spn_name=spn_name,
+                                             static_enabled=static_enabled,
+                                             bgp_enabled=bgp_enabled,
+                                             folder=folder,
+                                             **kwargs)
+    response['message'].update({'remote_network': response_remote_network})
+    response['status'] = 'success'
+    print(f"DEBUG: Remote Network {response_remote_network=}")
+    # response = {
+    # "status": "success",
+    # "created": {
+    #    "ipsec_tunnel": ipsec_tunnel_name,
+    #    "ipsec_crypto_profile": ipsec_crypto_profile,
+    #    "ike_gateway": ike_gateway_name,
+    #    "ike_crypto_profile": ike_crypto_profile,
+    #    "pre_shared_key": pre_shared_key,
+    #    "local_fqdn": local_fqdn,
+    #    "peer_fqdn": peer_fqdn,
+    #    "remote_network_name": remote_network_name,
+    #    "region": region,
+    #    "spn_name": spn_name,
+    #    "ike_gateway_name": ike_gateway_name,
+    #    "ipsec_tunnel_name": ipsec_tunnel_name,
+    #    "tunnel_monitor": tunnel_monitor,
+    #    "monitor_ip": monitor_ip,
+    #    "static_enabled": static_enabled,
+    #    "static_routing": static_routing,
+    #    "bgp_enabled": bgp_enabled,
+    #    "bgp_peer_ip": bgp_peer_ip,
+    #    "bgp_local_ip": bgp_local_ip,
+    #    "bgp_peer_as": bgp_peer_as
+    # }
+    # }
     print(f"INFO: Created Remote Network \n{json.dumps(response, indent=4)}")
     return response
 
@@ -214,7 +242,7 @@ def remote_network(remote_network_name: str,
                    static_enabled: bool,
                    bgp_enabled: bool,
                    folder: dict,
-                   **kwargs):
+                   **kwargs) -> dict:
     """Create a Remote Network
 
     Args:
@@ -238,23 +266,21 @@ def remote_network(remote_network_name: str,
                                          spn_name=spn_name)
     if static_enabled:
         try:
-            data["subnets"] = kwargs['static_routing']
+            data['subnets'] = kwargs['static_routing'].split(',') if static_enabled else []
+            #data["subnets"] = kwargs['static_routing']
             for subnet in data['subnets']:
                 try:
                     ipaddress.ip_network(subnet)
                 except ValueError:
                     raise SASEBadParam(f"message=\"incorrect IP Network\"|{subnet=}")
+            if len(data['subnets']) == 0:
+                raise SASEMissingParam(
+                    f"message=\"required subnet if static routing enabled\"|param={data['subnets']}")
         except KeyError as err:
             raise SASEMissingParam(
-                f'message=\"required when static_enabled is True\"|missing={str(err)}')
+                f'message=\"required when static_enabled is True\"|param={str(err)}')
     if bgp_enabled:
-        try:
-            data = create_remote_network_bgp_payload(data=data,
-                                                     bgp_local_ip=kwargs['bgp_local_ip'],
-                                                     bgp_peer_as=kwargs['bgp_peer_as'],
-                                                     bgp_peer_ip=kwargs['bgp_peer_ip'])
-        except KeyError as err:
-            raise SASEMissingParam(f"{str(err)} is required when bgp_enabled set to True")
+        data = create_remote_network_bgp_payload(data=data, **kwargs)
     # Check if remote network already exists
     remote_networks = prisma_request(token=auth,
                                      url_type='remote-networks',
@@ -268,17 +294,18 @@ def remote_network(remote_network_name: str,
             remote_network_id = network['id']
     # Run create or update functions
     if not remote_network_exists:
-        remote_network_create(data=data,
-                              folder=folder,
-                              auth=auth)
+        response = remote_network_create(data=data,
+                                         folder=folder,
+                                         auth=auth)
     else:
-        remote_network_update(data=data,
-                              remote_network_id=remote_network_id,
-                              folder=folder,
-                              auth=auth)
+        response = remote_network_update(data=data,
+                                         remote_network_id=remote_network_id,
+                                         folder=folder,
+                                         auth=auth)
+    return response
 
 
-def remote_network_create(data: dict, folder: dict, **kwargs):
+def remote_network_create(data: dict, folder: dict, **kwargs) -> dict:
     """Create a new remote nework connection
 
     Args:
@@ -299,9 +326,10 @@ def remote_network_create(data: dict, folder: dict, **kwargs):
     print(f"DEBUG: response={response}")
     if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
+    return response
 
 
-def remote_network_update(data: dict, remote_network_id: str, folder: dict, **kwargs):
+def remote_network_update(data: dict, remote_network_id: str, folder: dict, **kwargs) -> dict:
     """Update an existing remote network
 
     Args:
@@ -324,6 +352,7 @@ def remote_network_update(data: dict, remote_network_id: str, folder: dict, **kw
     print(f"DEBUG: response={response}")
     if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
+    return response
 
 
 def remote_network_delete(remote_network_id: str, folder: dict, **kwargs) -> dict:
@@ -346,9 +375,7 @@ def remote_network_delete(remote_network_id: str, folder: dict, **kwargs) -> dic
 
 
 def create_remote_network_bgp_payload(data: dict,
-                                      bgp_local_ip: str,
-                                      bgp_peer_as: str,
-                                      bgp_peer_ip: str) -> dict:
+                                      **kwargs) -> dict:
     """Create BGP payload if BGP is enabled
 
     Args:
@@ -356,10 +383,21 @@ def create_remote_network_bgp_payload(data: dict,
         bgp_local_ip (str): _description_
         bgp_peer_as (str): _description_
         bgp_peer_ip (str): _description_
+        bgp_summarized_mobile_user_routes (str): Defaults to True
+        bgp_peering_type (str): Defaults to "exchange-v4-over-v4"
 
     Returns:
         dict: _description_
     """
+    try:
+        bgp_local_ip = kwargs['bgp_local_ip']
+        bgp_peer_as = kwargs['bgp_peer_as']
+        bgp_peer_ip = kwargs['bgp_peer_ip']
+        bgp_peering_type = kwargs.get('bgp_peering_type', "exchange-v4-over-v4")
+        bgp_summarized_mobile_user_routes: bool = bool(kwargs.get(
+            'bgp_summarized_mobile_user_routes', 'true').lower() in ['true'])
+    except KeyError as err:
+        raise SASEMissingParam(f"message=\"missing required parameter\"|param={str(err)}")
     data["protocol"] = {
         "bgp": {
             "do_not_export_routes": False,
@@ -367,8 +405,8 @@ def create_remote_network_bgp_payload(data: dict,
             "local_ip_address": bgp_local_ip,
             "originate_default_route": True,
             "peer_as": bgp_peer_as, "peer_ip_address": bgp_peer_ip,
-            "peering_type": "exchange-v4-over-v4",
-            "summarize_mobile_user_routes": True
+            "peering_type": bgp_peering_type,
+            "summarize_mobile_user_routes": bgp_summarized_mobile_user_routes
         },
         "bgp_peer": {
             "local_ip_address": bgp_local_ip,
@@ -401,7 +439,7 @@ def create_remote_network_payload(**kwargs) -> dict:
             "region": kwargs['region'],
             "spn_name": kwargs['spn_name']}
     except KeyError as err:
-        raise SASEMissingParam(f"message=\"missing param for payload\"|key={str(err)}")
+        raise SASEMissingParam(f"message=\"missing param for payload\"|param={str(err)}")
     return data
 
 

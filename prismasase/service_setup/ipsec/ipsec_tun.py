@@ -15,7 +15,7 @@ def ipsec_tunnel(ipsec_tunnel_name: str,
                  ike_gateway_name: str,
                  tunnel_monitor: bool,
                  folder: dict,
-                 **kwargs):
+                 **kwargs) -> dict:
     """Creates or updates an IPSec Tunnel based on passed parameters.
      Naming convention follows "ipsec-tunnel-<remote_network_name>".
      example: "ipsec-tunnel-newyork"
@@ -51,9 +51,13 @@ def ipsec_tunnel(ipsec_tunnel_name: str,
             ipsec_tunnel_exists = True
             ipsec_tunnel_id = tunnel['id']
     if not ipsec_tunnel_exists:
-        ipsec_tunnel_create(data=data, folder=folder, auth=auth)
+        response = ipsec_tunnel_create(data=data, folder=folder, auth=auth)
     else:
-        ipsec_tunnel_update(data=data, ipsec_tunnel_id=ipsec_tunnel_id, folder=folder, auth=auth)
+        response = ipsec_tunnel_update(data=data,
+                                       ipsec_tunnel_id=ipsec_tunnel_id,
+                                       folder=folder,
+                                       auth=auth)
+    return response
 
 
 def ipsec_tunnel_create(data: Dict[str, Any], folder: dict, **kwargs):
@@ -78,6 +82,7 @@ def ipsec_tunnel_create(data: Dict[str, Any], folder: dict, **kwargs):
     print(f"DEBUG: response={response}")
     if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
+    return response
 
 
 def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str, folder: dict, **kwargs):
@@ -104,9 +109,10 @@ def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str, folder: dict
     print(f"DEBUG: response={response}")
     if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
+    return response
 
 
-def  create_ipsec_tunnel_payload(
+def create_ipsec_tunnel_payload(
         ipsec_tunnel_name: str,
         ipsec_crypto_profile: str,
         ike_gateway_name) -> Dict[str, Any]:
