@@ -3,7 +3,7 @@
 from prismasase import config
 from prismasase.config import Auth
 from prismasase.statics import FOLDER
-from prismasase.utilities import default_params
+from prismasase.utilities import default_params, return_auth
 from prismasase.restapi import prisma_request
 
 
@@ -16,9 +16,7 @@ def address_grp_list(folder: str, **kwargs) -> dict:
     Returns:
         dict: _description_
     """
-    auth = kwargs['auth'] if kwargs.get('auth') else ""
-    if not auth:
-        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
+    auth: Auth = return_auth(**kwargs)
     params = default_params(**kwargs)
     params = {**FOLDER[folder], **params}
     if kwargs.get('name'):

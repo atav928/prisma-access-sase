@@ -20,17 +20,22 @@ Requires configuraitons to be on the system to work properly. You can define the
 
 1. Requires the following manditory ENV Variables:
 _Required:_
+
 ```bash
 TGS="TGS VALUE"
 CLIENT_ID="CLIENT ID"
 CLIENT_SECRET="CLIENT SECRET"
 ```
+
 _Optional:_
+
 ```bash
 CERT: "true"
 ```
+
 2. Through a YAML config file located here ~/.confg/.prismasase
  - this can be run via using the prisma_yaml_script script that comes with the installation:
+
  ```bash
 # prisma_yaml_script 
 Running YAML Configs
@@ -39,7 +44,8 @@ Please input Client Secret: <account_secret>
 Please enter TSG ID: <TSG>
 Please enter custom cert location('true'|'false'|<custom_cert_location>): true
 ```
-3. When importing prismasase directly it will lastly prompt for the information in an interactive window.
+
+3. When the config is initiated it reads in the YAML configs as your default which you can use as your variables. Otherwise you need to provide the athorization. Authorization is still based on an object and once that object is created you can pass it around and it has a self wrapper that will confirm the token is still valid and reauth if it is not to handle work that may surpass the 15 min timer tied to each auth token.
 
 ### Usage
 
@@ -47,8 +53,10 @@ Module will set a 15min timmer once imported and will check that timmer each tim
 
 _**Example** (showing defaults only):_
 ```python
->>> from prismasase import auth
+>>> from prismasase.config import Auth
+>>> from prismasase import config
 >>> from prismasase.restapi import prisma_request
+>>> auth = Auth(tsg_id=config.TSG, client_id=config.CLIENT_ID, client_secret=config.CLIENT_SECRET, verify=config.CERT)
 >>> ike_gateways = prisma_request(token=auth,url_type='ike-gateways',method='GET',params={'folder':'Remote Networks'})
 >>> ike_gateways
 {'data': [], 'offset': 0, 'total': 0, 'limit': 200}
@@ -316,12 +324,15 @@ utilities.check_name_length("ike-proto-gen-config-value-soemthing")
 
 **Example of creating/onboarding a new remote site:**
 ```python
+from prismasase.config import Auth
 from prismasase import service_setup
 
+# generate an auth object (if you do not a pass one then the defaults will be used yet only one tenant can be used)
+auth = Auth(tsg_id='12345678', client_id='serviceaccount@prissmasasee', client_secret='secret password', verify=True, timeout=120)
 # Note building out full list of possible varibles that can always be passed using 
 # a settings config **settings if you have the dictionary created for 
 # all the required variables. This is going to be built out in future release
-new_network = service_setup.remote_networks.create_remote_network(remote_network_name="savannah01",region="us-southeast",spn_name="us-southeast-whitebeam",ike_crypto_profile="ike-crypto-profile-cisco",ipsec_crypto_profile="ipsec-crypto-prof-cisco",local_fqdn="sase@prisma.com",peer_fqdn="savannah01@example.com",tunnel_monitor="true",monitor_ip="192.168.102.1",static_enabled="true",static_routing="192.168.102.0/24",bgp_enabled="false")
+new_network = service_setup.remote_networks.create_remote_network(remote_network_name="savannah01",region="us-southeast",spn_name="us-southeast-whitebeam",ike_crypto_profile="ike-crypto-profile-cisco",ipsec_crypto_profile="ipsec-crypto-prof-cisco",local_fqdn="sase@prisma.com",peer_fqdn="savannah01@example.com",tunnel_monitor="true",monitor_ip="192.168.102.1",static_enabled="true",static_routing="192.168.102.0/24",bgp_enabled="false", auth=auth)
 ```
 
 **Below would be the output if running in an interactive shell:**
@@ -374,6 +385,7 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 | **0.1.6** | **a8** | fixes issues with config checks and monitors both parent push and all children pushed in configuration to return a response with all the information for each job |
 | **0.2.1** | **a1** | Changed entire initial build on how the tenants are read in. If yaml exists you can use that, but you now have to specify the auth in each request to manage mulitple tenants; you can leave it alone and not pass the auth and an auth will be generated off the init config if you are only managing a single tenant based on the standad inputs. |
 | **0.2.1** | **a3** | fixed issues with auth in config management moved auth to utilities file and reorg structure; also fixed issue with reading in yaml config file when using yaml for self contained config outside of pushing in the auth credentials |
+| **0.2.1** | **a4** | fixed a few bugs around auth that was carried over from previous changes; found issue with autotagging that doesnot want to work, but fixed tagging through Addresses so DAGs could be used for auto tagging for now, added ability to retrieve address by ID; adds address edit function; fixes issue with address get by id |
 
 #### For more info
 
@@ -394,7 +406,7 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
     * Even with full permission Loading any configuration continually reports success, but message always reads: "Config loaded from <config_id>. Migration of old configuration was not successful. Some features may not work as expected and/or parts of configuration may have been lost." leading to nothing actually being done.
   * No way to get Configuration Status or Last Good Config easily
   * issues with how IKE api calls are made. When done according to documenation it does not work; I copied a duplicate configuration that should not work, but actually works. Compared original to new code and difference is location of key,value pairs plus duplicate keys, which goes against a proper dictionary creation and could possibly cause issues. I think there should be an error returned if the profiles are not sent correctly, but I'm not getting them and the API endpoint is just selecting it's own.
-  
+* Address get by ID issue... requires a folder param when looking at ID but not documented.
 
 ### Future Features
 

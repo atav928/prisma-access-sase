@@ -3,6 +3,7 @@
 from prismasase import config
 from prismasase.config import Auth
 from prismasase.restapi import prisma_request
+from prismasase.utilities import return_auth
 
 
 def ipsec_crypto_profiles_get(ipsec_crypto_profile: str, folder: dict, **kwargs) -> str:
@@ -14,9 +15,7 @@ def ipsec_crypto_profiles_get(ipsec_crypto_profile: str, folder: dict, **kwargs)
     Returns:
         bool: _description_
     """
-    auth = kwargs['auth'] if kwargs.get('auth') else ""
-    if not auth:
-        auth = Auth(config.CLIENT_ID,config.CLIENT_ID,config.CLIENT_SECRET, verify=config.CERT)
+    auth: Auth = return_auth(**kwargs)
     ipsec_crypto_profile_id: str = ""
     # ipsec_crypto_profile_exists: bool = False
     params = folder
