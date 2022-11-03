@@ -388,6 +388,7 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 | **0.2.1** | **a4** | fixed a few bugs around auth that was carried over from previous changes; found issue with autotagging that doesnot want to work, but fixed tagging through Addresses so DAGs could be used for auto tagging for now, added ability to retrieve address by ID; adds address edit function; fixes issue with address get by id |
 | **0.2.1** | **a5** | Fixed api calls to use auth.verify instead of config.CERT, which was legacy way; added addtional config url endpoints for future support |
 | **0.2.1** | **a6** | streamlined passing variables as they go through remote object creation |
+| **0.2.1** | **a7** | added address delete via old method Palo Alto decided to change their api calls and their new calls don't even work.. Great job!!! |
 
 #### For more info
 

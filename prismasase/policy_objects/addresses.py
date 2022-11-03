@@ -2,7 +2,7 @@
 import json
 
 from prismasase.config import Auth
-from prismasase.exceptions import (SASEBadParam, SASEMissingParam, SASEObjectExists)
+from prismasase.exceptions import (SASEBadParam, SASEBadRequest, SASEMissingParam, SASEObjectExists)
 from prismasase.statics import FOLDER
 from prismasase.utilities import default_params, return_auth
 from prismasase.restapi import prisma_request
@@ -39,12 +39,26 @@ def addresses_create(name: str, folder: str, **kwargs) -> dict:
     Args:
         name (str): _description_
         folder (str): _description_
+        tag (list): list of possible tags to add to the address
+        description (str, Optional): description
+        ip_netmask (str, Optional|Required): One must be identified as type
+        ip_range (str, Optional|Required): One must be specfied
+        fqdn (str, Optional|Required): One must be specified
+        ip_wildcard (str, Optional|Required): One must be specified
 
     Raises:
-        SASEObjectExists: _description_
+        SASEObjectExists: Error raised when object already exists; use update
 
     Returns:
-        dict: _description_
+        dict: sample response
+        {
+            'id': '85b5c452-9196-4388-f368-811f213235fb',
+            'name': 'test-address-object',
+            'folder': 'Shared',
+            'ip_netmask': '192.168.0.0/24',
+            'description': 'created via api',
+            'tag': ['tag1','tag2','tag3']
+        }
     """
     # check if already exists
     address_check = addresses_list(folder=folder, **kwargs)
@@ -104,8 +118,36 @@ def addresses_create_payload(name: str, folder: str, **kwargs) -> dict:
     return data
 
 
-def addresses_delete():
-    pass
+def addresses_delete(address_id: str, folder: str, **kwargs) -> dict:
+    """Delete Existing Address
+
+    Args:
+        address_id (str): _description_
+        folder (str): _description_
+
+    Returns:
+        dict: _description_
+    """
+    auth: Auth = return_auth(**kwargs)
+    params = FOLDER[folder]
+    # first verify that address actually exists
+    response = {}
+    try:
+        address_exists = addresses_get_address_by_id(address_id=address_id,
+                                                     folder=folder,
+                                                     auth=auth)
+    except SASEBadRequest as err:
+        error = f"{type(err).__name__}: {err}" if err else ""
+        print(f"DEBUG: Address does not exist {error=}")
+        return response
+    if address_exists:
+        response = prisma_request(token=auth,
+                                  method="DELETE",
+                                  params=params,
+                                  url_type="addresses",
+                                  delete_object=f"/{address_id}",
+                                  verify=auth.verify)
+    return response
 
 
 def addresses_get_address_by_id(address_id: str, folder: str, **kwargs) -> dict:
