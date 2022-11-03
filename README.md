@@ -389,6 +389,8 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 | **0.2.1** | **a5** | Fixed api calls to use auth.verify instead of config.CERT, which was legacy way; added addtional config url endpoints for future support |
 | **0.2.1** | **a6** | streamlined passing variables as they go through remote object creation |
 | **0.2.1** | **a7** | added address delete via old method Palo Alto decided to change their api calls and their new calls don't even work.. Great job!!! |
+| **0.2.1** | **a8** | adjusted pre-shared key to force to be supplied and passed the encrypted value back to keep the pre-shared-key secured; removed debugging |
+
 
 #### For more info
 

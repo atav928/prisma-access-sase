@@ -37,6 +37,7 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
         remote_network_name (str): Remote Network Name used to set up Remote Network
         region (str): region checking for bandwidth allocation
         spn_name (str): IPSec Termination Node name
+        pre_shared_key (str, Required): required to set a pre-shared-key
         ike_crypto_profile (str): IKE Crypto Profile to use (must exist in tenant)
         ipsec_crypto_profile (str): IPSec Crypto profile to use (must exist in tenant)
         ike_gateway_name (str, Optional): The IKE Gateway Name. Default: ike-gw-{remote_network_name}
@@ -88,15 +89,13 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
         #bgp_local_ip: str = kwargs['bgp_local_ip'] if bgp_enabled else ""
         #bgp_peer_as: str = kwargs['bgp_peer_as'] if bgp_enabled else ""
         # Default folder to "Remote Networks" for reverse compatability
+        pre_shared_key = kwargs.pop('pre_shared_key')
         if kwargs.get("folder_name"):
             folder: dict = FOLDER[kwargs.pop('folder_name')]
         else:
             folder: dict = kwargs['folder'] if kwargs.get('folder') else REMOTE_FOLDER
     except KeyError as err:
         raise SASEMissingParam(f"message=\"missing required parameter\"|param={str(err)}")
-    pre_shared_key = kwargs['pre_shared_key'] if kwargs.get(
-        'pre_shared_key') else gen_pre_shared_key()
-
     # Check Bandwdith allocations
     # print(f"{region=},{spn_name=}")
     bandwidth_check = verify_bandwidth_allocations(
@@ -120,10 +119,8 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
                                        ike_gateway_name=ike_gateway_name,
                                        folder=folder,
                                        **kwargs)
-    print(f"DEBUG: IKE Gateway {response_ike_gateway=}")
+    # print(f"DEBUG: IKE Gateway {response_ike_gateway=}")
     response['message'].update({'ike_gateway': response_ike_gateway})
-    if response['message']['ike_gateway']['authentication'].get('pre_shared_key'):
-        response['message']['ike_gateway']['authentication']['pre_shared_key']['key'] = pre_shared_key
     # Create IPSec Tunnel
     response_ipsec_tunnel = ipsec_tunnel(ipsec_tunnel_name=ipsec_tunnel_name,
                                          ipsec_crypto_profile=ipsec_crypto_profile,
@@ -132,7 +129,7 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
                                          folder=folder,
                                          **kwargs)
     response['message'].update({'ipsec_tunnel': response_ipsec_tunnel})
-    print(f"DEBUG: IPSec Tunnel {response_ipsec_tunnel=}")
+    # print(f"DEBUG: IPSec Tunnel {response_ipsec_tunnel=}")
     # Create Remote Network
     response_remote_network = remote_network(remote_network_name=remote_network_name,
                                              ipsec_tunnel_name=ipsec_tunnel_name,
@@ -144,32 +141,7 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
                                              **kwargs)
     response['message'].update({'remote_network': response_remote_network})
     response['status'] = 'success'
-    print(f"DEBUG: Remote Network {response_remote_network=}")
-    # response = {
-    # "status": "success",
-    # "created": {
-    #    "ipsec_tunnel": ipsec_tunnel_name,
-    #    "ipsec_crypto_profile": ipsec_crypto_profile,
-    #    "ike_gateway": ike_gateway_name,
-    #    "ike_crypto_profile": ike_crypto_profile,
-    #    "pre_shared_key": pre_shared_key,
-    #    "local_fqdn": local_fqdn,
-    #    "peer_fqdn": peer_fqdn,
-    #    "remote_network_name": remote_network_name,
-    #    "region": region,
-    #    "spn_name": spn_name,
-    #    "ike_gateway_name": ike_gateway_name,
-    #    "ipsec_tunnel_name": ipsec_tunnel_name,
-    #    "tunnel_monitor": tunnel_monitor,
-    #    "monitor_ip": monitor_ip,
-    #    "static_enabled": static_enabled,
-    #    "static_routing": static_routing,
-    #    "bgp_enabled": bgp_enabled,
-    #    "bgp_peer_ip": bgp_peer_ip,
-    #    "bgp_local_ip": bgp_local_ip,
-    #    "bgp_peer_as": bgp_peer_as
-    # }
-    # }
+    # print(f"DEBUG: Remote Network {response_remote_network=}")
     print(f"INFO: Created Remote Network \n{json.dumps(response, indent=4)}")
     return response
 
@@ -316,14 +288,14 @@ def remote_network_create(data: dict, folder: dict, **kwargs) -> dict:
     """
     auth: Auth = return_auth(**kwargs)
     params = folder
-    print(f"DEBUG: remote_network_create={json.dumps(data)}")
+    # print(f"DEBUG: remote_network_create={json.dumps(data)}")
     response = prisma_request(token=auth,
                               method='POST',
                               url_type='remote-networks',
                               data=json.dumps(data),
                               params=params,
                               verify=auth.verify)
-    print(f"DEBUG: response={response}")
+    # print(f"DEBUG: response={response}")
     if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
     return response
@@ -341,7 +313,7 @@ def remote_network_update(data: dict, remote_network_id: str, folder: dict, **kw
     """
     auth: Auth = return_auth(**kwargs)
     params = folder
-    print(f"DEBUG: remote_network_create={json.dumps(data)}")
+    # print(f"DEBUG: remote_network_create={json.dumps(data)}")
     response = prisma_request(token=auth,
                               method='PUT',
                               data=json.dumps(data),
@@ -349,7 +321,7 @@ def remote_network_update(data: dict, remote_network_id: str, folder: dict, **kw
                               url_type='remote-networks',
                               verify=auth.verify,
                               put_object=f'/{remote_network_id}')
-    print(f"DEBUG: response={response}")
+    # print(f"DEBUG: response={response}")
     if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
     return response

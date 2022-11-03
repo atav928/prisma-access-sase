@@ -90,7 +90,7 @@ def ike_gateway(pre_shared_key: str,
                                       ike_gateway_id=ike_gateway_id,
                                       folder=folder,
                                       **kwargs)
-    print(f"DEBUG: IKE Gateway {response=}")
+    # print(f"DEBUG: IKE Gateway {response=}")
     return response
 
 
@@ -107,7 +107,7 @@ def ike_gateway_update(data: dict, ike_gateway_id: str, folder: dict, **kwargs) 
     """
     auth: Auth = return_auth(**kwargs)
     print(f"INFO: Updating IKE Gateway: {data['name']}")
-    print(f"DEBUG: Updating IKE Gateway Using data={json.dumps(data)}")
+    # print(f"DEBUG: Updating IKE Gateway Using data={json.dumps(data)}")
     params = folder
     response = prisma_request(token=auth,
                               method='PUT',
@@ -116,7 +116,7 @@ def ike_gateway_update(data: dict, ike_gateway_id: str, folder: dict, **kwargs) 
                               params=params,
                               verify=auth.verify,
                               put_object=f'/{ike_gateway_id}')
-    print(f"DEBUG: response={response}")
+    # print(f"DEBUG: response={response}")
     if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
     return response
@@ -134,7 +134,7 @@ def ike_gateway_create(data: dict, folder: dict, **kwargs) -> dict:
     auth: Auth = return_auth(**kwargs)
     print(f"INFO: Creating IKE Gateway: {data['name']}")
     # print(f"data={json.dumps(data)}")
-    print(f"DEBUG: Creating IKE Gateway Using data={json.dumps(data)}")
+    # print(f"DEBUG: Creating IKE Gateway Using data={json.dumps(data)}")
     params = folder
     response = prisma_request(token=auth,
                               method='POST',
@@ -142,7 +142,7 @@ def ike_gateway_create(data: dict, folder: dict, **kwargs) -> dict:
                               data=json.dumps(data),
                               params=params,
                               verify=auth.verify)
-    print(f"DEBUG: response={response}")
+    # print(f"DEBUG: response={response}")
     if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
     return response
