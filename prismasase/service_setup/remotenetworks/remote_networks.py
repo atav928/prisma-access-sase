@@ -178,7 +178,7 @@ def get_bandwidth_allocations(folder: dict, **kwargs) -> List[Dict[str, Any]]:
     """
     auth: Auth = return_auth(**kwargs)
     params = folder
-    # # print(f"DEBUG: {auth.verify}")
+    # print(f"DEBUG: {auth.verify}")
     bandwidth = prisma_request(token=auth,
                                url_type='bandwidth-allocations',
                                method='GET',
