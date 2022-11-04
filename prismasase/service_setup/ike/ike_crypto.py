@@ -1,11 +1,11 @@
 """IKE Crypto"""
 
-from prismasase import auth, config
-from prismasase.statics import REMOTE_FOLDER
+from prismasase.config import Auth
 from prismasase.restapi import prisma_request
+from prismasase.utilities import return_auth
 
 
-def ike_crypto_profiles_get(ike_crypto_profile: str) -> str:
+def ike_crypto_profiles_get(ike_crypto_profile: str, folder: dict, **kwargs) -> str:
     """Checks if IKE Crypto Profile Exists
 
     Args:
@@ -14,15 +14,16 @@ def ike_crypto_profiles_get(ike_crypto_profile: str) -> str:
     Returns:
         str: _description_
     """
-    ike_crypto_profile_id = None
+    auth: Auth = return_auth(**kwargs)
+    ike_crypto_profile_id = ""
     #ike_crypto_profile_exists: bool = False
-    params = REMOTE_FOLDER
+    params = folder
     ike_crypto_profiles = prisma_request(
         token=auth,
         url_type='ike-crypto-profiles',
         method="GET",
         params=params,
-        verify=config.CERT)
+        verify=auth.verify)
     for entry in ike_crypto_profiles['data']:
         if entry['name'] == ike_crypto_profile:
             # ike_crypto_profile_exists = True

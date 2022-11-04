@@ -1,11 +1,11 @@
 """IPSec Crypto Configurations"""
 
-from prismasase import auth, config
-from prismasase.statics import REMOTE_FOLDER
+from prismasase.config import Auth
 from prismasase.restapi import prisma_request
+from prismasase.utilities import return_auth
 
 
-def ipsec_crypto_profiles_get(ipsec_crypto_profile: str) -> str:
+def ipsec_crypto_profiles_get(ipsec_crypto_profile: str, folder: dict, **kwargs) -> str:
     """Checks if IPSec Crypto Profile Exists
 
     Args:
@@ -14,14 +14,15 @@ def ipsec_crypto_profiles_get(ipsec_crypto_profile: str) -> str:
     Returns:
         bool: _description_
     """
-    ipsec_crypto_profile_id: str = None
+    auth: Auth = return_auth(**kwargs)
+    ipsec_crypto_profile_id: str = ""
     # ipsec_crypto_profile_exists: bool = False
-    params = REMOTE_FOLDER
+    params = folder
     ipsec_crypto_profiles = prisma_request(token=auth,
                                            url_type='ipsec-crypto-profiles',
                                            method="GET",
                                            params=params,
-                                           verify=config.CERT)
+                                           verify=auth.verify)
     for entry in ipsec_crypto_profiles['data']:
         if entry['name'] == ipsec_crypto_profile:
             # ipsec_crypto_profile_exists = True

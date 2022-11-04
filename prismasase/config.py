@@ -20,42 +20,16 @@ def set_bool(value: str):
     Returns:
         (str|bool): String if certificate path is passed otherwise True|False
     """
+    value_bool: bool = False
     if isinstance(value, bool):
-        pass
+        value_bool = value
     elif str(value).lower() == 'true':
-        value = True
+        value_bool: bool = True
     elif str(value).lower() == 'false':
-        value = False
+        value_bool: bool = False
     else:
-        value = False
-    return value
-
-class Config:
-    """
-    Configuration Utility
-    """
-    CERT = os.environ.get("CERT", False)
-    TSG = os.environ.get("TSG", None)
-    CLIENT_ID = os.environ.get("CLIENT_ID", None)
-    CLIENT_SECRET = os.environ.get("CLIENT_SECRET", None)
-    REST_API = {
-        # Service Setup
-        "bandwidth-allocations": f"{URL_BASE}/bandwidth-allocations",
-        "ike-gateways": f"{URL_BASE}/ike-gateways",
-        "ike-crypto-profiles": f"{URL_BASE}/ike-crypto-profiles",
-        "ipsec-crypto-profiles": f"{URL_BASE}/ipsec-crypto-profiles",
-        "ipsec-tunnels": f"{URL_BASE}/ipsec-tunnels",
-        "config-version": f"{URL_BASE}/config-versions",
-        "infrastructure-settings": f"{URL_BASE}/shared-infrastructure-settings",
-        "internal-dns-servers": f"{URL_BASE}/internal-dns-servers",
-        "license-type": f"{URL_BASE}/licese-types",
-        "remote-networks": f"{URL_BASE}/remote-networks",
-        "locations": f"{URL_BASE}/locations",
-        "service-connections": f"{URL_BASE}/service-connections",
-        # Security Services
-        "profile-groups": f"{URL_BASE}/profile-groups",
-        "security-rules": f"{URL_BASE}/security-rules",
-    }
+        value_bool: bool = False
+    return value_bool
 
 
 class Auth:
@@ -103,6 +77,7 @@ class Auth:
         auth = (self.client_id, self.client_secret)
         response = requests.post(url=url, headers=headers, data=data,
                                  auth=auth, timeout=self.timeout, verify=self.verify)
+        token = ""
         if response.status_code == 200:
             response = response.json()
             token = response['access_token']
@@ -124,10 +99,63 @@ class Auth:
         @staticmethod
         def refresh_token(decorated):
             """refreshes token"""
-            def wrapper(token, *args, **kwargs):
+            def wrapper(token: Auth, *args, **kwargs):
                 if time.time() > token.access_token_expiration:
                     # regenerate token and reset timmer
                     token.get_token()
                 # send back just token from auth class
                 return decorated(token.token, *args, **kwargs)
             return wrapper
+
+
+def refresh_token(decorated):
+    """refreshes token"""
+    def wrapper(token: Auth, *args, **kwargs):
+        if time.time() > token.access_token_expiration:
+            # regenerate token and reset timmer
+            token.get_token()
+        # send back just token from auth class
+        return decorated(token.token, *args, **kwargs)
+    return wrapper
+
+class Config:
+    """
+    Configuration Utility
+    """
+    CERT = os.environ.get("CERT", False)
+    TSG = os.environ.get("TSG", "")
+    CLIENT_ID = os.environ.get("CLIENT_ID", "")
+    CLIENT_SECRET = os.environ.get("CLIENT_SECRET", "")
+    REST_API = {
+        # Service Setup
+        "bandwidth-allocations": f"{URL_BASE}/bandwidth-allocations",
+        "ike-gateways": f"{URL_BASE}/ike-gateways",
+        "ike-crypto-profiles": f"{URL_BASE}/ike-crypto-profiles",
+        "ipsec-crypto-profiles": f"{URL_BASE}/ipsec-crypto-profiles",
+        "ipsec-tunnels": f"{URL_BASE}/ipsec-tunnels",
+        "infrastructure-settings": f"{URL_BASE}/shared-infrastructure-settings",
+        "internal-dns-servers": f"{URL_BASE}/internal-dns-servers",
+        "license-type": f"{URL_BASE}/licese-types",
+        "remote-networks": f"{URL_BASE}/remote-networks",
+        "locations": f"{URL_BASE}/locations",
+        "service-connections": f"{URL_BASE}/service-connections",
+        # Security Services
+        "profile-groups": f"{URL_BASE}/profile-groups",
+        "security-rules": f"{URL_BASE}/security-rules",
+        # Configuration Management
+        "config-versions": f"{URL_BASE}/config-versions",
+        "jobs": f"{URL_BASE}/jobs",
+        # Objects
+        "address-groups": f"{URL_BASE}/address-groups",
+        "addresses": f"{URL_BASE}/addresses",
+        "application-filters": f"{URL_BASE}/application-filters",
+        "application-groups": f"{URL_BASE}/application-groups",
+        "auto-tag-actions": f"{URL_BASE}/auto-tag-actions",
+        "dynamic-user-groups": f"{URL_BASE}/dynamic-user-groups",
+        "external-dynamic-lists": f"{URL_BASE}/external-dynamic-lists",
+        "tags": f"{URL_BASE}/tags",
+        "url-categories": f"{URL_BASE}/url-categories",
+        "url-filtering-categories": f"{URL_BASE}/url-filtering-categories"
+    }
+    LIMIT: int = int(os.environ.get("LIMIT", "100"))
+    OFFSET: int = int(os.environ.get("OFFSET", "0"))

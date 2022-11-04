@@ -1,5 +1,6 @@
 requests~=2.28.1
 requests_toolbelt~=0.9.1
-wheel
+wheel~=0.37.1
 pyyaml~=6.0
 orjson
+ipaddress~=1.0.23

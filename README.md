@@ -20,17 +20,22 @@ Requires configuraitons to be on the system to work properly. You can define the
 
 1. Requires the following manditory ENV Variables:
 _Required:_
+
 ```bash
 TGS="TGS VALUE"
 CLIENT_ID="CLIENT ID"
 CLIENT_SECRET="CLIENT SECRET"
 ```
+
 _Optional:_
+
 ```bash
 CERT: "true"
 ```
+
 2. Through a YAML config file located here ~/.confg/.prismasase
  - this can be run via using the prisma_yaml_script script that comes with the installation:
+
  ```bash
 # prisma_yaml_script 
 Running YAML Configs
@@ -39,7 +44,8 @@ Please input Client Secret: <account_secret>
 Please enter TSG ID: <TSG>
 Please enter custom cert location('true'|'false'|<custom_cert_location>): true
 ```
-3. When importing prismasase directly it will lastly prompt for the information in an interactive window.
+
+3. When the config is initiated it reads in the YAML configs as your default which you can use as your variables. Otherwise you need to provide the athorization. Authorization is still based on an object and once that object is created you can pass it around and it has a self wrapper that will confirm the token is still valid and reauth if it is not to handle work that may surpass the 15 min timer tied to each auth token.
 
 ### Usage
 
@@ -47,8 +53,10 @@ Module will set a 15min timmer once imported and will check that timmer each tim
 
 _**Example** (showing defaults only):_
 ```python
->>> from prismasase import auth
+>>> from prismasase.config import Auth
+>>> from prismasase import config
 >>> from prismasase.restapi import prisma_request
+>>> auth = Auth(tsg_id=config.TSG, client_id=config.CLIENT_ID, client_secret=config.CLIENT_SECRET, verify=config.CERT)
 >>> ike_gateways = prisma_request(token=auth,url_type='ike-gateways',method='GET',params={'folder':'Remote Networks'})
 >>> ike_gateways
 {'data': [], 'offset': 0, 'total': 0, 'limit': 200}
@@ -315,13 +323,27 @@ utilities.check_name_length("ike-proto-gen-config-value-soemthing")
 ```
 
 **Example of creating/onboarding a new remote site:**
-```python
-from prismasase import service_setup
 
-# Note building out full list of possible varibles that can always be passed using 
-# a settings config **settings if you have the dictionary created for 
-# all the required variables. This is going to be built out in future release
-new_network = service_setup.remote_networks.create_remote_network(remote_network_name="savannah01",region="us-southeast",spn_name="us-southeast-whitebeam",ike_crypto_profile="ike-crypto-profile-cisco",ipsec_crypto_profile="ipsec-crypto-prof-cisco",local_fqdn="sase@prisma.com",peer_fqdn="savannah01@example.com",tunnel_monitor="true",monitor_ip="192.168.102.1",static_enabled="true",static_routing="192.168.102.0/24",bgp_enabled="false")
+```python
+from prismasase.config import Auth
+from prismasase import service_setup
+from prismasase.utilities import gen_pre_shared_key
+
+"""
+Generate a random pre-shared-key for use if you do not want to supply one; warning you will get a hash return value so ensure you store locally; I use a crytography program that stores the password secretly in a table using a secret key stored in a vault.
+"""
+pre_shared_key = gen_pre_shared_key(length=26)
+
+# generate an auth object (if you do not a pass one then the defaults will be used yet only one tenant can be used)
+auth = Auth(tsg_id='12345678', client_id='serviceaccount@prissmasasee', client_secret='secret password', verify=True, timeout=120)
+
+"""
+Note building out full list of possible varibles that can always be passed using 
+a settings config **settings if you have the dictionary created for 
+all the required variables. This is going to be built out in future release
+"""
+
+new_network = service_setup.remote_networks.create_remote_network(remote_network_name="savannah01",region="us-southeast",spn_name="us-southeast-whitebeam",ike_crypto_profile="ike-crypto-profile-cisco",ipsec_crypto_profile="ipsec-crypto-prof-cisco",peer_id_type="ufqdn",local_id_type="ufqdn",pre_shared_key=pre_shared_key,local_id_value="sase@prisma.com",peer_id_value="savannah01@example.com",tunnel_monitor="true",monitor_ip="192.168.105.2",static_enabled="true",static_routing="192.168.130.0/24,192.168.231.0/24",bgp_enabled="false", peer_address_type="dynamic", auth=auth)
 ```
 
 **Below would be the output if running in an interactive shell:**
@@ -330,17 +352,98 @@ new_network = service_setup.remote_networks.create_remote_network(remote_network
 INFO: Verified region='us-southeast' and spn_name='us-southeast-whitebeam' exist
 INFO: Creating IKE Gateway: ike-gw-savannah01
 INFO: Creating IPSec Tunnel ipsec-tunnel-savannah01
-INFO: Created Remote Network 
+INFO: Created Remote Network
+```
+
+**RETURN:**
+
+```json
 {
-    "@status": "success",
-    "created": {
-        "ipsec_tunnel": "ipsec-tunnel-savannah01",
-        "ipsec_crypto_profile": "ipsec-crypto-prof-cisco",
-        "ike_gateway": "ike-gw-savannah01",
-        "ike_crypto_profile": "ike-crypto-profile-cisco",
-        "pre_shared_key": "x_BwMCMiJHrf9LwfEvDGDksf88tZlcKF",
-        "local_fqdn": "sase@prisma.com",
-        "peer_fqdn": "savannah01@example.com"
+    "status": "success",
+    "message": {
+        "ike_gateway": {
+            "id": "e8a1de19-3cda-40c9-b879-fab8583944c8",
+            "name": "ike-gwy-savannah01",
+            "folder": "Remote Networks",
+            "authentication": {
+                "pre_shared_key": {
+                    "key": "-AQ==Jb9PA0IE/5FTjhet18MVeOV3j4o=nuLiIdAstF7fZGURc2wBQim0Mtwu4EiUvCYdfNXHWyx+MZv9fWxNY7T88O0L0FVO"
+                }
+            },
+            "local_id": {
+                "type": "ufqdn",
+                "id": "sase@prisma.com"
+            },
+            "peer_address": {
+                "dynamic": {}
+            },
+            "peer_id": {
+                "type": "ufqdn",
+                "id": "savanah01@example.com"
+            },
+            "protocol_common": {
+                "fragmentation": {
+                    "enable": false
+                },
+                "nat_traversal": {
+                    "enable": true
+                },
+                "passive_mode": true
+            },
+            "protocol": {
+                "ikev1": {
+                    "ike_crypto_profile": "ike-crypto-profile-cisco",
+                    "dpd": {
+                        "enable": true
+                    }
+                },
+                "ikev2": {
+                    "ike_crypto_profile": "ike-crypto-profile-cisco",
+                    "dpd": {
+                        "enable": true
+                    }
+                },
+                "version": "ikev2-preferred"
+            },
+            "local_address": {
+                "interface": "vlan"
+            }
+        },
+        "ipsec_tunnel": {
+            "id": "3ccd79a7-9050-4e1b-a057-712c99453980",
+            "name": "ipsec-tunnel-savannah01",
+            "folder": "Remote Networks",
+            "anti_replay": true,
+            "auto_key": {
+                "ike_gateway": [
+                    {
+                        "name": "ike-gwy-savannah01"
+                    }
+                ],
+                "ipsec_crypto_profile": "ipsec-crypto-prof-cisco"
+            },
+            "copy_tos": false,
+            "enable_gre_encapsulation": false,
+            "tunnel_monitor": {
+                "destination_ip": "192.168.105.2",
+                "enable": true
+            },
+            "tunnel_interface": "tunnel"
+        },
+        "remote_network": {
+            "id": "54b45db0-455b-49ec-9220-f03ed64b02f3",
+            "name": "savannah01",
+            "folder": "Remote Networks",
+            "ipsec_tunnel": "ipsec-tunnel-savannah01",
+            "license_type": "FWAAS-AGGREGATE",
+            "region": "us-southeast",
+            "spn_name": "us-southeast-whitebeam",
+            "subnets": [
+                "192.168.130.0/24",
+                "192.168.231.0/24"
+            ],
+            "ecmp_load_balancing": "disable"
+        }
     }
 }
 ```
@@ -349,11 +452,12 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 
 ### Caveats and known issues:
 
- - This is a PREVIEW release; still under works
- - DELETE and PUT actions are still under testing
- - Doing a push would require additional seetings see how to handle prisma_request()
+* This is a PREVIEW release; still under works
+* DELETE and PUT actions are still under testing
+* Doing a push would require additional seetings see how to handle prisma_request()
 
 #### Version
+
 | Version | Build | Changes |
 | ------- | ----- | ------- |
 | **0.0.1** | **b1** | Initial Release. |
@@ -365,20 +469,60 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 | **0.1.5** | **b2** | fixed some issues with erroring and started to build out messaging if interacting directly |
 | **0.1.5** | **b3** | final release test before production merged some missing files from last merger |
 | **0.1.5** | **final** | Production release|
-
-#### For more info
-
-* Get help and additional Prisma Access Documentation at <https://pan.dev/sase/>
+| **0.1.6** | **a1** | created baseline files and config management structure |
+| **0.1.6** | **a2** | fixed issues with package names |
+| **0.1.6** | **a5** | fixed issues with unable to commit due to how the IKE data was getting formated; strange issue with api call |
+| **0.1.6** | **a6** | merged feature to support tags |
+| **0.1.6** | **a7** | added ability to specify folder location for generizing loction defaults it to Remote Networks for reverse compatability |
+| **0.1.6** | **a8** | fixes issues with config checks and monitors both parent push and all children pushed in configuration to return a response with all the information for each job |
+| **0.2.1** | **a1** | Changed entire initial build on how the tenants are read in. If yaml exists you can use that, but you now have to specify the auth in each request to manage mulitple tenants; you can leave it alone and not pass the auth and an auth will be generated off the init config if you are only managing a single tenant based on the standad inputs. |
+| **0.2.1** | **a3** | fixed issues with auth in config management moved auth to utilities file and reorg structure; also fixed issue with reading in yaml config file when using yaml for self contained config outside of pushing in the auth credentials |
+| **0.2.1** | **a4** | fixed a few bugs around auth that was carried over from previous changes; found issue with autotagging that doesnot want to work, but fixed tagging through Addresses so DAGs could be used for auto tagging for now, added ability to retrieve address by ID; adds address edit function; fixes issue with address get by id |
+| **0.2.1** | **a5** | Fixed api calls to use auth.verify instead of config.CERT, which was legacy way; added addtional config url endpoints for future support |
+| **0.2.1** | **a6** | streamlined passing variables as they go through remote object creation |
+| **0.2.1** | **a7** | added address delete via old method Palo Alto decided to change their api calls and their new calls don't even work.. Great job!!! |
+| **0.2.1** | **a8** | adjusted pre-shared key to force to be supplied and passed the encrypted value back to keep the pre-shared-key secured; removed debugging |
+| **0.2.1** | **final** | tested in production environment; creates remte netoworks; adds, removes, and edits addressses; checks for tags that exist; runs standard commit push; adds support for multiple types see notes on release |
 
 ### Known Bugs/Future Features
 
 * Names longer than 31 characters will just fail this is a limitation need to put in a verification on all names to confirm to standards
 * BGP doesn't seem to work, but this looks more like a Prisma Access side issue; need to find out from Palo
+* Configuration Management Bugs:
+  * get configuration by version doesn't work as it still only pulls the list of configurations. This seems like an api issue with Palo Alto
+  * No configuration changes are shown and no way to check diff remotely using config management. Again issue with the way the Pan API's are implemented.
+  * Configuration doesn't allow you to pull to even see if there are changes nor does it show the staged congfig changes that are being pushed. Therefore you cannot determine what folders to push to. Another API limitation
+  * When pushing configuration the job that gets returned is the parent job id and will return a pass if any job passes, but does not report the individual failures. This is a limitation with the SASE API which needs to evaluate all sub jobs.
+  * Error messages are difficult toget as summary of job does not provide error.
+  * Load configuration or previous configuration continues to get access deny error. Which requires super user permissions.
+    * No way to restore, just push an old configuration.
+    * Even with full permission Loading any configuration continually reports success, but message always reads: "Config loaded from <config_id>. Migration of old configuration was not successful. Some features may not work as expected and/or parts of configuration may have been lost." leading to nothing actually being done.
+  * No way to get Configuration Status or Last Good Config easily
+  * issues with how IKE api calls are made. When done according to documenation it does not work; I copied a duplicate configuration that should not work, but actually works. Compared original to new code and difference is location of key,value pairs plus duplicate keys, which goes against a proper dictionary creation and could possibly cause issues. I think there should be an error returned if the profiles are not sent correctly, but I'm not getting them and the API endpoint is just selecting it's own.
+* Address get by ID issue... requires a folder param when looking at ID but not documented.
 
 ### Future Features
 
 * Get more details on possible variables
 * Create a bulk function that can onboard multiple sites all at once, but will need to handle errors to ensure that if one exists that one is skipped and noted in the response
 * Build out the config management section that will include reverting configurations viewing and pushing staged commits
-* Build in feature to be able to change or adjust the key length from configs if not providing a pre-shared key
 * Add support for different types of tunnels; currently only supports dynamic tunnels with ufqdn as the input
+* Updates to response when successful
+  * publish commit version when commit push succeeds
+  * find a way to get a diff
+* Updates to be able to run as a cli script as well as a imported package
+
+### Current Enahancements
+
+#### Version 0.2.1
+
+* Leverage pre-shared-key to create a key
+* Must supply a pre-shared-key when creating a tunnel and that key returns encrypted. It is up to the user to be able to track the actual key
+* Added a default auth using local yaml config, but able to pass different auth tenants that can than be used throughout each call and will refresh if that object is still in use after 15 minutes.
+* Added supports for different types of IKE Gateways supporting using peer_id_value, peer_id_type, local_id_value, and local_id_type.
+* Added support for different peer-address types using peer_address_type; you can now specify the different types if dynamic is chosen than no peer_address is required as that defaults to empty Object. Otherwise the peer_address needs to be supplied depending on the type chosen. Please read Pan Docs.
+* Additional features for Addresse Objects and Tags supported just didn't provide examples import the modules and use as needed.
+
+#### For more info
+
+* Get help and additional Prisma Access Documentation at <https://pan.dev/sase/>
