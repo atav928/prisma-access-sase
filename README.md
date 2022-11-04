@@ -323,16 +323,27 @@ utilities.check_name_length("ike-proto-gen-config-value-soemthing")
 ```
 
 **Example of creating/onboarding a new remote site:**
+
 ```python
 from prismasase.config import Auth
 from prismasase import service_setup
+from prismasase.utilities import gen_pre_shared_key
+
+"""
+Generate a random pre-shared-key for use if you do not want to supply one; warning you will get a hash return value so ensure you store locally; I use a crytography program that stores the password secretly in a table using a secret key stored in a vault.
+"""
+pre_shared_key = gen_pre_shared_key(length=26)
 
 # generate an auth object (if you do not a pass one then the defaults will be used yet only one tenant can be used)
 auth = Auth(tsg_id='12345678', client_id='serviceaccount@prissmasasee', client_secret='secret password', verify=True, timeout=120)
-# Note building out full list of possible varibles that can always be passed using 
-# a settings config **settings if you have the dictionary created for 
-# all the required variables. This is going to be built out in future release
-new_network = service_setup.remote_networks.create_remote_network(remote_network_name="savannah01",region="us-southeast",spn_name="us-southeast-whitebeam",ike_crypto_profile="ike-crypto-profile-cisco",ipsec_crypto_profile="ipsec-crypto-prof-cisco",local_fqdn="sase@prisma.com",peer_fqdn="savannah01@example.com",tunnel_monitor="true",monitor_ip="192.168.102.1",static_enabled="true",static_routing="192.168.102.0/24",bgp_enabled="false", auth=auth)
+
+"""
+Note building out full list of possible varibles that can always be passed using 
+a settings config **settings if you have the dictionary created for 
+all the required variables. This is going to be built out in future release
+"""
+
+new_network = service_setup.remote_networks.create_remote_network(remote_network_name="savannah01",region="us-southeast",spn_name="us-southeast-whitebeam",ike_crypto_profile="ike-crypto-profile-cisco",ipsec_crypto_profile="ipsec-crypto-prof-cisco",peer_id_type="ufqdn",local_id_type="ufqdn",pre_shared_key=pre_shared_key,local_id_value="sase@prisma.com",peer_id_value="savannah01@example.com",tunnel_monitor="true",monitor_ip="192.168.105.2",static_enabled="true",static_routing="192.168.130.0/24,192.168.231.0/24",bgp_enabled="false", peer_address_type="dynamic", auth=auth)
 ```
 
 **Below would be the output if running in an interactive shell:**
@@ -341,17 +352,98 @@ new_network = service_setup.remote_networks.create_remote_network(remote_network
 INFO: Verified region='us-southeast' and spn_name='us-southeast-whitebeam' exist
 INFO: Creating IKE Gateway: ike-gw-savannah01
 INFO: Creating IPSec Tunnel ipsec-tunnel-savannah01
-INFO: Created Remote Network 
+INFO: Created Remote Network
+```
+
+**RETURN:**
+
+```json
 {
-    "@status": "success",
-    "created": {
-        "ipsec_tunnel": "ipsec-tunnel-savannah01",
-        "ipsec_crypto_profile": "ipsec-crypto-prof-cisco",
-        "ike_gateway": "ike-gw-savannah01",
-        "ike_crypto_profile": "ike-crypto-profile-cisco",
-        "pre_shared_key": "x_BwMCMiJHrf9LwfEvDGDksf88tZlcKF",
-        "local_fqdn": "sase@prisma.com",
-        "peer_fqdn": "savannah01@example.com"
+    "status": "success",
+    "message": {
+        "ike_gateway": {
+            "id": "e8a1de19-3cda-40c9-b879-fab8583944c8",
+            "name": "ike-gwy-savannah01",
+            "folder": "Remote Networks",
+            "authentication": {
+                "pre_shared_key": {
+                    "key": "-AQ==Jb9PA0IE/5FTjhet18MVeOV3j4o=nuLiIdAstF7fZGURc2wBQim0Mtwu4EiUvCYdfNXHWyx+MZv9fWxNY7T88O0L0FVO"
+                }
+            },
+            "local_id": {
+                "type": "ufqdn",
+                "id": "sase@prisma.com"
+            },
+            "peer_address": {
+                "dynamic": {}
+            },
+            "peer_id": {
+                "type": "ufqdn",
+                "id": "savanah01@example.com"
+            },
+            "protocol_common": {
+                "fragmentation": {
+                    "enable": false
+                },
+                "nat_traversal": {
+                    "enable": true
+                },
+                "passive_mode": true
+            },
+            "protocol": {
+                "ikev1": {
+                    "ike_crypto_profile": "ike-crypto-profile-cisco",
+                    "dpd": {
+                        "enable": true
+                    }
+                },
+                "ikev2": {
+                    "ike_crypto_profile": "ike-crypto-profile-cisco",
+                    "dpd": {
+                        "enable": true
+                    }
+                },
+                "version": "ikev2-preferred"
+            },
+            "local_address": {
+                "interface": "vlan"
+            }
+        },
+        "ipsec_tunnel": {
+            "id": "3ccd79a7-9050-4e1b-a057-712c99453980",
+            "name": "ipsec-tunnel-savannah01",
+            "folder": "Remote Networks",
+            "anti_replay": true,
+            "auto_key": {
+                "ike_gateway": [
+                    {
+                        "name": "ike-gwy-savannah01"
+                    }
+                ],
+                "ipsec_crypto_profile": "ipsec-crypto-prof-cisco"
+            },
+            "copy_tos": false,
+            "enable_gre_encapsulation": false,
+            "tunnel_monitor": {
+                "destination_ip": "192.168.105.2",
+                "enable": true
+            },
+            "tunnel_interface": "tunnel"
+        },
+        "remote_network": {
+            "id": "54b45db0-455b-49ec-9220-f03ed64b02f3",
+            "name": "savannah01",
+            "folder": "Remote Networks",
+            "ipsec_tunnel": "ipsec-tunnel-savannah01",
+            "license_type": "FWAAS-AGGREGATE",
+            "region": "us-southeast",
+            "spn_name": "us-southeast-whitebeam",
+            "subnets": [
+                "192.168.130.0/24",
+                "192.168.231.0/24"
+            ],
+            "ecmp_load_balancing": "disable"
+        }
     }
 }
 ```
@@ -390,11 +482,7 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 | **0.2.1** | **a6** | streamlined passing variables as they go through remote object creation |
 | **0.2.1** | **a7** | added address delete via old method Palo Alto decided to change their api calls and their new calls don't even work.. Great job!!! |
 | **0.2.1** | **a8** | adjusted pre-shared key to force to be supplied and passed the encrypted value back to keep the pre-shared-key secured; removed debugging |
-
-
-#### For more info
-
-* Get help and additional Prisma Access Documentation at <https://pan.dev/sase/>
+| **0.2.1** | **final** | tested in production environment; creates remte netoworks; adds, removes, and edits addressses; checks for tags that exist; runs standard commit push; adds support for multiple types see notes on release |
 
 ### Known Bugs/Future Features
 
@@ -418,7 +506,23 @@ _NOTE:_ Since the response will give you the pre-shared-key, but default the len
 * Get more details on possible variables
 * Create a bulk function that can onboard multiple sites all at once, but will need to handle errors to ensure that if one exists that one is skipped and noted in the response
 * Build out the config management section that will include reverting configurations viewing and pushing staged commits
-* Build in feature to be able to change or adjust the key length from configs if not providing a pre-shared key
 * Add support for different types of tunnels; currently only supports dynamic tunnels with ufqdn as the input
 * Updates to response when successful
+  * publish commit version when commit push succeeds
+  * find a way to get a diff
 * Updates to be able to run as a cli script as well as a imported package
+
+### Current Enahancements
+
+#### Version 0.2.1
+
+* Leverage pre-shared-key to create a key
+* Must supply a pre-shared-key when creating a tunnel and that key returns encrypted. It is up to the user to be able to track the actual key
+* Added a default auth using local yaml config, but able to pass different auth tenants that can than be used throughout each call and will refresh if that object is still in use after 15 minutes.
+* Added supports for different types of IKE Gateways supporting using peer_id_value, peer_id_type, local_id_value, and local_id_type.
+* Added support for different peer-address types using peer_address_type; you can now specify the different types if dynamic is chosen than no peer_address is required as that defaults to empty Object. Otherwise the peer_address needs to be supplied depending on the type chosen. Please read Pan Docs.
+* Additional features for Addresse Objects and Tags supported just didn't provide examples import the modules and use as needed.
+
+#### For more info
+
+* Get help and additional Prisma Access Documentation at <https://pan.dev/sase/>
