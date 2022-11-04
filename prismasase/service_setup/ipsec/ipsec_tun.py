@@ -71,7 +71,7 @@ def ipsec_tunnel_create(data: Dict[str, Any], folder: dict, **kwargs):
     """
     auth: Auth = return_auth(**kwargs)
     print(f"INFO: Creating IPSec Tunnel {data['name']}")
-    print(f"DEBUG: Creating IPSec Tunnel Using data={json.dumps(data)}")
+    # print(f"DEBUG: Creating IPSec Tunnel Using data={json.dumps(data)}")
     params = folder
     response = prisma_request(token=auth,
                               method="POST",
@@ -79,7 +79,7 @@ def ipsec_tunnel_create(data: Dict[str, Any], folder: dict, **kwargs):
                               data=json.dumps(data),
                               params=params,
                               verify=auth.verify)
-    print(f"DEBUG: response={response}")
+    # print(f"DEBUG: response={response}")
     if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
     return response
@@ -97,7 +97,7 @@ def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str, folder: dict
     """
     auth: Auth = return_auth(**kwargs)
     print(f"INFO: Updating IPSec Tunnel {data['name']}")
-    print(f"DEBUG: Updating IPSec Tunnel Using data={json.dumps(data)}")
+    # print(f"DEBUG: Updating IPSec Tunnel Using data={json.dumps(data)}")
     params = folder
     response = prisma_request(token=auth,
                               method="PUT",
@@ -106,7 +106,7 @@ def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str, folder: dict
                               params=params,
                               put_object=f'/{ipsec_tunnel_id}',
                               verify=auth.verify)
-    print(f"DEBUG: response={response}")
+    # print(f"DEBUG: response={response}")
     if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
     return response

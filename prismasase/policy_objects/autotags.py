@@ -49,7 +49,7 @@ def auto_tag_create(name: str, tag_filter: str, actions: list, **kwargs) -> dict
     # Confirm doesn't already exist
     response = auto_tag_list(name=name)
     if len(response['data']) > 0:
-        print(f"DEBUG: {response=}")
+        # print(f"DEBUG: {response=}")
         raise SASEAutoTagExists(f"Auto Tag Already exists {name}={response['data'][0]}")
     data = auto_tag_payload(tag_filter=tag_filter, name=name, actions=actions, **kwargs)
     response = prisma_request(token=auth,
@@ -111,7 +111,7 @@ def auto_tag_payload(tag_filter: str, name: str, actions: list, **kwargs) -> dic
         data.update({'quarantine': kwargs['quarantine']})
     if kwargs.get('send_to_panorama') and isinstance(kwargs.get('send_to_panorama'), bool):
         data.update({'send_to_panorama': kwargs['send_to_panorama']})
-    print(f"DEBUG: {data=}")
+    # print(f"DEBUG: {data=}")
     return data
 
 

@@ -29,7 +29,7 @@ def addresses_list(folder: str, **kwargs) -> dict:
                               url_type="addresses",
                               params=params,
                               verify=auth.verify)
-    print(f"DEBUG: {response}")
+    # print(f"DEBUG: {response}")
     return response
 
 
@@ -62,7 +62,7 @@ def addresses_create(name: str, folder: str, **kwargs) -> dict:
     """
     # check if already exists
     address_check = addresses_list(folder=folder, **kwargs)
-    print(f"DEBUG: Checking if {name} already exists using {address_check=}")
+    # print(f"DEBUG: Checking if {name} already exists using {address_check=}")
     for address in address_check['data']:
         if address == name:
             raise SASEObjectExists(f"message=\"address already exists\"|{address=}")
@@ -114,7 +114,7 @@ def addresses_create_payload(name: str, folder: str, **kwargs) -> dict:
         if not tags_exist(tag_list=kwargs['tag'], folder=folder, **kwargs):
             raise SASEBadParam(f"message=\"tag doesnot exist cannot add\"|tag={kwargs['tag']}")
         data.update({"tag": kwargs["tag"]})
-    print(f"DEBUG: data created {data=}")
+    # print(f"DEBUG: data created {data=}")
     return data
 
 
@@ -138,7 +138,7 @@ def addresses_delete(address_id: str, folder: str, **kwargs) -> dict:
                                                      auth=auth)
     except SASEBadRequest as err:
         error = f"{type(err).__name__}: {err}" if err else ""
-        print(f"DEBUG: Address does not exist {error=}")
+        # print(f"DEBUG: Address does not exist {error=}")
         return response
     if address_exists:
         response = prisma_request(token=auth,

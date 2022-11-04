@@ -116,6 +116,6 @@ def tags_exist(tag_list: list, folder: str, **kwargs) -> bool:
         raise SASEError(f"message=\"requires a list of tagnames\"|{tag_list=}")
     for tag in tag_list:
         if not tags_get(tag_name=tag, folder=folder, **kwargs):
-            print(f"DEBUG: {tag=} doesnot exist")
+            # print(f"DEBUG: {tag=} doesnot exist")
             return False
     return True
