@@ -56,7 +56,7 @@ Please enter custom cert location('true'|'false'|<custom_cert_location>): true
 
 3. When the config is initiated it reads in the YAML configs as your default which you can use as your variables. Otherwise you need to provide the athorization. Authorization is still based on an object and once that object is created you can pass it around and it has a self wrapper that will confirm the token is still valid and reauth if it is not to handle work that may surpass the 15 min timer tied to each auth token.
 
-### Usage
+### Basic Usage
 
 Module will set a 15min timmer once imported and will check that timmer each time a command is run to confirm that the token is still viable. If it is not, the token will be refreshed upon the next execution of an api call.
 
@@ -315,7 +315,11 @@ Format requirements:
  | newyork-01 | us-east-1 | us-east-ash | IKE-default | IPSec-default | ThisIsMyKey2022 | local@example.com | peer-1@example.com | TRUE | 192.168.102.2 | TRUE | "192.168.100.0/24,192.168.101.0/24" | TRUE | 64512 | 192.168.102.2 | 192.168.102.1 | 
  | boston-01 | us-east-1 | us-east-ash | IKE-default | IPSec-default | ThisIsMyKey2022 | local@example.com | peer-2@example.com | TRUE | 192.168.202.2 | TRUE | "192.168.200.0/24,192.168.201.0/24" | TRUE | 64512 | 192.168.202.2 | 192.168.202.1 |
 
-#### On Boarding a new Site
+### Service Setup
+
+**Description:** This section shows you all that encompasses the ability to create a service object
+
+#### On Boarding a new Site (Remote Network)
 
 You can now onboard a new site ensuring your settings are passed correctly. The Service Setup folder has all the required calls needed to create a new or update any existing profiles that you are referencing. You do not have to pass a pre-shared key if you do not want to as that will create one for you using a secrets package. You can see it inside the utilities that comes with the package
 
@@ -461,7 +465,148 @@ INFO: Created Remote Network
 }
 ```
 
-### Address Objects
+### Configuration Management
+
+**Description:** Configuraiton Management structure found under:
+
+```python
+from prismasase.config_mgmt import configurations
+```
+
+#### Configuration Rollback
+
+You can use **config_manage_rollback()** to roll back all current pending configurations
+
+```shell
+>>> configuration.config_manage_rollback()
+{'success': True, 'message': 'There are no changes to revert.'}
+```
+
+#### Commit
+
+Commiting all the cofigurations requires you to know all your folders that you own. If you don't you can run a command similar to the one listed before to get a list of all services. Otherwise you can specify this command.
+
+**NOTE:** the timeout is default set to 2700 seconds and you can adjust this but depending on the amount of configuration changes and nodes that this has to push to there are a few jobs that are running that this SDK is checking on. The best would be to build this as an async api where you can just get the job id from this SDK and check on it's progress otherwise direcly you are just waiting for it to finish. I set a timmer in the jobs to display how long it takes for each.
+
+```shell
+>>> from prismasase.config_mgmt impt configuration
+>>> response = configuration.config_commit(folders=['Remote Networks', 'Service Connections'], description='commiting test configuration from sdk')
+INFO: pushing candiate config for Remote Networks, Service Connections
+INFO: response={"success":true,"job_id":"187","message":"CommitAndPush job enqueued with jobid 187"}
+INFO: Pushed successfully job_id='187'|message='CommitAndPush job enqueued with jobid 187'
+INFO: Push returned success
+INFO: Additional job search returned Jobs 189,188
+INFO: Checking on job_id 189
+INFO: Push returned success
+INFO: Checking on job_id 188
+INFO: Push returned success
+INFO: Gathering Current Commit version for tenant 1234567890
+INFO: Current Running configurations are 62
+INFO: Final Response:
+{
+    "status": "success",
+    "message": "CommitAndPush job enqueued with jobid 187",
+    "parent_job": "187",
+    "version_info": [
+        {
+            "device": "Remote Networks",
+            "version": 62,
+            "date": "2022-11-06T14:38:54.000Z"
+        },
+        {
+            "device": "Service Connections",
+            "version": 62,
+            "date": "2022-11-06T14:38:54.000Z"
+        }
+    ],
+    "job_id": {
+        "187": {
+            "details": "{\"info\":[\"Configuration committed successfully\"],\"errors\":[],\"warnings\":[],\"description\":\"commiting test configuration from sdk\"}",
+            "end_ts": "2022-11-06 14:38:58",
+            "id": "187",
+            "insert_ts": "2022-11-06 14:37:20",
+            "job_result": "2",
+            "job_status": "2",
+            "job_type": "53",
+            "last_update": "2022-11-06 14:39:00",
+            "opaque_int": "0",
+            "opaque_str": "",
+            "owner": "cfgserv",
+            "parent_id": "0",
+            "percent": "100",
+            "result_i": "2",
+            "result_str": "OK",
+            "session_id": "",
+            "start_ts": "2022-11-06 14:37:20",
+            "status_i": "2",
+            "status_str": "FIN",
+            "summary": "",
+            "type_i": "53",
+            "type_str": "CommitAndPush",
+            "uname": "APIGateway@ProdInternal.com",
+            "total_time": "122"
+        },
+        "189": {
+            "details": "{\"status\":\"ACT\",\"info\":[\"Your Prisma Access infrastructure is being provisioned. Go to the Prisma Access Dashboard for real-time status information.\"],\"errors\":[],\"description\":\"Service Connections configuration pushed to cloud\",\"warnings\":[],\"result\":\"PEND\"}",
+            "end_ts": "2022-11-06 14:41:36",
+            "id": "189",
+            "insert_ts": "2022-11-06 14:39:11",
+            "job_result": "2",
+            "job_status": "2",
+            "job_type": "22",
+            "last_update": "2022-11-06 14:41:36",
+            "opaque_int": "",
+            "opaque_str": "",
+            "owner": "gpcs-ext",
+            "parent_id": "187",
+            "percent": "100",
+            "result_i": "2",
+            "result_str": "OK",
+            "session_id": "",
+            "start_ts": "2022-11-06 14:39:11",
+            "status_i": "2",
+            "status_str": "FIN",
+            "summary": "Configuration push finished",
+            "type_i": "22",
+            "type_str": "CommitAll",
+            "uname": "APIGateway@ProdInternal.com",
+            "total_time": "155"
+        },
+        "188": {
+            "details": "{\"status\":\"FIN\",\"info\":[\"Warnings seen in:\\n  Region: US Southeast  \\nWarning: Authentication rulebase is defined but captive-portal setting is not set!\\n(Module: device)\\n\\u00a0\\nGo to the Prisma Access Dashboard for real-time status information.\"],\"errors\":[],\"description\":\"Remote Networks configuration pushed to cloud\",\"warnings\":[],\"result\":\"OK\"}",
+            "end_ts": "2022-11-06 14:42:17",
+            "id": "188",
+            "insert_ts": "2022-11-06 14:38:55",
+            "job_result": "2",
+            "job_status": "2",
+            "job_type": "22",
+            "last_update": "2022-11-06 14:42:17",
+            "opaque_int": "",
+            "opaque_str": "",
+            "owner": "gpcs-ext",
+            "parent_id": "187",
+            "percent": "100",
+            "result_i": "2",
+            "result_str": "OK",
+            "session_id": "",
+            "start_ts": "2022-11-06 14:38:56",
+            "status_i": "2",
+            "status_str": "FIN",
+            "summary": "Configuration push finished",
+            "type_i": "22",
+            "type_str": "CommitAll",
+            "uname": "APIGateway@ProdInternal.com",
+            "total_time": "31"
+        }
+    }
+}
+```
+
+### Objects
+
+**Description:** This is the folder structure that handles all the Objects throughout the configurations for Prisma Access SASE
+
+#### Address Objects
 
 Creating an Address and manipulating an address use the addresses import. You are allowed to list out tags to tag an address and will get information on the action as well as returns on them.
 
@@ -522,6 +667,7 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
     ]
 }
 ```
+
 ### Caveats and known issues:
 
 * This is a PREVIEW release; still under works
@@ -556,6 +702,7 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 | **0.2.1** | **a8** | adjusted pre-shared key to force to be supplied and passed the encrypted value back to keep the pre-shared-key secured; removed debugging |
 | **0.2.1** | **final** | tested in production environment; creates remte netoworks; adds, removes, and edits addressses; checks for tags that exist; runs standard commit push; adds support for multiple types see notes on release |
 | **0.2.2** | **a1** | vulnerability in wheel updating dependency to 0.38.0 to fix vulnerability |
+| **0.2.2** | **a2** | added versioning to config_management return json response and updated readme with more examples |
 
 ### Known Bugs/Futue Features
 
