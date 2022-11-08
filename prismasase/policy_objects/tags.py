@@ -137,5 +137,22 @@ def tags_exist(tag_list: list, folder: str, **kwargs) -> bool:
     return True
 
 
-def tags_get_by_id():
-    pass
+def tags_get_by_id(tag_id: str, folder: str, **kwargs) -> dict:
+    """Get Tag by ID
+
+    Args:
+        tag_id (str): Requires TAG ID
+        folder (str): Currently requires folder to be defined
+
+    Returns:
+        dict: _description_
+    """
+    auth: Auth = return_auth(**kwargs)
+    params = FOLDER[folder]
+    response = prisma_request(token=auth,
+                              method="POST",
+                              url_type='tags',
+                              params=params,
+                              get_object=f'/{tag_id}',
+                              verify=auth.verify)
+    return response

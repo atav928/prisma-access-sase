@@ -703,6 +703,7 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 | **0.2.1** | **final** | tested in production environment; creates remte netoworks; adds, removes, and edits addressses; checks for tags that exist; runs standard commit push; adds support for multiple types see notes on release |
 | **0.2.2** | **a1** | vulnerability in wheel updating dependency to 0.38.0 to fix vulnerability |
 | **0.2.2** | **a2** | added versioning to config_management return json response and updated readme with more examples |
+| **0.2.2** | **a3** | added autotag method correcting the payload; complex call that needs to be looked at for updating as the filter has to be adjusted each change |
 
 ### Known Bugs/Futue Features
 

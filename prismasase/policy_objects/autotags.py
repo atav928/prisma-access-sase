@@ -5,7 +5,8 @@ import json
 from prismasase.config import Auth
 from prismasase.exceptions import (SASEAutoTagError, SASEAutoTagExists, SASEAutoTagTooLong)
 from prismasase.utilities import (default_params, check_name_length, return_auth)
-from prismasase.statics import (AUTOTAG_ACTIONS, AUTOTAG_TARGET, SHARED_FOLDER)
+from prismasase.statics import (AUTOTAG_ACTIONS, AUTOTAG_LOG_TYPE,
+                                AUTOTAG_TARGET, FOLDER, SHARED_FOLDER)
 from prismasase.restapi import prisma_request
 from .tags import tags_get
 
@@ -61,7 +62,7 @@ def auto_tag_create(name: str, tag_filter: str, actions: list, **kwargs) -> dict
     return response
 
 
-def auto_tag_payload(tag_filter: str, name: str, actions: list, **kwargs) -> dict:
+def auto_tag_payload(tag_filter: str, name: str, actions: list, log_type: str, **kwargs) -> dict:
     """Creates Tagging payload
     Sample:
     {
@@ -74,7 +75,7 @@ def auto_tag_payload(tag_filter: str, name: str, actions: list, **kwargs) -> dic
                         "tags": [
                             "string"
                         ],
-                        "target": "string",
+                        "target": "source-address",
                         "timeout": 0
                     }
                 }
@@ -84,12 +85,15 @@ def auto_tag_payload(tag_filter: str, name: str, actions: list, **kwargs) -> dic
         "filter": "string",
         "name": "string",
         "quarantine": true,
-        "send_to_panorama": true
+        "send_to_panorama": true,
+        "folder": "Shared",
+        "log_type": "traffic"
     }
 
     Args:
         filter (str): _description_
         name (str): _description_
+        log_type (str, Requirements): log type required acceptable values
 
     Returns:
         dict: _description_
@@ -100,11 +104,18 @@ def auto_tag_payload(tag_filter: str, name: str, actions: list, **kwargs) -> dic
         raise SASEAutoTagTooLong(f"message=\"greater than allowed 63\"|{name=}")
     # will raise an error if anything is missing
     auto_tag_confirm_actions(actions=actions)
+    if log_type not in AUTOTAG_LOG_TYPE:
+        raise SASEAutoTagError(f"message=\"log_type {log_type} not a valid type\"")
     data = {
         "filter": tag_filter,
         "name": name,
-        "actions": actions
+        "actions": actions,
+        "log_type": log_type
     }
+    if kwargs.get('folder') and isinstance(
+            kwargs.get('folder'),
+            str) and kwargs.get('folder') in FOLDER:
+        data['folder'] = kwargs['folder']
     if kwargs.get('description'):
         data.update({'description': kwargs['description']})
     if kwargs.get('quarantine') and isinstance(kwargs.get('quarentine'), bool):
@@ -138,6 +149,7 @@ def auto_tag_confirm_actions(actions: list):
             target: str = action['type']['tagging']['target']
             tags: list = action['type']['tagging']['tags'] if action['type']['tagging'].get('tags') else [
             ]
+            #timeout: int = action['type']['tagging']['timeout'] if action['type']['tagging'].get('timeout') else 0
             if not isinstance(tags, list):
                 raise SASEAutoTagError(f"message=\"invalid tags type must be list\"|{tags=}")
             if target not in AUTOTAG_TARGET:
