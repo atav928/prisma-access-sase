@@ -12,6 +12,8 @@ FOLDER: dict = {
     'Service Connections': SERVICE_FOLDER,
     'Shared': SHARED_FOLDER
 }
+
+# TAG Statics
 TAG_COLORS = [
     'Red', 'Green', 'Blue', 'Yellow', 'Copper', 'Orange', 'Purple', 'Gray', 'Light', 'Green', 'Cyan',
     'Light', 'Gray', 'Blue', 'Gray', 'Lime', 'Black', 'Gold', 'Brown', 'Olive', 'Maroon',
@@ -20,8 +22,10 @@ TAG_COLORS = [
     'Blue', 'Violet', 'Medium', 'Violet', 'Medium', 'Rose', 'Lavender', 'Orchid', 'Thistle', 'Peach',
     'Salmon', 'Magenta', 'Red', 'Violet', 'Mahogany', 'Burnt', 'Sienna', 'Chestnut']
 
+# AUTO TAG STATICS
 AUTOTAG_ACTIONS = ["add-tag", "remove-tag"]
-AUTOTAG_TARGET = ["Source Address", "Destination Address", "User", "X-Forwarded-For Address"]
+AUTOTAG_TARGET = ["source-address", "destination-address", "user", "xff-address"]
+AUTOTAG_LOG_TYPE = ["traffic", "wildfire", "threat", "url", "data", "tunnel", "auth"]
 
 # IKE Static
 DYNAMIC = {'dynamic': {}}
