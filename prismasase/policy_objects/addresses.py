@@ -139,6 +139,7 @@ def addresses_delete(address_id: str, folder: str, **kwargs) -> dict:
     except SASEBadRequest as err:
         error = f"{type(err).__name__}: {err}" if err else ""
         # print(f"DEBUG: Address does not exist {error=}")
+        print(f"ERROR: {error=}")
         return response
     if address_exists:
         response = prisma_request(token=auth,
@@ -188,6 +189,7 @@ def addresses_edit(address_id: str, folder: str, **kwargs) -> dict:
     data = addresses_create_payload(name=address_exists['name'], folder=folder, **kwargs)
     response = prisma_request(token=auth,
                               method="PUT",
+                              url_type='addresses',
                               put_object=f"/{address_id}",
                               params=params,
                               data=json.dumps(data),

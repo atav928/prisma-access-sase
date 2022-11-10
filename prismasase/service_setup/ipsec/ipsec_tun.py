@@ -1,5 +1,6 @@
 """IPSec Utilities"""
 
+import ipaddress
 import json
 from typing import Any, Dict
 import orjson
@@ -37,10 +38,19 @@ def ipsec_tunnel(ipsec_tunnel_name: str,
     data = create_ipsec_tunnel_payload(ipsec_tunnel_name=ipsec_tunnel_name,
                                        ipsec_crypto_profile=ipsec_crypto_profile,
                                        ike_gateway_name=ike_gateway_name)
-    if tunnel_monitor and kwargs.get('monitor_ip'):
-        data["tunnel_monitor"] = {"destination_ip": kwargs["monitor_ip"], "enable": True}
-    else:
-        raise SASEMissingParam("Missing monitor_ip value since tunnel_monitor is set to enable")
+    if tunnel_monitor:
+        if kwargs.get('monitor_ip'):
+            try:
+                monitor_ip = kwargs.get('monitor_ip', '')
+                ipaddress.ip_address(monitor_ip)
+                data["tunnel_monitor"] = {"destination_ip": monitor_ip, "enable": True}
+            except ValueError as err:
+                error = f"{type(err).__name__}: {err}" if err else ""
+                print(f"ERROR: {error}")
+                raise SASEMissingParam(f"{error=}") # pylint: disable=raise-missing-from
+        else:
+            raise SASEMissingParam("Missing monitor_ip value since " +
+                                   "tunnel_monitor is set to enable")
     ipsec_tunnels = prisma_request(token=auth,
                                    method='GET',
                                    url_type='ipsec-tunnels',

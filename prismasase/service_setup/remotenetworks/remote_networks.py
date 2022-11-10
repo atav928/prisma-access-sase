@@ -12,7 +12,7 @@ from prismasase.exceptions import (
     SASENoBandwidthAllocation)
 from prismasase.restapi import prisma_request
 from prismasase.statics import FOLDER, REMOTE_FOLDER
-from prismasase.utilities import gen_pre_shared_key, return_auth
+from prismasase.utilities import gen_pre_shared_key, return_auth, set_bool
 from ..ipsec.ipsec_tun import ipsec_tunnel
 from ..ipsec.ipsec_crypto import ipsec_crypto_profiles_get
 from ..ike.ike_crypto import ike_crypto_profiles_get
@@ -52,10 +52,12 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
         local_id_type (str): Requires one of 'ipaddr'|'fqdn'|'keyid'|'ufqdn'. Defaults 'ufqdn'
         local_id_value (str): Depending on the local_id_type will determine the type of value needed
         passive_mode (str): Sets IKE passive mode deafaults to 'true'
-        bgp_enabled (str): Sets BGP routing enabled or disabled use string 'true' or 'false' Defaults 'false'
+        bgp_enabled (str|bool): Sets BGP routing enabled or disabled use string 'true' or 'false' Defaults 'false'
         bgp_peer_ip (str): Required if bgp_enabled is 'true'
         bgp_local_ip (str): Required if bgp_enabled is 'true'
         bgp_peer_as (str): Required if bgp_enabled is 'true'
+        static_enabled (str|bool): Sets Static routing enabled or disabled use string 'true' or 'false' Defaults 'false'
+        tunnel_monitor (str|bool): Sets Tunnel Monitoring to enabled or disabled use string 'true' or 'false' Defaults 'false'
 
 
     Raises:
@@ -80,11 +82,12 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
         # TODO: Build support for anything other than type 'ufqdn'
         #local_fqdn: str = kwargs['local_fqdn']
         #peer_fqdn: str = kwargs['peer_fqdn']
-        tunnel_monitor: bool = bool(kwargs.pop('tunnel_monitor').lower() in ['true'])
+        # Converts string values to bool and passes default values
+        tunnel_monitor: bool = set_bool(value=kwargs.pop('tunnel_monitor', ''), default=False)
         # monitor_ip: str = kwargs['monitor_ip'] if tunnel_monitor else ""
-        static_enabled: bool = bool(kwargs.pop('static_enabled').lower() in ['true'])
+        static_enabled: bool = set_bool(value=kwargs.pop('static_enabled', ''), default=False)
         #static_routing: list = kwargs.pop('static_routing').split(',') if static_enabled else []
-        bgp_enabled: bool = bool(kwargs.pop('bgp_enabled').lower() in ['true'])
+        bgp_enabled: bool = set_bool(value=kwargs.pop('bgp_enabled', ''), default=False)
         #bgp_peer_ip: str = kwargs['bgp_peer_ip'] if bgp_enabled else ""
         #bgp_local_ip: str = kwargs['bgp_local_ip'] if bgp_enabled else ""
         #bgp_peer_as: str = kwargs['bgp_peer_as'] if bgp_enabled else ""

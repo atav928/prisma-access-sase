@@ -4,7 +4,8 @@ from getpass import getpass
 
 import yaml
 
-from prismasase.config import Config, set_bool
+from prismasase.config import Config
+from prismasase.utilities import set_bool
 
 config = Config()
 if not all([config.CLIENT_ID, config.CLIENT_SECRET, config.TSG]):

@@ -247,8 +247,10 @@ def config_check_job_id(job_id: str, timeout: int = 2700, interval: int = 30, **
     return response
 
 
-def config_commit(
-        folders: list, description: str = "No description Provided", timeout: int = 2700, **kwargs) -> dict:
+def config_commit(folders: list, # pylint: disable=too-many-locals
+                  description: str = "No description Provided",
+                  timeout: int = 2700,
+                  **kwargs) -> dict:
     """Monitor Commit Job for error or success
 
     Args:
@@ -267,9 +269,11 @@ def config_commit(
     response = {
         'status': 'error',
         'message': '',
-        'parent_job': ''
+        'parent_job': '',
+        'version_info': []
     }
     config_job_subs = []
+    version = ''
     # initial push of configurations
     config_job = config_manage_push(folders=folders, description=description, auth=auth)
     if 'success' in config_job and config_job.get('success'):
@@ -308,5 +312,15 @@ def config_commit(
                 response['job_id'] = response_jobs
                 # print(f"DEBUG: Current Response {orjson.dumps(response).decode('utf-8')}")
                 count -= 1
+    print(f"INFO: Gathering Current Commit version for tenant {auth.tsg_id}")
+    show_version = config_manage_show_run(auth=auth, **kwargs)
+    # Only pull one version
+    # TODO: Decide if we want to pull each version and display,
+    # but since we are commiting all all versions should equal
+    for obj in show_version["data"]:
+        version = obj['version']
+        break
+    print(f"INFO: Current Running configurations are {str(version)}")
+    response['version_info'] = show_version['data']
     print(f"INFO: Final Response:\n{json.dumps(response, indent=4)}")
     return response
