@@ -705,6 +705,7 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 | **0.2.2** | **a2** | added versioning to config_management return json response and updated readme with more examples |
 | **0.2.2** | **a3** | added autotag method correcting the payload; complex call that needs to be looked at for updating as the filter has to be adjusted each change |
 | **0.2.2** | **rc1** | released hot fix for bool issues inside of remote network |
+| **0.2.2** | **final** | includes hotfix for monitor and updates to help creating a Remote Network adjusting for a bool or string variable getting passed; cannot add the type to continue support for python < 3.10 |
 
 ### Known Bugs/Futue Features
 
