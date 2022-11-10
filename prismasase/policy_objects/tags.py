@@ -21,11 +21,27 @@ def tags_list(folder: str, **kwargs) -> dict:
     auth: Auth = return_auth(**kwargs)
     params = default_params(**kwargs)
     params = {**FOLDER[folder], **params}
-    response = prisma_request(token=auth,
-                              method="GET",
-                              url_type='tags',
-                              params=params,
-                              verify=auth.verify)
+    data = []
+    count = 0
+    response = {
+        'data': [],
+        'offset': 0,
+        'total': 0,
+        'limit': 0
+    }
+    # Loops through to get all data in specified folder depending on limit and totals
+    while (len(data) < response['total']) or count == 0:
+        response = prisma_request(token=auth,
+                                  method="GET",
+                                  url_type='tags',
+                                  params=params,
+                                  verify=auth.verify)
+        data = data + response['data']
+        # Adjust to get the next set until you get all values
+        params = {**params, **{'offset': params['offset'] + params['limit']}}
+        count += 1
+        # print(f"DEBUG: {params=}|{response=}|{count=}|{data=}|{len(data)}")
+    response['data'] = data
     return response
 
 
@@ -67,7 +83,7 @@ def tags_get(folder: str, tag_name: str, **kwargs) -> dict:
     Returns:
         dict: _description_
     """
-    # TODO: only getting 500 limit if over that check the total values for more
+    # Will now loop through get all tags offseting by 500 each time
     auth: Auth = return_auth(**kwargs)
     response = {}
     tag_get_list = tags_list(folder=folder, limit=500, auth=auth)
@@ -119,3 +135,24 @@ def tags_exist(tag_list: list, folder: str, **kwargs) -> bool:
             # print(f"DEBUG: {tag=} doesnot exist")
             return False
     return True
+
+
+def tags_get_by_id(tag_id: str, folder: str, **kwargs) -> dict:
+    """Get Tag by ID
+
+    Args:
+        tag_id (str): Requires TAG ID
+        folder (str): Currently requires folder to be defined
+
+    Returns:
+        dict: _description_
+    """
+    auth: Auth = return_auth(**kwargs)
+    params = FOLDER[folder]
+    response = prisma_request(token=auth,
+                              method="POST",
+                              url_type='tags',
+                              params=params,
+                              get_object=f'/{tag_id}',
+                              verify=auth.verify)
+    return response

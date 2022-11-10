@@ -10,28 +10,6 @@ import orjson
 from prismasase.exceptions import SASEAuthError
 from prismasase.statics import URL_BASE
 
-
-def set_bool(value: str):
-    """sets bool value when pulling string from os env
-
-    Args:
-        value (str): _description_
-
-    Returns:
-        (str|bool): String if certificate path is passed otherwise True|False
-    """
-    value_bool: bool = False
-    if isinstance(value, bool):
-        value_bool = value
-    elif str(value).lower() == 'true':
-        value_bool: bool = True
-    elif str(value).lower() == 'false':
-        value_bool: bool = False
-    else:
-        value_bool: bool = False
-    return value_bool
-
-
 class Auth:
     """Authorization to SASE API and refresh Decorator
 
