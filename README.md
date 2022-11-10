@@ -698,11 +698,12 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 | **0.2.1** | **a4** | fixed a few bugs around auth that was carried over from previous changes; found issue with autotagging that doesnot want to work, but fixed tagging through Addresses so DAGs could be used for auto tagging for now, added ability to retrieve address by ID; adds address edit function; fixes issue with address get by id |
 | **0.2.1** | **a5** | Fixed api calls to use auth.verify instead of config.CERT, which was legacy way; added addtional config url endpoints for future support |
 | **0.2.1** | **a6** | streamlined passing variables as they go through remote object creation |
-| **0.2.1** | **a7** | added address delete via old method Palo Alto decided to change their api calls and their new calls don't even work.. Great job!!! |
+| **0.2.1** | **a7** | added address delete via old method Palo Alto decided to change their api calls; found out they support the old structure and there were just a few issues where the new calls were released before they released the support. They should be fixing that |
 | **0.2.1** | **a8** | adjusted pre-shared key to force to be supplied and passed the encrypted value back to keep the pre-shared-key secured; removed debugging |
 | **0.2.1** | **final** | tested in production environment; creates remte netoworks; adds, removes, and edits addressses; checks for tags that exist; runs standard commit push; adds support for multiple types see notes on release |
 | **0.2.2** | **a1** | vulnerability in wheel updating dependency to 0.38.0 to fix vulnerability |
 | **0.2.2** | **a2** | added versioning to config_management return json response and updated readme with more examples |
+| **0.2.2** | **a3** | added autotag method correcting the payload; complex call that needs to be looked at for updating as the filter has to be adjusted each change |
 | **0.2.2** | **rc1** | released hot fix for bool issues inside of remote network |
 
 ### Known Bugs/Futue Features

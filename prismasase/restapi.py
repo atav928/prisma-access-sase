@@ -10,7 +10,7 @@ from prismasase.exceptions import SASEBadRequest, SASEMissingParam
 
 
 @refresh_token
-def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]:
+def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]: # pylint: disable=too-many-locals
     """_summary_
 
     Args:
