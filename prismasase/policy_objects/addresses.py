@@ -132,15 +132,10 @@ def addresses_delete(address_id: str, folder: str, **kwargs) -> dict:
     params = FOLDER[folder]
     # first verify that address actually exists
     response = {}
-    try:
-        address_exists = addresses_get_address_by_id(address_id=address_id,
-                                                     folder=folder,
-                                                     auth=auth)
-    except SASEBadRequest as err:
-        error = f"{type(err).__name__}: {err}" if err else ""
-        # print(f"DEBUG: Address does not exist {error=}")
-        print(f"ERROR: {error=}")
-        return response
+    # raises error if address id doesn't exist
+    address_exists = addresses_get_address_by_id(address_id=address_id,
+                                                 folder=folder,
+                                                 auth=auth)
     if address_exists:
         response = prisma_request(token=auth,
                                   method="DELETE",
