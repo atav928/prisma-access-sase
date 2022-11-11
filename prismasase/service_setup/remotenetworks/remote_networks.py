@@ -79,18 +79,12 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
             'ike_gateway_name') else f"ike-gwy-{remote_network_name}"
         ipsec_tunnel_name: str = kwargs['ipsec_tunnel_name'] if kwargs.get(
             'ipsec_tunnal_name') else f"ipsec-tunnel-{remote_network_name}"
-        # TODO: Build support for anything other than type 'ufqdn'
-        #local_fqdn: str = kwargs['local_fqdn']
-        #peer_fqdn: str = kwargs['peer_fqdn']
         # Converts string values to bool and passes default values
         tunnel_monitor: bool = set_bool(value=kwargs.pop('tunnel_monitor', ''), default=False)
         # monitor_ip: str = kwargs['monitor_ip'] if tunnel_monitor else ""
         static_enabled: bool = set_bool(value=kwargs.pop('static_enabled', ''), default=False)
         #static_routing: list = kwargs.pop('static_routing').split(',') if static_enabled else []
         bgp_enabled: bool = set_bool(value=kwargs.pop('bgp_enabled', ''), default=False)
-        #bgp_peer_ip: str = kwargs['bgp_peer_ip'] if bgp_enabled else ""
-        #bgp_local_ip: str = kwargs['bgp_local_ip'] if bgp_enabled else ""
-        #bgp_peer_as: str = kwargs['bgp_peer_as'] if bgp_enabled else ""
         # Default folder to "Remote Networks" for reverse compatability
         pre_shared_key = kwargs.pop('pre_shared_key')
         if kwargs.get("folder_name"):

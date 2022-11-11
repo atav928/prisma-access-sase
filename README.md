@@ -706,6 +706,7 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 | **0.2.2** | **a3** | added autotag method correcting the payload; complex call that needs to be looked at for updating as the filter has to be adjusted each change |
 | **0.2.2** | **rc1** | released hot fix for bool issues inside of remote network |
 | **0.2.2** | **final** | includes hotfix for monitor and addresses_edit missing 'url_type' and updates to help creating a Remote Network adjusting for a bool or string variable getting passed; cannot add the type to continue support for python < 3.10 |
+| **0.2.3** | **a1** | raise an error if address delete called and address doesnot exist |
 
 ### Known Bugs/Futue Features
 
