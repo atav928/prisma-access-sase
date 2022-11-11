@@ -6,13 +6,15 @@ import ipaddress
 import json
 import orjson
 
-from prismasase.config import Auth
+from prismasase import return_auth
+
+from prismasase.configs import Auth
 from prismasase.exceptions import (
     SASEBadParam, SASEBadRequest, SASEMissingIkeOrIpsecProfile, SASEMissingParam,
     SASENoBandwidthAllocation)
 from prismasase.restapi import prisma_request
 from prismasase.statics import FOLDER, REMOTE_FOLDER
-from prismasase.utilities import gen_pre_shared_key, return_auth, set_bool
+from prismasase.utilities import set_bool
 from ..ipsec.ipsec_tun import ipsec_tunnel
 from ..ipsec.ipsec_crypto import ipsec_crypto_profiles_get
 from ..ike.ike_crypto import ike_crypto_profiles_get

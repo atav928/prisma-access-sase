@@ -10,7 +10,7 @@ GNU
 
 ## Requirements
 
-* Active Prisma Access 
+* Active Prisma Access
 * python >=3.8
 
 ### Installation
@@ -24,6 +24,7 @@ GNU
  * pip install prisma-access-sase
 
 ### Setup
+
 Requires configuraitons to be on the system to work properly. You can define them via one of 3 methods
 
 1. Requires the following manditory ENV Variables:
@@ -61,6 +62,7 @@ Please enter custom cert location('true'|'false'|<custom_cert_location>): true
 Module will set a 15min timmer once imported and will check that timmer each time a command is run to confirm that the token is still viable. If it is not, the token will be refreshed upon the next execution of an api call.
 
 _**Example** (showing defaults only):_
+
 ```python
 >>> from prismasase.config import Auth
 >>> from prismasase import config
@@ -310,9 +312,9 @@ Similarly you can POST commands changing the method and attaching json data to t
 
 Format requirements:
 
-| remote_network_name | region | spn_name | ike_crypto_profile | ipsec_crypto_profile | pre_shared_key | local_fqdn | peer_fqdn | tunnel_monitor | monitor_ip | static_enabled | static_routing | bgp_enabled | bgp_peer_as | bgp_peer_ip | bgp_local_ip | 
+| remote_network_name | region | spn_name | ike_crypto_profile | ipsec_crypto_profile | pre_shared_key | local_fqdn | peer_fqdn | tunnel_monitor | monitor_ip | static_enabled | static_routing | bgp_enabled | bgp_peer_as | bgp_peer_ip | bgp_local_ip |
 | ------ | ----- | ----- | ------ | ------- | ------ | ------- | ------- | ------ | ------- | ------ | ------- | ------ | ------- | --------| ------|
- | newyork-01 | us-east-1 | us-east-ash | IKE-default | IPSec-default | ThisIsMyKey2022 | local@example.com | peer-1@example.com | TRUE | 192.168.102.2 | TRUE | "192.168.100.0/24,192.168.101.0/24" | TRUE | 64512 | 192.168.102.2 | 192.168.102.1 | 
+ | newyork-01 | us-east-1 | us-east-ash | IKE-default | IPSec-default | ThisIsMyKey2022 | local@example.com | peer-1@example.com | TRUE | 192.168.102.2 | TRUE | "192.168.100.0/24,192.168.101.0/24" | TRUE | 64512 | 192.168.102.2 | 192.168.102.1 |
  | boston-01 | us-east-1 | us-east-ash | IKE-default | IPSec-default | ThisIsMyKey2022 | local@example.com | peer-2@example.com | TRUE | 192.168.202.2 | TRUE | "192.168.200.0/24,192.168.201.0/24" | TRUE | 64512 | 192.168.202.2 | 192.168.202.1 |
 
 ### Service Setup
@@ -668,7 +670,7 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 }
 ```
 
-### Caveats and known issues:
+### Caveats and known issues
 
 * This is a PREVIEW release; still under works
 * DELETE and PUT actions are still under testing
@@ -707,6 +709,7 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 | **0.2.2** | **rc1** | released hot fix for bool issues inside of remote network |
 | **0.2.2** | **final** | includes hotfix for monitor and addresses_edit missing 'url_type' and updates to help creating a Remote Network adjusting for a bool or string variable getting passed; cannot add the type to continue support for python < 3.10 |
 | **0.2.3** | **a1** | raise an error if address delete called and address doesnot exist |
+| **0.2.3** | **a2** | fixed issue with config due to duplicate naming conventions, adjusted all the imports; added address raise error if doesnot exist |
 
 ### Known Bugs/Futue Features
 
@@ -737,6 +740,15 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 * Updates to be able to run as a cli script as well as a imported package
 
 ### Current Enahancements
+
+#### Version 0.2.2
+
+* Hot fix for monitor adddress
+* Hot fix for missing 'url_type' in address_edit
+* Adjust variables being passed to accept both bool or string on required vars and converts them to bool
+* Added correct payload for autotag method
+* Added return of versioning from commit push method
+* Addressed wheel vulnerability in 0.37.x
 
 #### Version 0.2.1
 

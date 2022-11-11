@@ -5,13 +5,13 @@ import json
 from typing import Any, Dict
 import orjson
 
-from prismasase.config import Auth
+from prismasase import return_auth
+from prismasase.configs import Auth
 from prismasase.exceptions import SASEBadRequest, SASEMissingParam
 from prismasase.restapi import prisma_request
-from prismasase.utilities import return_auth
 
 
-def ipsec_tunnel(ipsec_tunnel_name: str,
+def ipsec_tunnel(ipsec_tunnel_name: str, # pylint: disable=too-many-locals
                  ipsec_crypto_profile: str,
                  ike_gateway_name: str,
                  tunnel_monitor: bool,

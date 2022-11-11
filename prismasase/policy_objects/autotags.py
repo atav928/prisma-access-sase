@@ -2,9 +2,10 @@
 
 import json
 
-from prismasase.config import Auth
+from prismasase import return_auth
+from prismasase.configs import Auth
 from prismasase.exceptions import (SASEAutoTagError, SASEAutoTagExists, SASEAutoTagTooLong)
-from prismasase.utilities import (default_params, check_name_length, return_auth)
+from prismasase.utilities import (default_params, check_name_length)
 from prismasase.statics import (AUTOTAG_ACTIONS, AUTOTAG_LOG_TYPE,
                                 AUTOTAG_TARGET, FOLDER, SHARED_FOLDER)
 from prismasase.restapi import prisma_request
@@ -169,7 +170,8 @@ def auto_tag_confirm_actions(actions: list):
                     print(f"DEGUG: Tag not found {tag_exists=}")
                     raise SASEAutoTagError(f"message=\"tag doesnot exist\"|{tag=}")
     except KeyError as err:
-        raise SASEAutoTagError(f"message=\"missing action value\"|missing={str(err)}")
+        error = f"{type(err).__name__}: {str(err)}" if err else ""
+        raise SASEAutoTagError(f"message=\"missing action value\"|{error=}") # pylint: disable=raise-missing-from
     # if all chekcks passed than it's a valid action
 
 

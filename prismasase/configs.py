@@ -137,3 +137,11 @@ class Config:
     }
     LIMIT: int = int(os.environ.get("LIMIT", "100"))
     OFFSET: int = int(os.environ.get("OFFSET", "0"))
+
+    def to_dict(self) -> dict:
+        """returns configs as a dict
+
+        Returns:
+            dict: _description_
+        """
+        return self.__dict__

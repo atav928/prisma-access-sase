@@ -1,16 +1,18 @@
 # pylint: disable=no-member
 """Configuration Management Calls"""
 
+import datetime
 import json
 import time
-import datetime
 
 import orjson
 
-from prismasase.config import Auth
-from prismasase.exceptions import (SASEBadParam, SASECommitError)
+from prismasase import return_auth
+
+from prismasase.configs import Auth
+from prismasase.exceptions import SASEBadParam, SASECommitError
 from prismasase.restapi import prisma_request
-from prismasase.utilities import (check_items_in_list, return_auth)
+from prismasase.utilities import check_items_in_list
 
 
 def config_manage_list_versions(limit: int = 50, offset: int = 0, **kwargs):
