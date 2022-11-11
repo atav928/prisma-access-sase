@@ -4,7 +4,7 @@ from typing import Any, Dict
 import requests
 import orjson
 
-from prismasase.config import Auth, refresh_token
+from prismasase.configs import Auth, refresh_token
 from prismasase import config
 from prismasase.exceptions import SASEBadRequest, SASEMissingParam
 
