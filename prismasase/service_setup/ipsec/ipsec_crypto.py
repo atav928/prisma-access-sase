@@ -3,8 +3,6 @@
 from prismasase import return_auth
 from prismasase.configs import Auth
 from prismasase.restapi import prisma_request
-from prismasase.utilities import return_auth
-
 
 def ipsec_crypto_profiles_get(ipsec_crypto_profile: str, folder: dict, **kwargs) -> str:
     """Checks if IPSec Crypto Profile Exists

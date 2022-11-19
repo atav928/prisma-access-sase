@@ -1,7 +1,5 @@
 """Utilities"""
 import secrets
-from prismasase import config
-from prismasase.config import Auth
 
 def gen_pre_shared_key(length: int = 24) -> str:
     """Generates a random password
