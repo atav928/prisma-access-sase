@@ -1,9 +1,10 @@
 """Address Group"""
 
-from prismasase.config import Auth
-from prismasase.statics import FOLDER
-from prismasase.utilities import default_params, return_auth
+from prismasase import return_auth
+from prismasase.configs import Auth
 from prismasase.restapi import prisma_request
+from prismasase.statics import FOLDER
+from prismasase.utilities import default_params
 
 
 def address_grp_list(folder: str, **kwargs) -> dict:

@@ -1,7 +1,5 @@
 """Utilities"""
 import secrets
-from prismasase import config
-from prismasase.config import Auth
 
 def gen_pre_shared_key(length: int = 24) -> str:
     """Generates a random password
@@ -58,17 +56,6 @@ def default_params(**kwargs) -> dict:
     if kwargs.get('limit'):
         limit = int(kwargs['limit'])
     return {'offset': offset, 'limit': limit}
-
-def return_auth(**kwargs) -> Auth:
-    """_summary_
-
-    Returns:
-        Auth: _description_
-    """
-    auth = kwargs['auth'] if kwargs.get('auth') else ""
-    if not auth:
-        auth = Auth(config.TSG, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
-    return auth
 
 def set_bool(value: str, default: bool = False) -> bool:
     """sets bool value when pulling string from os env

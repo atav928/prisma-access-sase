@@ -1,11 +1,14 @@
 """Address Objects"""
 import json
 
-from prismasase.config import Auth
-from prismasase.exceptions import (SASEBadParam, SASEBadRequest, SASEMissingParam, SASEObjectExists)
-from prismasase.statics import FOLDER
-from prismasase.utilities import default_params, return_auth
+from prismasase import return_auth
+from prismasase.configs import Auth
+from prismasase.exceptions import (SASEBadParam, SASEMissingParam,
+                                   SASEObjectExists)
 from prismasase.restapi import prisma_request
+from prismasase.statics import FOLDER
+from prismasase.utilities import default_params
+
 from .tags import tags_exist
 
 
@@ -132,22 +135,17 @@ def addresses_delete(address_id: str, folder: str, **kwargs) -> dict:
     params = FOLDER[folder]
     # first verify that address actually exists
     response = {}
-    try:
-        address_exists = addresses_get_address_by_id(address_id=address_id,
-                                                     folder=folder,
-                                                     auth=auth)
-    except SASEBadRequest as err:
-        error = f"{type(err).__name__}: {err}" if err else ""
-        # print(f"DEBUG: Address does not exist {error=}")
-        print(f"ERROR: {error=}")
-        return response
-    if address_exists:
-        response = prisma_request(token=auth,
-                                  method="DELETE",
-                                  params=params,
-                                  url_type="addresses",
-                                  delete_object=f"/{address_id}",
-                                  verify=auth.verify)
+    # raises error if address id doesn't exist
+    addresses_get_address_by_id(address_id=address_id,
+                                folder=folder,
+                                auth=auth)
+    # if SASEBadRequest isnot raised than you can proceed to delete
+    response = prisma_request(token=auth,
+                              method="DELETE",
+                              params=params,
+                              url_type="addresses",
+                              delete_object=f"/{address_id}",
+                              verify=auth.verify)
     return response
 
 
@@ -181,12 +179,21 @@ def addresses_edit(address_id: str, folder: str, **kwargs) -> dict:
     Returns:
         _type_: _description_
     """
-    # check if address ID exists
-    address_exists = addresses_get_address_by_id(address_id=address_id, folder=folder, **kwargs)
-    # if error is not returned we can continue
     auth: Auth = return_auth(**kwargs)
+    # check if address ID exists
+    address_exists = addresses_get_address_by_id(address_id=address_id,
+                                                 folder=folder,
+                                                 auth=auth,
+                                                 **kwargs)
+    # print(f"DEBUG: {address_exists=}")
+    # if error is not returned we can continue
     params = FOLDER[folder]
-    data = addresses_create_payload(name=address_exists['name'], folder=folder, **kwargs)
+    # Takes the supplied name otherwise uses the same
+    # name that was retrieved from address exist check
+    name = kwargs.pop('name') if kwargs.get('name') else address_exists['name']
+    # print(f"DEBUG: {name=}")
+    data = addresses_create_payload(name=name, folder=folder, **kwargs)
+    # print(f"DEBUG: {json.dumps(data)}")
     response = prisma_request(token=auth,
                               method="PUT",
                               url_type='addresses',

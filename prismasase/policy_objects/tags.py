@@ -2,11 +2,12 @@
 
 import json
 
-from prismasase.config import Auth
-from prismasase.exceptions import SASEError, SASEObjectExists
+from prismasase import return_auth
+from prismasase.configs import Auth
+from prismasase.exceptions import (SASEError, SASEObjectExists)
 from prismasase.restapi import prisma_request
 from prismasase.statics import FOLDER, TAG_COLORS
-from prismasase.utilities import default_params, return_auth
+from prismasase.utilities import default_params
 
 
 def tags_list(folder: str, **kwargs) -> dict:
