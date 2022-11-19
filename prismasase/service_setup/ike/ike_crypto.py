@@ -1,6 +1,7 @@
 """IKE Crypto"""
 
-from prismasase.config import Auth
+from prismasase import return_auth
+from prismasase.configs import Auth
 from prismasase.restapi import prisma_request
 from prismasase.utilities import return_auth
 

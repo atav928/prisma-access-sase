@@ -4,11 +4,11 @@
 import json
 import orjson
 
-from prismasase.config import Auth
+from prismasase import return_auth
+from prismasase.configs import Auth
 from prismasase.exceptions import SASEBadParam, SASEBadRequest, SASEMissingParam
 from prismasase.restapi import prisma_request
 from prismasase.statics import DYNAMIC
-from prismasase.utilities import return_auth
 
 
 def ike_gateway(pre_shared_key: str,

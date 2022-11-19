@@ -59,17 +59,6 @@ def default_params(**kwargs) -> dict:
         limit = int(kwargs['limit'])
     return {'offset': offset, 'limit': limit}
 
-def return_auth(**kwargs) -> Auth:
-    """_summary_
-
-    Returns:
-        Auth: _description_
-    """
-    auth = kwargs['auth'] if kwargs.get('auth') else ""
-    if not auth:
-        auth = Auth(config.TSG, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
-    return auth
-
 def set_bool(value: str, default: bool = False) -> bool:
     """sets bool value when pulling string from os env
 
