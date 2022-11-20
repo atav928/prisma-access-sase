@@ -89,10 +89,15 @@ def config_manage_push(folders: list, description: str = "No Description Provide
 def config_manage_show_run(**kwargs) -> dict:
     """Show the running configuratio
 
+    Args:
+        auth (Auth, Required): authorization required or must use configs auth
+
     Returns:
         dict: _description_
     """
+    # print(f"DEBUG: {kwargs=}")
     auth: Auth = return_auth(**kwargs)
+    # print(f"DEBUG: {kwargs=}|{auth=}")
     response = prisma_request(token=auth,
                               method='GET',
                               url_type='config-versions',
@@ -268,6 +273,7 @@ def config_commit(folders: list, # pylint: disable=too-many-locals
         _type_: _description_
     """
     auth: Auth = return_auth(**kwargs)
+    # print(f"DEBUG: {kwargs=}|{auth=}")
     response = {
         'status': 'error',
         'message': '',
@@ -299,6 +305,7 @@ def config_commit(folders: list, # pylint: disable=too-many-locals
     time.sleep(5)  # Provide time to create children
     config_job_subs = config_manage_commit_subjobs(job_id=job_id, auth=auth)
     print(f"INFO: Additional job search returned Jobs {','.join(config_job_subs)}")
+    # print(f"DEBUG: {kwargs=}|{auth=}")
     if config_job_subs:
         # TODO: Multithread this as each job runs in parallel and isnt' giving the full picture
         # Once the status is not success exit out and return the error as it's a problem
@@ -315,7 +322,10 @@ def config_commit(folders: list, # pylint: disable=too-many-locals
                 # print(f"DEBUG: Current Response {orjson.dumps(response).decode('utf-8')}")
                 count -= 1
     print(f"INFO: Gathering Current Commit version for tenant {auth.tsg_id}")
-    show_version = config_manage_show_run(auth=auth, **kwargs)
+    # print(f"DEBUG: {kwargs=}|{auth=}")
+    # Do not send KWARGS becuase it has another auth in it possibly since auth
+    # is already extracted at the top
+    show_version = config_manage_show_run(auth=auth)
     # Only pull one version
     # TODO: Decide if we want to pull each version and display,
     # but since we are commiting all all versions should equal

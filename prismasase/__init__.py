@@ -35,7 +35,7 @@ def return_auth(**kwargs) -> Auth:
     Returns:
         Auth: _description_
     """
-    auth = kwargs['auth'] if kwargs.get('auth') else ""
+    auth = kwargs.pop('auth') if kwargs.get('auth') else ""
     if not auth:
         # print(f"DEBUG: {config.to_dict()}")
         auth = Auth(config.TSG, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
