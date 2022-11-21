@@ -10,6 +10,7 @@ import orjson
 from prismasase.exceptions import SASEAuthError
 from prismasase.statics import URL_BASE
 
+
 class Auth:
     """Authorization to SASE API and refresh Decorator
 
@@ -62,7 +63,8 @@ class Auth:
             # set timmer to expire
             self.access_token_expiration = time.time() + response['expires_in']
         elif response.status_code == 401:
-            raise SASEAuthError(orjson.dumps(response.json()).decode('utf-8'))
+            raise SASEAuthError(
+                f"error_code=401|response={orjson.dumps(response.json()).decode('utf-8')}")
         else:
             response.raise_for_status()
         self.token = token
@@ -95,6 +97,7 @@ def refresh_token(decorated):
         # send back just token from auth class
         return decorated(token.token, *args, **kwargs)
     return wrapper
+
 
 class Config:
     """

@@ -63,19 +63,18 @@ def config_manage_push(folders: list, description: str = "No Description Provide
     Returns:
         _type_: _description_
     """
+    auth: Auth = return_auth(**kwargs)
     # verify the folders list
-    show_run = config_manage_show_run()
+    show_run = config_manage_show_run(auth=auth)
     folders_valid: list = [device['device'] for device in show_run['data']]
     print(f"INFO: pushing candiate config for {str(', '.join(folders))}")
     if not check_items_in_list(list_of_items=folders, full_list=folders_valid):
         raise SASEBadParam(f"Invalid list of folders {str(', '.join(folders))}")
-    auth: Auth = return_auth(**kwargs)
     # Set up json body
     data = {
         "folders": folders,
         "description": description
     }
-    # print(f"DEBUG: {data=}")
     response = prisma_request(token=auth,
                               method='POST',
                               url_type='config-versions',
@@ -95,9 +94,7 @@ def config_manage_show_run(**kwargs) -> dict:
     Returns:
         dict: _description_
     """
-    # print(f"DEBUG: {kwargs=}")
     auth: Auth = return_auth(**kwargs)
-    # print(f"DEBUG: {kwargs=}|{auth=}")
     response = prisma_request(token=auth,
                               method='GET',
                               url_type='config-versions',
@@ -123,7 +120,6 @@ def config_manage_commit_subjobs(job_id: str, **kwargs) -> list:
     for jobs in config_jobs['data']:
         if int(jobs['id']) > int(job_id):
             config_jobs_list.append(jobs['id'])
-    # print(f"DEBUG: Config Manage Commit Subjobs returned {','.join(config_jobs_list)}")
     return config_jobs_list
 
 
@@ -220,7 +216,7 @@ def config_check_job_id(job_id: str, timeout: int = 2700, interval: int = 30, **
     start_time = datetime.datetime.now()
     status = ""
     response = {
-        'status': 'error',
+        'status': 'failure',
         'job_id': {str(job_id): {}},
     }
     config_job_check = config_manage_list_job_id(job_id=job_id, auth=auth)
@@ -254,7 +250,7 @@ def config_check_job_id(job_id: str, timeout: int = 2700, interval: int = 30, **
     return response
 
 
-def config_commit(folders: list, # pylint: disable=too-many-locals
+def config_commit(folders: list,  # pylint: disable=too-many-locals
                   description: str = "No description Provided",
                   timeout: int = 2700,
                   **kwargs) -> dict:
@@ -305,7 +301,7 @@ def config_commit(folders: list, # pylint: disable=too-many-locals
     time.sleep(5)  # Provide time to create children
     config_job_subs = config_manage_commit_subjobs(job_id=job_id, auth=auth)
     print(f"INFO: Additional job search returned Jobs {','.join(config_job_subs)}")
-    # print(f"DEBUG: {kwargs=}|{auth=}")
+    # TODO: fix checking subjob as not returning error properly
     if config_job_subs:
         # TODO: Multithread this as each job runs in parallel and isnt' giving the full picture
         # Once the status is not success exit out and return the error as it's a problem
@@ -317,12 +313,16 @@ def config_commit(folders: list, # pylint: disable=too-many-locals
                 response_config_check_job = config_check_job_id(
                     job_id=job, timeout=timeout, auth=auth)
                 response_jobs = {**response['job_id'], **response_config_check_job['job_id']}
-                response['status'] = response['status']
+                # Adjust depending if error is returned
+                if response_config_check_job['status'] != 'success':
+                    response['status'] = response_config_check_job['status']
+                    response['message'] = (
+                        response['message'] + f", jobid {str(job)}: " +
+                        f"{response_config_check_job['job_id'][str(job)]['details']}")
                 response['job_id'] = response_jobs
                 # print(f"DEBUG: Current Response {orjson.dumps(response).decode('utf-8')}")
                 count -= 1
     print(f"INFO: Gathering Current Commit version for tenant {auth.tsg_id}")
-    # print(f"DEBUG: {kwargs=}|{auth=}")
     # Do not send KWARGS becuase it has another auth in it possibly since auth
     # is already extracted at the top
     show_version = config_manage_show_run(auth=auth)
