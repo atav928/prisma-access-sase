@@ -246,7 +246,8 @@ def remote_network(remote_network_name: str,
                     raise SASEBadParam(f"message=\"incorrect IP Network\"|{subnet=}")
             if len(data['subnets']) == 0:
                 raise SASEMissingParam(
-                    f"message=\"required subnet if static routing enabled\"|param={data['subnets']}")
+                    "message=\"required subnet if static routing enabled\"" +
+                    f"|param={data['subnets']}")
         except KeyError as err:
             raise SASEMissingParam(
                 f'message=\"required when static_enabled is True\"|param={str(err)}')

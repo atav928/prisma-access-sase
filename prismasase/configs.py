@@ -62,7 +62,8 @@ class Auth:
             # set timmer to expire
             self.access_token_expiration = time.time() + response['expires_in']
         elif response.status_code == 401:
-            raise SASEAuthError(orjson.dumps(response.json()).decode('utf-8'))
+            raise SASEAuthError(
+                f"error_code=401|response={orjson.dumps(response.json()).decode('utf-8')}")
         else:
             response.raise_for_status()
         self.token = token
