@@ -710,6 +710,10 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 | **0.2.2** | **final** | includes hotfix for monitor and addresses_edit missing 'url_type' and updates to help creating a Remote Network adjusting for a bool or string variable getting passed; cannot add the type to continue support for python < 3.10 |
 | **0.2.3** | **a1** | raise an error if address delete called and address doesnot exist |
 | **0.2.3** | **a2** | fixed issue with config due to duplicate naming conventions, adjusted all the imports; added address raise error if doesnot exist |
+| **0.2.4** | **hotfix** | fixes issue with two auths passed when running a config_commit() |
+| **0.2.5** | **hotfix** | resolves issue with config commit with show_run not passing the correct auth causing duplicate values; updated the commit response so that it will return a failure if any subjob fails |
+| **0.2.6** | **a1** | updates to ike list where it will search every ike in that folder to find a value with a name; adds ike delete and ike list functions |
+| **0.2.6** | **a2** | adds delete function for remote id, ike gateway id, ipsec tunnel id |
 
 ### Known Bugs/Futue Features
 
@@ -740,6 +744,13 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 * Updates to be able to run as a cli script as well as a imported package
 
 ### Current Enahancements
+
+#### Version 0.2.5 -hotfix
+
+* fixes issue with 
+#### Version 0.2.3 -hotfix
+
+* Hotfix for issue with passing two auth's in config_commit() function when calling show_run function
 
 #### Version 0.2.2
 
