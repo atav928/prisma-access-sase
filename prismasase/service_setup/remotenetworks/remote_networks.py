@@ -456,24 +456,3 @@ def remote_network_identifier(name: str, folder: dict, **kwargs) -> dict:
             response = remote_net
             break
     return response
-
-
-def remote_network_delete(remote_network_id: str, folder: dict, **kwargs) -> dict:
-    """Delete Remote Network
-
-    Args:
-        remote_network_id (str): _description_
-        folder (dict): _description_
-
-    Returns:
-        dict: _description_
-    """
-    auth: Auth = return_auth(**kwargs)
-    params = folder
-    response = prisma_request(token=auth,
-                              url_type='remote-networks',
-                              method='DELETE',
-                              params=params,
-                              delete_object=f'/{remote_network_id}',
-                              verify=auth.verify)
-    return response
