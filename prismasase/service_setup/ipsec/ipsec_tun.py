@@ -11,7 +11,7 @@ from prismasase.exceptions import SASEBadRequest, SASEMissingParam
 from prismasase.restapi import prisma_request
 
 
-def ipsec_tunnel(ipsec_tunnel_name: str, # pylint: disable=too-many-locals
+def ipsec_tunnel(ipsec_tunnel_name: str,  # pylint: disable=too-many-locals
                  ipsec_crypto_profile: str,
                  ike_gateway_name: str,
                  tunnel_monitor: bool,
@@ -47,7 +47,7 @@ def ipsec_tunnel(ipsec_tunnel_name: str, # pylint: disable=too-many-locals
             except ValueError as err:
                 error = f"{type(err).__name__}: {err}" if err else ""
                 print(f"ERROR: {error}")
-                raise SASEMissingParam(f"{error=}") # pylint: disable=raise-missing-from
+                raise SASEMissingParam(f"{error=}")  # pylint: disable=raise-missing-from
         else:
             raise SASEMissingParam("Missing monitor_ip value since " +
                                    "tunnel_monitor is set to enable")
@@ -119,6 +119,27 @@ def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str, folder: dict
     # print(f"DEBUG: response={response}")
     if '_errors' in response:
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
+    return response
+
+
+def ipsec_tunnel_delete(ipsec_tunnel_id: str, folder: dict, **kwargs) -> dict:
+    """Delete IPSec Tunnel ensure that there are no references
+
+    Args:
+        ipsec_tunnel_id (str): _description_
+        folder (dict): _description_
+
+    Returns:
+        dict: _description_
+    """
+    auth: Auth = return_auth(**kwargs)
+    params = folder
+    response = prisma_request(token=auth,
+                              url_type='ipsec-tunnels',
+                              method='DELETE',
+                              params=params,
+                              delete_object=f'/{ipsec_tunnel_id}',
+                              verify=auth.verify)
     return response
 
 
