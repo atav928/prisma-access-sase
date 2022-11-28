@@ -1,4 +1,4 @@
-# pylint: disable=duplicate-key
+# pylint: disable=duplicate-key,raise-missing-from
 """IKE Utilities"""
 
 import json
@@ -58,18 +58,54 @@ def ike_gateway(pre_shared_key: str,
     return response
 
 
-def ike_gateway_update(data: dict, ike_gateway_id: str, folder: dict, **kwargs) -> dict:
+def ike_gateway_update(ike_gateway_id: str, folder: dict, **kwargs) -> dict:
     """Updates an existing IKE Gateway based on the ID
 
     Args:
-        data (dict): _description_
         ike_gateway_id (str): _description_
         auth (Auth): if provided used otherwise new one created
+        data (dict): ike configuration payload
+        folder (dict) : folder location for creating IKE Gatewa
+        pre_shared_key (str): pre-shared-key used for IKE Gateway
+        ike_crypto_profile (str): name for IKE Crypto Profile
+        local_id_value (str): _description_
+        peer_id_value (str): _description_
 
     Raises:
         SASEBadRequest: _description_
     """
     auth: Auth = return_auth(**kwargs)
+    if kwargs.get('data'):
+        data = kwargs.pop('data')
+    else:
+        try:
+            ike_gateway_current = ike_gateway_get_by_id(ike_gateway_id=ike_gateway_id,
+                                                        folder=folder,
+                                                        auth=auth)
+            ike_gateway_current.pop('id')
+            pre_shared_key = kwargs.pop('pre_shared_key') if kwargs.get(
+                'pre_shared_key') else ike_gateway_current['authentication']['pre_shared_key']
+            ike_gateway_name = kwargs.pop('ike_gateway_name') if kwargs.get(
+                'ike_gateway_name') else ike_gateway_current['name']
+            ike_crypto_profile = kwargs.pop('ike_crypto_profile') if kwargs.get(
+                'ike_crypto_profile') else ""
+            if not ike_crypto_profile:
+                if ike_gateway_current['protocol'].get('ikev2'):
+                    ike_crypto_profile = ike_gateway_current['protocol']['ikev2'][
+                        'ike_crypto_profile']
+                else:
+                    ike_crypto_profile = ike_gateway_current['protocol']['ikev1'][
+                        'ike_crypto_profile']
+            # TODO: build out whole update to ensure only overwrite what is needed
+            new_data = create_ike_gateway_payload(pre_shared_key=pre_shared_key,
+                                              ike_gateway_name=ike_gateway_name,
+                                              ike_crypto_profile=ike_crypto_profile,
+                                              **kwargs)
+            # merge dictionaries taking new data as priority
+            data = {**ike_gateway_current, **new_data}
+        except KeyError as err:
+            error = f"{type(err).__name__}: {str(err)}" if err else ""
+            raise SASEMissingParam(f"message=\"missing IKE parameter\"|{error=}")
     print(f"INFO: Updating IKE Gateway: {data['name']}")
     # print(f"DEBUG: Updating IKE Gateway Using data={json.dumps(data)}")
     params = folder
@@ -167,8 +203,8 @@ def create_ike_gateway_payload(pre_shared_key: str,  # pylint: disable=too-many-
         passive_mode: bool = set_bool(value=kwargs.pop('passive_mode', ''), default=True)
         fragmentation: bool = set_bool(value=kwargs.pop('fragmentation', ''), default=True)
         nat_traversal: bool = set_bool(value=kwargs.pop('nat_traversal', ''), default=True)
-        # TODO: Fix protocol version currently only really working with ikev2-preffered so hardcoded
         ike_protocol_version: str = kwargs.get('ike_protocol_version', "ikev2-preferred")
+        # TODO: If seperate IKE profiles supplied for v1 vs v2 seperate out the profiles
     except KeyError as err:
         raise SASEMissingParam(f"message=\"missing required parameter\"|param={str(err)}")
     data = {
@@ -184,11 +220,19 @@ def create_ike_gateway_payload(pre_shared_key: str,  # pylint: disable=too-many-
             'type': peer_id_type,
             'id': peer_id_value
         },
+        "protocol": {},
         'protocol_common': {
             'nat_traversal': {'enable': nat_traversal},
             'fragmentation': {'enable': fragmentation}
         },
-        'protocol': {
+        "protocol_common": {
+            "fragmentation": {"enable": fragmentation},
+            "nat_traversal": {"enable": nat_traversal},
+            "passive_mode": passive_mode
+        }
+    }
+    if ike_protocol_version == 'ikev2-preferred':
+        data['protocol'] = {
             'ikev1': {
                 'ike_crypto_profile': ike_crypto_profile,
                 'dpd': {'enable': True}
@@ -198,13 +242,26 @@ def create_ike_gateway_payload(pre_shared_key: str,  # pylint: disable=too-many-
                 'dpd': {'enable': True}
             },
             'version': ike_protocol_version
-        },
-        "protocol_common": {
-            "fragmentation": {"enable": fragmentation},
-            "nat_traversal": {"enable": nat_traversal},
-            "passive_mode": passive_mode
         }
-    }
+    elif ike_protocol_version == 'ikev2':
+        data['protocol'] = {
+            'ikev2': {
+                'ike_crypto_profile': ike_crypto_profile,
+                'dpd': {'enable': True}
+            },
+            'version': ike_protocol_version
+        }
+    elif ike_protocol_version == 'ikev1':
+        data['protocol'] = {
+            'ikev1': {
+                'ike_crypto_profile': ike_crypto_profile,
+                'dpd': {'enable': True}
+            },
+            'version': ike_protocol_version
+        }
+    else:
+        raise SASEMissingParam("message=\"incorrect ike_protocol_version\"" +
+                               f"|{ike_protocol_version=}")
     return data
 
 
@@ -266,4 +323,25 @@ def ike_gateway_delete(ike_gateway_id: str, folder: dict, **kwargs) -> dict:
                               params=params,
                               delete_object=f'/{ike_gateway_id}',
                               verify=auth.verify)
+    return response
+
+
+def ike_gateway_get_by_id(ike_gateway_id: str, folder: dict, **kwargs) -> dict:
+    """Returns IKE Gateway Object by ID
+
+    Args:
+        ike_gateway_id (str): _description_
+        folder (dict): _description_
+
+    Returns:
+        dict: _description_
+    """
+    auth: Auth = return_auth(**kwargs)
+    params = folder
+    response = prisma_request(token=auth,
+                              url_type='ike-gateways',
+                              method='GET',
+                              params=params,
+                              verify=auth.verify,
+                              get_object=f'/{ike_gateway_id}')
     return response
