@@ -714,6 +714,8 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 | **0.2.5** | **hotfix** | resolves issue with config commit with show_run not passing the correct auth causing duplicate values; updated the commit response so that it will return a failure if any subjob fails |
 | **0.2.6** | **a1** | updates to ike list where it will search every ike in that folder to find a value with a name; adds ike delete and ike list functions |
 | **0.2.6** | **a2** | adds delete function for remote id, ike gateway id, ipsec tunnel id |
+| **0.2.6** | **final** | adds delete functions and a few updates to auto tagging |
+| **0.2.7** | **hotfix** | missing url_type in remote networks delete |
 
 ### Known Bugs/Futue Features
 
@@ -745,9 +747,14 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 
 ### Current Enahancements
 
+#### Version 0.2.6
+
+* Adds delete functions
+
 #### Version 0.2.5 -hotfix
 
-* fixes issue with 
+* fixes issue with
+
 #### Version 0.2.3 -hotfix
 
 * Hotfix for issue with passing two auth's in config_commit() function when calling show_run function

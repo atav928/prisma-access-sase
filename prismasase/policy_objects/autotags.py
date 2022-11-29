@@ -4,7 +4,8 @@ import json
 
 from prismasase import return_auth
 from prismasase.configs import Auth
-from prismasase.exceptions import (SASEAutoTagError, SASEAutoTagExists, SASEAutoTagTooLong)
+from prismasase.exceptions import (SASEAutoTagError, SASEAutoTagExists,
+                                   SASEAutoTagTooLong, SASEBadParam, SASEMissingParam)
 from prismasase.utilities import (default_params, check_name_length)
 from prismasase.statics import (AUTOTAG_ACTIONS, AUTOTAG_LOG_TYPE,
                                 AUTOTAG_TARGET, FOLDER, SHARED_FOLDER)

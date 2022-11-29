@@ -98,9 +98,9 @@ def ike_gateway_update(ike_gateway_id: str, folder: dict, **kwargs) -> dict:
                         'ike_crypto_profile']
             # TODO: build out whole update to ensure only overwrite what is needed
             new_data = create_ike_gateway_payload(pre_shared_key=pre_shared_key,
-                                              ike_gateway_name=ike_gateway_name,
-                                              ike_crypto_profile=ike_crypto_profile,
-                                              **kwargs)
+                                                  ike_gateway_name=ike_gateway_name,
+                                                  ike_crypto_profile=ike_crypto_profile,
+                                                  **kwargs)
             # merge dictionaries taking new data as priority
             data = {**ike_gateway_current, **new_data}
         except KeyError as err:
