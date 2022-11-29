@@ -715,6 +715,7 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 | **0.2.6** | **a1** | updates to ike list where it will search every ike in that folder to find a value with a name; adds ike delete and ike list functions |
 | **0.2.6** | **a2** | adds delete function for remote id, ike gateway id, ipsec tunnel id |
 | **0.2.6** | **final** | adds delete functions and a few updates to auto tagging |
+| **0.2.7** | **hotfix** | missing url_type in remote networks delete |
 
 ### Known Bugs/Futue Features
 
