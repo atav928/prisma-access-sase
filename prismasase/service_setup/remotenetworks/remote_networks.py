@@ -341,6 +341,7 @@ def remote_network_delete(remote_network_id: str, folder: dict, **kwargs) -> dic
     response = prisma_request(token=auth,
                               method='DELETE',
                               params=params,
+                              url_type='remote-networks',
                               delete_object=f'/{remote_network_id}',
                               verify=auth.verify)
     return response
