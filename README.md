@@ -716,6 +716,7 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 | **0.2.6** | **a2** | adds delete function for remote id, ike gateway id, ipsec tunnel id |
 | **0.2.6** | **final** | adds delete functions and a few updates to auto tagging |
 | **0.2.7** | **hotfix** | missing url_type in remote networks delete |
+| **0.2.8** | **final** | adjusted requirements due to some confilicts in ohter projects |
 
 ### Known Bugs/Futue Features
 
@@ -746,6 +747,14 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 * Updates to be able to run as a cli script as well as a imported package
 
 ### Current Enahancements
+
+#### version 0.2.8
+
+* Updted requirements to be friendlier with other other installations.
+
+#### version 0.2.7
+
+* Hotfix for missing url in ike delete function
 
 #### Version 0.2.6
 
