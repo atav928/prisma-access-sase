@@ -180,10 +180,10 @@ def addresses_edit(address_id: str, folder: str, **kwargs) -> dict:
         _type_: _description_
     """
     auth: Auth = return_auth(**kwargs)
+    kwargs['auth'] = auth
     # check if address ID exists
     address_exists = addresses_get_address_by_id(address_id=address_id,
                                                  folder=folder,
-                                                 auth=auth,
                                                  **kwargs)
     # print(f"DEBUG: {address_exists=}")
     # if error is not returned we can continue
