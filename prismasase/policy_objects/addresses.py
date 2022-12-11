@@ -63,14 +63,16 @@ def addresses_create(name: str, folder: str, **kwargs) -> dict:
             'tag': ['tag1','tag2','tag3']
         }
     """
+    # Create Address
+    auth: Auth = return_auth(**kwargs)
     # check if already exists
+    kwargs['auth'] = auth
     address_check = addresses_list(folder=folder, **kwargs)
     # print(f"DEBUG: Checking if {name} already exists using {address_check=}")
     for address in address_check['data']:
         if address == name:
             raise SASEObjectExists(f"message=\"address already exists\"|{address=}")
-    # Create Address
-    auth: Auth = return_auth(**kwargs)
+    
     params = default_params(**kwargs)
     params = {**FOLDER[folder], **params}
     data = addresses_create_payload(name=name, folder=folder, **kwargs)
