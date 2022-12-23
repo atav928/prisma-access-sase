@@ -11,7 +11,7 @@ from prismasase.utilities import default_params
 from prismasase.exceptions import SASEMissingParam
 
 
-class SecurityRules(object):
+class SecurityRules:
     """_summary_
 
     Args:
@@ -146,17 +146,19 @@ class SecurityRules(object):
         }
         params = {**self.params, **{'folder': self.folder, 'position': self.position}}
         while (len(data) < response['total'] or count == 0):
-            response = prisma_request(
-                token=self.auth, method="GET",
-                params=params,
-                url_type=self.URL_TYPE, verify=self.auth.verify)
+            response = prisma_request(token=self.auth,
+                                      method="GET",
+                                      params=params,
+                                      url_type=self.URL_TYPE,
+                                      verify=self.auth.verify)
             data = data + response['data']
             params = {**params, **{'offset': params['offset'] + params['limit']}}
             count += 1
         response['data'] = data
+        self._security_rules_reformat_to_json(security_rule_list=data)
         return response
 
-    def security_rule_payload(self) -> None:
+    def security_rules_create_payload(self) -> None:
         """_summary_
 
         Raises:
@@ -197,7 +199,7 @@ class SecurityRules(object):
         attrs = str([x for x in self.__dict__])
         return attrs
 
-    def security_rule_create(self, reset_values: bool = False, **kwargs) -> dict:
+    def security_rules_create(self, reset_values: bool = False, **kwargs) -> dict:
         """_summary_
 
         Args:
@@ -215,7 +217,7 @@ class SecurityRules(object):
             self.__position = kwargs.pop('position')
         if reset_values:
             self._reset_values_new(**kwargs)
-        self.security_rule_payload()
+        self.security_rules_create_payload()
         params = {'folder': self.folder, 'position': self.position}
         response = prisma_request(token=self.auth,
                                   method="POST",
@@ -226,8 +228,51 @@ class SecurityRules(object):
         self.created_rules.append(response)
         return response
 
-    def security_rule_get(self, security_rules_id: str, **kwargs) -> dict:
-        pass
+    def security_rules_get(self, security_rules_id: str = None, folder: str = None) -> dict:
+        """Get Security Rule by ID
+
+        Args:
+            security_rules_id (str, optional): _description_. Defaults to None.
+            folder (str, optional): _description_. Defaults to None.
+
+        Raises:
+            SASEMissingParam: _description_
+            SASEMissingParam: _description_
+
+        Returns:
+            dict: _description_
+        """
+        if not security_rules_id and not self.security_rules_id:
+            raise SASEMissingParam("message=\"requires security rule ID param\"")
+        if not folder and not self.folder:
+            raise SASEMissingParam("message=\"requires folder\"")
+        if not security_rules_id:
+            security_rules_id = self.security_rules_id
+        if not folder:
+            folder = self.folder
+        params = {'folder': folder}
+        response = prisma_request(token=self.auth,
+                                  method="GET",
+                                  params=params,
+                                  url_type=self.URL_TYPE,
+                                  verify=self.auth.verify,
+                                  get_object=f"/{security_rules_id}")
+        return response
+
+    def _security_rules_reformat_to_json(self, security_rule_list: list) -> None:
+        """Creates a formated hierarchy structure of all rulesets and updates them as they change.
+
+        Args:
+            security_rule_list (list): _description_
+        """
+        for rule in security_rule_list:
+            if rule['folder'] not in list(self.current_rulebase):
+                self.current_rulebase.update({rule['folder']: {}})
+            if rule['position'] not in list(self.current_rulebase[rule['folder']]):
+                self.current_rulebase[rule['folder']].update({rule['position']: {}})
+            self.current_rulebase[rule['folder']][rule['position']].update({rule['id']: rule})
+
+
 
 def security_rules_delete():
     pass
