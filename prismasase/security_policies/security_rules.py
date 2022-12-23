@@ -1,0 +1,241 @@
+# pylint: disable=no-member
+"""Security Rules"""
+
+from copy import copy
+import json
+
+from prismasase import return_auth, config
+from prismasase.configs import Auth
+from prismasase.restapi import prisma_request
+from prismasase.utilities import default_params
+from prismasase.exceptions import SASEMissingParam
+
+
+class SecurityRules(object):
+    """_summary_
+
+    Args:
+        object (_type_): _description_
+
+    Raises:
+        SASEMissingParam: _description_
+
+    Returns:
+        _type_: _description_
+    """
+    FOLDERS = ['Shared', 'Mobile Users', 'Remote Networks', 'Service Connections',
+               'Mobile Users Container', 'Mobile Users Explicit Proxy']
+    POSITION = ['pre', 'post']
+    URL = f"{config.REST_API['security-rules']}"
+    URL_TYPE = 'security-rules'
+    SECURITY_RULES_ATTRIBUTES = {
+        'security_rules_id': str,
+        'action': str,  # rquired
+        'application': list,  # required
+        'category': list,  # required
+        'description': str,
+        'destination': list,  # required
+        'destination_hip': list,
+        'disabled': bool,
+        'zone_from': list,  # required
+        'log_setting': str,
+        'negate_destination': bool,
+        'negate_source': bool,
+        'profile_setting': dict,
+        'service': list,  # required
+        'source': list,  # required
+        'source_hip': list,
+        'source_user': list,  # required
+        'tag': list,
+        'zone_to': list  # required
+    }
+    ACTIONS = ['drop', 'allow']
+
+    def __init__(self, **kwargs):
+        self.auth: Auth = return_auth(**kwargs)
+        try:
+            kwargs.pop('auth')
+        except KeyError:
+            print('not an issue')
+        for i, k in self.SECURITY_RULES_ATTRIBUTES.items():
+            setattr(self, i, kwargs.pop(i) if kwargs.get(i)
+                    and isinstance(kwargs.get(i), k) else k())
+        self.params = default_params(**kwargs)
+        self.__name = kwargs.pop('name', '')
+        self.__folder = kwargs.pop('folder', '')
+        self.__position = kwargs.pop('position', '')
+        self.current_payload = {}
+        self.previous_payload = {}
+        self.created_rules = []
+        self.current_rulebase = {}
+        self._kwargs = kwargs
+
+    @property
+    def name(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.__name
+
+    @name.setter
+    def name(self, value):
+        self.__name = value
+
+    @name.deleter
+    def name(self):
+        del self.__name
+
+    @property
+    def folder(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.__folder
+
+    @folder.setter
+    def folder(self, value):
+        self.__folder = value
+
+    @folder.deleter
+    def folder(self):
+        del self.__folder
+
+    @property
+    def position(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.__position
+
+    @position.setter
+    def position(self, value):
+        self.__position = value
+
+    @position.deleter
+    def position(self):
+        del self.__position
+
+    def _reset_values_empty(self):
+        for i, k in self.SECURITY_RULES_ATTRIBUTES.items():
+            setattr(self, i, k())
+
+    def _reset_values_new(self, **kwargs):
+        for i, k in self.SECURITY_RULES_ATTRIBUTES.items():
+            setattr(self, i, kwargs.pop(i) if kwargs.get(i)
+                    and isinstance(kwargs.get(i), k) else k())
+
+    def security_rules_list(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        data = []
+        count = 0
+        response = {
+            'data': [],
+            'offset': 0,
+            'total': 0,
+            'limit': 0
+        }
+        params = {**self.params, **{'folder': self.folder, 'position': self.position}}
+        while (len(data) < response['total'] or count == 0):
+            response = prisma_request(
+                token=self.auth, method="GET",
+                params=params,
+                url_type=self.URL_TYPE, verify=self.auth.verify)
+            data = data + response['data']
+            params = {**params, **{'offset': params['offset'] + params['limit']}}
+            count += 1
+        response['data'] = data
+        return response
+
+    def security_rule_payload(self) -> None:
+        """_summary_
+
+        Raises:
+            SASEMissingParam: _description_
+        """
+        # required params
+        if not self.name:
+            raise SASEMissingParam("message=\"missing name parameter\"")
+
+        data = {
+            "name": self.name,
+            "action": self.action,
+            "application": self.application if self.application else ['any'],
+            "category": self.category if self.category else ['any'],
+            "destination": self.destination if self.destination else ['any'],
+            "destination_hip": self.destination_hip if self.destination_hip else ['any'],
+            "disabled": self.disabled,
+            "from": self.zone_from if self.zone_from else ['any'],
+            "log_setting": self.log_setting if self.log_setting else 'Cortex Data Lake',
+            "negate_destination": self.negate_destination,
+            "negate_source": self.negate_source,
+            "service": self.service if self.service else ['application-default'],
+            "source": self.source if self.source else ['any'],
+            "source_hip": self.source_hip if self.source_hip else ['any'],
+            "source_user": self.source_user if self.source_user else ['any'],
+            "to": self.zone_to if self.zone_to else ['any']
+        }
+        if self.description:
+            data["description"] = self.description
+        if self.profile_setting:
+            data["profile_setting"] = self.profile_setting
+        if self.tag:
+            data["tag"] = self.tag
+        self.previous_payload = copy(self.current_payload)
+        self.current_payload = data
+
+    def __repr__(self) -> str:
+        attrs = str([x for x in self.__dict__])
+        return attrs
+
+    def security_rule_create(self, reset_values: bool = False, **kwargs) -> dict:
+        """_summary_
+
+        Args:
+            reset_values (bool, optional): _description_. Defaults to False.
+
+        Returns:
+            _type_: _description_
+        """
+        # reset values with new kwarg arguments being passed
+        if kwargs.get('name'):
+            self.__name = kwargs.pop('name')
+        if kwargs.get('folder'):
+            self.__folder = kwargs.pop('folder')
+        if kwargs.get('position'):
+            self.__position = kwargs.pop('position')
+        if reset_values:
+            self._reset_values_new(**kwargs)
+        self.security_rule_payload()
+        params = {'folder': self.folder, 'position': self.position}
+        response = prisma_request(token=self.auth,
+                                  method="POST",
+                                  url_type=self.URL_TYPE,
+                                  params=params,
+                                  data=json.dumps(self.current_payload),
+                                  verify=self.auth.verify)
+        self.created_rules.append(response)
+        return response
+
+    def security_rule_get(self, security_rules_id: str, **kwargs) -> dict:
+        pass
+
+def security_rules_delete():
+    pass
+
+
+def security_rules_get():
+    pass
+
+
+def security_rules_edit():
+    pass
