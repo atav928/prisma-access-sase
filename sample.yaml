@@ -1,5 +1,5 @@
 # prisma sase file
-TGS: "TGS VALUE"
+TSG: "TSG VALUE"
 CLIENT_ID: "CLIENT ID"
 CLIENT_SECRET: "CLIENT SECRET"
 CERT: "true"
