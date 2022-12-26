@@ -4,12 +4,18 @@
 from copy import copy
 import json
 
+from prismasase import logger
 from prismasase import return_auth, config
 from prismasase.configs import Auth
 from prismasase.restapi import prisma_request
 from prismasase.utilities import default_params
 from prismasase.exceptions import SASEMissingParam
 
+# Set logging if Logging set to True
+#logger = RotatingLog(name=__name__)
+#prisma_logger = logger.getLogger(__name__)
+logger.addLogger(__name__)
+prisma_logger = logger.getLogger(__name__)
 
 class SecurityRules:
     """_summary_
@@ -56,7 +62,7 @@ class SecurityRules:
         try:
             kwargs.pop('auth')
         except KeyError:
-            print('not an issue')
+            prisma_logger.info("Could not find \"auth\" in passed parameters; creating auth from config")
         for i, k in self.SECURITY_RULES_ATTRIBUTES.items():
             setattr(self, i, kwargs.pop(i) if kwargs.get(i)
                     and isinstance(kwargs.get(i), k) else k())
@@ -68,6 +74,7 @@ class SecurityRules:
         self.previous_payload = {}
         self.created_rules = []
         self.current_rulebase = {}
+        self.deleted_rules = []
         self._kwargs = kwargs
 
     @property
@@ -136,6 +143,14 @@ class SecurityRules:
         Returns:
             _type_: _description_
         """
+        return self._security_rules_list(return_response = True)
+
+    def _security_rules_list(self, return_response = False) -> dict:
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
         data = []
         count = 0
         response = {
@@ -156,7 +171,9 @@ class SecurityRules:
             count += 1
         response['data'] = data
         self._security_rules_reformat_to_json(security_rule_list=data)
-        return response
+        prisma_logger.info(f"Security Rules List = {json.dumps(response)}")
+        if return_response:
+            return response
 
     def security_rules_create_payload(self) -> None:
         """_summary_
@@ -225,6 +242,7 @@ class SecurityRules:
                                   params=params,
                                   data=json.dumps(self.current_payload),
                                   verify=self.auth.verify)
+        prisma_logger.info(f"Created Rule: {response}")
         self.created_rules.append(response)
         return response
 
@@ -272,14 +290,52 @@ class SecurityRules:
                 self.current_rulebase[rule['folder']].update({rule['position']: {}})
             self.current_rulebase[rule['folder']][rule['position']].update({rule['id']: rule})
 
+    def security_rules_delete(self, security_rules_id: str = None, folder: str = None):
+        """_summary_
 
+        Args:
+            security_rules_id (str, optional): _description_. Defaults to None.
+            folder (str, optional): _description_. Defaults to None.
 
-def security_rules_delete():
-    pass
+        Raises:
+            SASEMissingParam: _description_
+            SASEMissingParam: _description_
 
+        Returns:
+            _type_: _description_
+        """
+        if not security_rules_id and not self.security_rules_id:
+            raise SASEMissingParam("message=\"requires security rule ID param\"")
+        if not folder and not self.folder:
+            raise SASEMissingParam("message=\"requires folder\"")
+        if not security_rules_id:
+            security_rules_id = self.security_rules_id
+        if not folder:
+            folder = self.folder
+        params = {'folder': folder}
+        response = prisma_request(token=self.auth,
+                                  method='DELETE',
+                                  url_type=self.URL_TYPE,
+                                  params=params,
+                                  delete_object=f"/{security_rules_id}",
+                                  verify=self.auth.verify)
+        prisma_logger.info(f"Deleted Rule: {response}")
+        self.deleted_rules.append(response)
+        self._update_current_rulebase(to_do='delete', rule=response)
+        return response
 
-def security_rules_get():
-    pass
+    def _update_current_rulebase(self, to_do: str, rule: list) -> None:
+        if to_do == 'delete':
+            if self.current_rulebase[self.folder]:
+                if self.current_rulebase[self.folder].get(rule[0]['id']):
+                    self.current_rulebase[self.folder].pop(rule[0]['id'])
+            else:
+                self._security_rules_list()
+        if to_do == 'create':
+            if self.current_rulebase[self.folder]:
+                self._security_rules_reformat_to_json(security_rule_list=rule)
+            else:
+                self._security_rules_list()
 
 
 def security_rules_edit():
