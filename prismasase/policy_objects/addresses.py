@@ -1,7 +1,7 @@
 """Address Objects"""
 import json
 
-from prismasase import return_auth
+from prismasase import return_auth, logger
 from prismasase.configs import Auth
 from prismasase.exceptions import (SASEBadParam, SASEMissingParam,
                                    SASEObjectExists)
@@ -11,6 +11,8 @@ from prismasase.utilities import default_params
 
 from .tags import tags_exist
 
+logger.addLogger(__name__)
+prisma_logger = logger.getLogger(__name__)
 
 def addresses_list(folder: str, **kwargs) -> dict:
     """List out Addresses
@@ -82,6 +84,7 @@ def addresses_create(name: str, folder: str, **kwargs) -> dict:
                               params=params,
                               data=json.dumps(data),
                               verify=auth.verify)
+    prisma_logger.info("Created Address Object: %s", (response))
     return response
 
 

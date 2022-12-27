@@ -7,12 +7,15 @@ import time
 
 import orjson
 
-from prismasase import return_auth
+from prismasase import return_auth, logger
 
 from prismasase.configs import Auth
 from prismasase.exceptions import SASEBadParam, SASECommitError
 from prismasase.restapi import prisma_request
 from prismasase.utilities import check_items_in_list
+
+logger.addLogger(__name__)
+prisma_logger  = logger.getLogger(__name__)
 
 
 def config_manage_list_versions(limit: int = 50, offset: int = 0, **kwargs):
@@ -81,7 +84,8 @@ def config_manage_push(folders: list, description: str = "No Description Provide
                               post_object='/candidate:push',
                               data=json.dumps(data),
                               verify=auth.verify)
-    print(f"INFO: response={orjson.dumps(response).decode('utf-8')}")
+    # print(f"INFO: response={orjson.dumps(response).decode('utf-8')}")
+    prisma_logger.info("Config Management Push: response=%s", (orjson.dumps(response).decode('utf-8')))
     return response
 
 
@@ -308,7 +312,8 @@ def config_commit(folders: list,  # pylint: disable=too-many-locals
         count = len(config_job_subs)
         while response['status'] == 'success' and count > 0:
             for job in config_job_subs:
-                print(f"INFO: Checking on job_id {job}")
+                prisma_logger.info("Checking on job_id %s", (job))
+                # print(f"INFO: Checking on job_id {job}")
                 # uses this to append each job id to the existing job to keep all info
                 response_config_check_job = config_check_job_id(
                     job_id=job, timeout=timeout, auth=auth)
@@ -322,7 +327,8 @@ def config_commit(folders: list,  # pylint: disable=too-many-locals
                 response['job_id'] = response_jobs
                 # print(f"DEBUG: Current Response {orjson.dumps(response).decode('utf-8')}")
                 count -= 1
-    print(f"INFO: Gathering Current Commit version for tenant {auth.tsg_id}")
+    prisma_logger.info("Gathering Current Commit version for tenant %s", (auth.tsg_id))
+    # print(f"INFO: Gathering Current Commit version for tenant {auth.tsg_id}")
     # Do not send KWARGS becuase it has another auth in it possibly since auth
     # is already extracted at the top
     show_version = config_manage_show_run(auth=auth)
@@ -332,7 +338,9 @@ def config_commit(folders: list,  # pylint: disable=too-many-locals
     for obj in show_version["data"]:
         version = obj['version']
         break
-    print(f"INFO: Current Running configurations are {str(version)}")
+    prisma_logger.info("Current Running configurations are %s", (str(version)))
+    # print(f"INFO: Current Running configurations are {str(version)}")
     response['version_info'] = show_version['data']
-    print(f"INFO: Final Response:\n{json.dumps(response, indent=4)}")
+    prisma_logger.info("Final Response:\n%s", (json.dumps(response, indent=4)))
+    # print(f"INFO: Final Response:\n{json.dumps(response, indent=4)}")
     return response

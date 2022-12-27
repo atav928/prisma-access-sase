@@ -4,12 +4,15 @@
 import json
 import orjson
 
-from prismasase import return_auth
+from prismasase import return_auth, logger
 from prismasase.configs import Auth
 from prismasase.exceptions import (SASEBadParam, SASEBadRequest, SASEMissingParam)
 from prismasase.restapi import prisma_request
 from prismasase.statics import DYNAMIC
 from prismasase.utilities import default_params, set_bool
+
+logger.addLogger(__name__)
+prisma_logger = logger.getLogger(__name__)
 
 
 def ike_gateway(pre_shared_key: str,
@@ -106,7 +109,8 @@ def ike_gateway_update(ike_gateway_id: str, folder: dict, **kwargs) -> dict:
         except KeyError as err:
             error = f"{type(err).__name__}: {str(err)}" if err else ""
             raise SASEMissingParam(f"message=\"missing IKE parameter\"|{error=}")
-    print(f"INFO: Updating IKE Gateway: {data['name']}")
+    prisma_logger.info("Updating IKE Gateway: %s", data['name'])
+    # print(f"INFO: Updating IKE Gateway: {data['name']}")
     # print(f"DEBUG: Updating IKE Gateway Using data={json.dumps(data)}")
     params = folder
     response = prisma_request(token=auth,
@@ -118,6 +122,7 @@ def ike_gateway_update(ike_gateway_id: str, folder: dict, **kwargs) -> dict:
                               put_object=f'/{ike_gateway_id}')
     # print(f"DEBUG: response={response}")
     if '_errors' in response:
+        prisma_logger.error("SASEBadRequest: %s", orjson.dumps(response).decode('utf-8'))
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
     return response
 
@@ -151,8 +156,10 @@ def ike_gateway_create(folder: dict, **kwargs) -> dict:
                                               **kwargs)
     except KeyError as err:
         error = f"{type(err).__name__}: {str(err)}" if err else ""
+        prisma_logger.error("SASEMissingParam: %s", error)
         raise SASEMissingParam(f"message=\"missing IKE parameter\"|{error=}")
-    print(f"INFO: Creating IKE Gateway: {data['name']}")
+    prisma_logger.info("Creating IKE Gateway: %s", data['name'])
+    # print(f"INFO: Creating IKE Gateway: {data['name']}")
     # print(f"DEBUG: Creating IKE Gateway Using data={json.dumps(data)}")
     params = folder
     response = prisma_request(token=auth,
@@ -163,6 +170,7 @@ def ike_gateway_create(folder: dict, **kwargs) -> dict:
                               verify=auth.verify)
     # print(f"DEBUG: response={response}")
     if '_errors' in response:
+        prisma_logger.error("SASEBadRequest: %s", orjson.dumps(response).decode('utf-8'))
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
     return response
 

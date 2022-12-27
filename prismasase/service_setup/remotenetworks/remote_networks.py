@@ -1,4 +1,4 @@
-# pylint: disable=raise-missing-from
+# pylint: disable=raise-missing-from,no-member
 """Remote Networks"""
 
 from typing import Any, Dict, List
@@ -6,7 +6,7 @@ import ipaddress
 import json
 import orjson
 
-from prismasase import return_auth
+from prismasase import return_auth, logger
 
 from prismasase.configs import Auth
 from prismasase.exceptions import (
@@ -20,6 +20,8 @@ from ..ipsec.ipsec_crypto import ipsec_crypto_profiles_get
 from ..ike.ike_crypto import ike_crypto_profiles_get
 from ..ike.ike_gtwy import ike_gateway
 
+logger.addLogger(__name__)
+prisma_logger = logger.getLogger(__name__)
 
 def bulk_import_remote_networks(remote_sites: list):
     """_summary_
@@ -94,12 +96,14 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
         else:
             folder: dict = kwargs['folder'] if kwargs.get('folder') else REMOTE_FOLDER
     except KeyError as err:
+        prisma_logger.error("SASEMissingParam: %s", str(err))
         raise SASEMissingParam(f"message=\"missing required parameter\"|param={str(err)}")
     # Check Bandwdith allocations
     # print(f"{region=},{spn_name=}")
     bandwidth_check = verify_bandwidth_allocations(
         name=region, spn_name=spn_name, folder=folder, auth=auth)
     if not bandwidth_check:
+        prisma_logger.error("SASENoBandwidthAllocation: region=%s,spn_name=%s", region, spn_name)
         raise SASENoBandwidthAllocation(
             "No Bandwidth Association or allocations exists for " + f"{region=} {spn_name=}")
     # Verify IKE and IPSec Profiles exist
@@ -109,9 +113,11 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
         raise SASEMissingIkeOrIpsecProfile(
             'message=\"Missing a profile in configurations\"|' +
             f'{ike_crypto_profile=}|{ipsec_crypto_profile=}')
-    print(f"INFO: Verified {region=} and {spn_name=} exist")
+    prisma_logger.info("Verified region=%s and spn_name=%s exist", region, spn_name)
+    # print(f"INFO: Verified {region=} and {spn_name=} exist")
     # Create IKE Gateway
-    print(f"INFO: IKE Gateway Name = {ike_gateway_name}")
+    prisma_logger.info("IKE Gateway Name = %s", ike_gateway_name)
+    # print(f"INFO: IKE Gateway Name = {ike_gateway_name}")
     # Create IKE Gateway
     response_ike_gateway = ike_gateway(pre_shared_key=pre_shared_key,
                                        ike_crypto_profile=ike_crypto_profile,
@@ -141,7 +147,8 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
     response['message'].update({'remote_network': response_remote_network})
     response['status'] = 'success'
     # print(f"DEBUG: Remote Network {response_remote_network=}")
-    print(f"INFO: Created Remote Network \n{json.dumps(response, indent=4)}")
+    prisma_logger.info("Created Remote Network \n%s", (json.dumps(response, indent=4)))
+    # print(f"INFO: Created Remote Network \n{json.dumps(response, indent=4)}")
     return response
 
 
@@ -178,6 +185,7 @@ def get_bandwidth_allocations(folder: dict, **kwargs) -> List[Dict[str, Any]]:
     auth: Auth = return_auth(**kwargs)
     params = folder
     # print(f"DEBUG: {auth.verify}")
+    prisma_logger.debug("Authorization Verification set to: %s", str(auth.verify))
     bandwidth = prisma_request(token=auth,
                                url_type='bandwidth-allocations',
                                method='GET',
@@ -297,6 +305,7 @@ def remote_network_create(data: dict, folder: dict, **kwargs) -> dict:
                               verify=auth.verify)
     # print(f"DEBUG: response={response}")
     if '_errors' in response:
+        prisma_logger.error("SASEBadRequest: %s", orjson.dumps(response).decode('utf-8'))
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
     return response
 
@@ -323,7 +332,8 @@ def remote_network_update(data: dict, remote_network_id: str, folder: dict, **kw
                               put_object=f'/{remote_network_id}')
     # print(f"DEBUG: response={response}")
     if '_errors' in response:
-        raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
+        prisma_logger.error("SASEBadRequest: %s", orjson.dumps(response).decode('utf-8'))
+        raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  
     return response
 
 
@@ -370,6 +380,7 @@ def create_remote_network_bgp_payload(data: dict,
         bgp_summarized_mobile_user_routes: bool = bool(kwargs.get(
             'bgp_summarized_mobile_user_routes', 'true').lower() in ['true'])
     except KeyError as err:
+        prisma_logger.error("SASEMissingParam: %s", str(err))
         raise SASEMissingParam(f"message=\"missing required parameter\"|param={str(err)}")
     data["protocol"] = {
         "bgp": {
@@ -412,6 +423,7 @@ def create_remote_network_payload(**kwargs) -> dict:
             "region": kwargs['region'],
             "spn_name": kwargs['spn_name']}
     except KeyError as err:
+        prisma_logger.error("SASEMissingParam: %s", str(err))
         raise SASEMissingParam(f"message=\"missing param for payload\"|param={str(err)}")
     return data
 

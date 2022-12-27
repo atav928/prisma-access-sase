@@ -5,10 +5,13 @@ import json
 from typing import Any, Dict
 import orjson
 
-from prismasase import return_auth
+from prismasase import return_auth, logger
 from prismasase.configs import Auth
 from prismasase.exceptions import SASEBadRequest, SASEMissingParam
 from prismasase.restapi import prisma_request
+
+logger.addLogger(__name__)
+prisma_logger = logger.getLogger(__name__)
 
 
 def ipsec_tunnel(ipsec_tunnel_name: str,  # pylint: disable=too-many-locals
@@ -80,7 +83,8 @@ def ipsec_tunnel_create(data: Dict[str, Any], folder: dict, **kwargs):
         SASEBadRequest: _description_
     """
     auth: Auth = return_auth(**kwargs)
-    print(f"INFO: Creating IPSec Tunnel {data['name']}")
+    prisma_logger.info("Creating IPSec Tunnel: %s", data['name'])
+    # print(f"INFO: Creating IPSec Tunnel {data['name']}")
     # print(f"DEBUG: Creating IPSec Tunnel Using data={json.dumps(data)}")
     params = folder
     response = prisma_request(token=auth,
@@ -91,6 +95,7 @@ def ipsec_tunnel_create(data: Dict[str, Any], folder: dict, **kwargs):
                               verify=auth.verify)
     # print(f"DEBUG: response={response}")
     if '_errors' in response:
+        prisma_logger.error("SASEBadRequest: %s", orjson.dumps(response).decode('utf-8'))
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
     return response
 
@@ -106,7 +111,8 @@ def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str, folder: dict
         SASEBadRequest: _description_
     """
     auth: Auth = return_auth(**kwargs)
-    print(f"INFO: Updating IPSec Tunnel {data['name']}")
+    prisma_logger.info("Updating IPSec Tunnel: %s", data['name'])
+    # print(f"INFO: Updating IPSec Tunnel {data['name']}")
     # print(f"DEBUG: Updating IPSec Tunnel Using data={json.dumps(data)}")
     params = folder
     response = prisma_request(token=auth,
@@ -118,6 +124,7 @@ def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str, folder: dict
                               verify=auth.verify)
     # print(f"DEBUG: response={response}")
     if '_errors' in response:
+        prisma_logger.error("SASEBadRequest: %s", orjson.dumps(response).decode('utf-8'))
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
     return response
 

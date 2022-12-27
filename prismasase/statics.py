@@ -29,5 +29,3 @@ AUTOTAG_LOG_TYPE = ["traffic", "wildfire", "threat", "url", "data", "tunnel", "a
 
 # IKE Static
 DYNAMIC = {'dynamic': {}}
-
-PYTHON36_FEATURES = True
