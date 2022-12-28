@@ -2,13 +2,15 @@
 
 import json
 
-from prismasase import return_auth
+from prismasase import return_auth, logger
 from prismasase.configs import Auth
 from prismasase.exceptions import (SASEError, SASEObjectExists)
 from prismasase.restapi import prisma_request
 from prismasase.statics import FOLDER, TAG_COLORS
 from prismasase.utilities import default_params
 
+logger.addLogger(__name__)
+prisma_logger = logger.getLogger(__name__)
 
 def tags_list(folder: str, **kwargs) -> dict:
     """List out all tags in the specified folder
@@ -92,7 +94,8 @@ def tags_get(folder: str, tag_name: str, **kwargs) -> dict:
     for tag in tag_get_list:
         if tag_name == tag['name']:
             response = tag
-            print(f"INFO: Found Tag: {response}")
+            prisma_logger.info("Fopund Tag: %s", {response})
+            # print(f"INFO: Found Tag: {response}")
             break
     return response
 
@@ -130,9 +133,11 @@ def tags_exist(tag_list: list, folder: str, **kwargs) -> bool:
         bool: _description_
     """
     if not isinstance(tag_list, list):
+        prisma_logger.error("SASEError: requires a list of tagnames tag_list=%s", (tag_list))
         raise SASEError(f"message=\"requires a list of tagnames\"|{tag_list=}")
     for tag in tag_list:
         if not tags_get(tag_name=tag, folder=folder, **kwargs):
+            prisma_logger.debug("Tag doesnot exist: %s", (tag))
             # print(f"DEBUG: {tag=} doesnot exist")
             return False
     return True

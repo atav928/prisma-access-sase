@@ -46,10 +46,16 @@ def return_auth(**kwargs) -> Auth:
     auth = kwargs.pop('auth') if kwargs.get('auth') else ""
     if not auth:
         # print(f"DEBUG: {config.to_dict()}")
-        auth = Auth(config.TSG, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
+        if (kwargs.get('tenant_id') and kwargs.get('client_id') and kwargs.get('client_secret')):
+            auth = Auth(kwargs['tenant_id'], kwargs['client_id'], kwargs['client_secret'], **kwargs)
+        else:
+            auth = Auth(config.TSG, config.CLIENT_ID, config.CLIENT_SECRET, verify=config.CERT)
     return auth
 
 
 # Set logging if Logging set to True
-logger = RotatingLog(name=__name__, logName=config.LOGNAME,
-                     logDir=config.LOGLOCATION, stream=config.LOGSTREAM, level=config.LOGGING)
+logger = RotatingLog(name=__name__,
+                     logName=config.LOGNAME,
+                     logDir=config.LOGLOCATION,
+                     stream=config.LOGSTREAM,
+                     level=config.LOGGING)
