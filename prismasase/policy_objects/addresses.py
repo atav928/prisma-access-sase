@@ -35,6 +35,7 @@ def addresses_list(folder: str, **kwargs) -> dict:
                               params=params,
                               verify=auth.verify)
     # print(f"DEBUG: {response}")
+    prisma_logger.info("Retrieved List of all Addresses in folder=%s", folder)
     return response
 
 
@@ -73,8 +74,8 @@ def addresses_create(name: str, folder: str, **kwargs) -> dict:
     # print(f"DEBUG: Checking if {name} already exists using {address_check=}")
     for address in address_check['data']:
         if address == name:
+            prisma_logger.error("SASEObjectExists: %s already exists", address)
             raise SASEObjectExists(f"message=\"address already exists\"|{address=}")
-    
     params = default_params(**kwargs)
     params = {**FOLDER[folder], **params}
     data = addresses_create_payload(name=name, folder=folder, **kwargs)
@@ -123,6 +124,7 @@ def addresses_create_payload(name: str, folder: str, **kwargs) -> dict:
             raise SASEBadParam(f"message=\"tag doesnot exist cannot add\"|tag={kwargs['tag']}")
         data.update({"tag": kwargs["tag"]})
     # print(f"DEBUG: data created {data=}")
+    prisma_logger.debug("Created Data Payload: %s", data)
     return data
 
 
@@ -151,6 +153,7 @@ def addresses_delete(address_id: str, folder: str, **kwargs) -> dict:
                               url_type="addresses",
                               delete_object=f"/{address_id}",
                               verify=auth.verify)
+    prisma_logger.info("Deleted Address Object: %s", response)
     return response
 
 
@@ -172,6 +175,7 @@ def addresses_get_address_by_id(address_id: str, folder: str, **kwargs) -> dict:
                               get_object=f'/{address_id}',
                               url_type='addresses',
                               verify=auth.verify)
+    prisma_logger.info("Retrived Address Object ID: %s", address_id)
     return response
 
 

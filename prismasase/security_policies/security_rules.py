@@ -1,4 +1,5 @@
 # pylint: disable=no-member
+# type: ignore
 """Security Rules"""
 
 from copy import copy
@@ -171,7 +172,9 @@ class SecurityRules:
         response['data'] = data
         self._security_rules_reformat_to_json(security_rule_list=data)
         prisma_logger.info(
-            "Retrieved Current Security Rule List for folder=%s position=%s", self.folder, self.position)
+            "Retrieved Current Security Rule List for folder=%s position=%s",
+            self.folder,
+            self.position)
         prisma_logger.debug("Security Rules List = %s", (json.dumps(response)))
         if return_response:
             return response
@@ -277,6 +280,7 @@ class SecurityRules:
                                   url_type=self.URL_TYPE,
                                   verify=self.auth.verify,
                                   get_object=f"/{security_rules_id}")
+        prisma_logger.info("Retrieved Security Rule ID: %s", self.security_rules_id)
         return response
 
     def _security_rules_reformat_to_json(self, security_rule_list: list) -> None:
@@ -326,6 +330,9 @@ class SecurityRules:
         self._update_current_rulebase(to_do='delete', rule=[response])
         return response
 
+    def security_rules_edit(self):
+        pass
+
     def _update_current_rulebase(self, to_do: str, rule: list) -> None:
         if to_do == 'delete':
             if self.current_rulebase.get(self.folder):
@@ -338,7 +345,4 @@ class SecurityRules:
                 self._security_rules_reformat_to_json(security_rule_list=rule)
             else:
                 self._security_rules_list()
-
-
-def security_rules_edit():
-    pass
+        # TODO: Build Edit to current rulebase

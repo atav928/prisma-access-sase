@@ -1,6 +1,6 @@
 """Address Group"""
 
-from prismasase import return_auth
+from prismasase import return_auth, logger
 from prismasase.configs import Auth
 from prismasase.policy_objects.addresses import addresses_list
 from prismasase.policy_objects.tags import tags_exist
@@ -9,6 +9,9 @@ from prismasase.statics import FOLDER
 from prismasase.utilities import default_params
 
 from prismasase.exceptions import SASEObjectError
+
+logger.addLogger(__name__)
+prisma_logger = logger.getLogger(__name__)
 
 
 def address_grp_list(folder: str, **kwargs) -> dict:
@@ -51,7 +54,7 @@ def addresses_grp_edit():
     pass
 
 
-def addresses_grp_dynamic_payload(name: str, folder: str, filter: str, **kwargs) -> dict:
+def addresses_grp_payload_dynamic(**kwargs) -> dict:
     """Creates the payload used for DAG Address Group
 
     Args:
@@ -67,19 +70,22 @@ def addresses_grp_dynamic_payload(name: str, folder: str, filter: str, **kwargs)
     # 2. The AND/OR formating is correct
     auth: Auth = return_auth(**kwargs)
     kwargs['auth'] = auth
-    data = {
-        "name": name,
-        "folder": folder,
-        "dynamic": {
-            "filter": filter
+    try:
+        data = {
+            "dynamic": {
+                "filter": kwargs['filter']
+            }
         }
-    }
+    except KeyError as err:
+        error = f"{type(err).__name__}: {str(err)}" if err else ""
+        prisma_logger.error("SASEMissingParam: %s", error)
+        raise SASEMissingParam(f"message=\"missing filter parameter\"|{error=}")
     if kwargs.get('tag'):
         data = {**data, **addresses_grp_tag_payload(**kwargs)}
     return data
 
 
-def addresses_grp_static_payload(name: str, folder: str, address_list: list, **kwargs):
+def addresses_grp_payload(name: str, folder: str, address_grp_type: str, **kwargs) -> dict:
     """Creates a Static Payload for Address Group Creations
 
     Args:
@@ -98,13 +104,32 @@ def addresses_grp_static_payload(name: str, folder: str, address_list: list, **k
         "name": name,
         "folder": folder,
     }
-    # Check that address exists
-    address_config_list = addresses_list(folder=folder, auth=auth)
-    for address in address_list:
-        if address not in address_config_list:
-            raise SASEObjectError(f"message=\"missing address\"|{address=}")
-        data["static"] = address_list
+    if address_grp_type == 'dynamic':
+        kwargs['auth'] = auth
+        kwargs['folder'] = folder
+        data = {**data, **addresses_grp_payload_dynamic(**kwargs)}
+    elif address_grp_type == 'static':
+        data = {**data, **address_grp_payload_static(**kwargs)}
+    prisma_logger.info("Created Payload for %s Address Group Type", address_grp_type)
+    prisma_logger.debug("Created Address Group Payload: %s", data)
+    return data
 
+
+def address_grp_payload_static(**kwargs) -> dict:
+    # Check that address exists
+    data = {}
+    try:
+        address_config_list = addresses_list(folder=kwargs['folder'], auth=['auth'])
+        for address in kwargs['address_list']:
+            if address not in address_config_list:
+                raise SASEObjectError(f"message=\"missing address\"|{address=}")
+            data = {
+                "static": kwargs['address_list']
+            }
+    except KeyError as err:
+        error = f"{type(err).__name__}: {str(err)}" if err else ""
+        prisma_logger.error("SASEMissingParam: %s", error)
+        raise SASEMissingParam(f"message=\"missing filter parameter\"|{error=}")
     if kwargs.get('tag'):
         data = {**data, **addresses_grp_tag_payload(**kwargs)}
     return data
