@@ -140,6 +140,11 @@ class Config:
     }
     LIMIT: int = int(os.environ.get("LIMIT", "100"))
     OFFSET: int = int(os.environ.get("OFFSET", "0"))
+    LOGGING = os.environ.get("PRISMSASE_LOGGING", "DEBUG")
+    SET_LOG = os.environ.get('PRISMASASE_SET_LOG', True)
+    LOGNAME = os.environ.get("PRISMASASE_LOGNAME", "prismasase.log")
+    LOGSTREAM = os.environ.get("PRISMASASE_LOGSTREAM", True)
+    LOGLOCATION = os.environ.get("PRISMASASE_LOGLOCATION", "")
 
     def to_dict(self) -> dict:
         """returns configs as a dict
