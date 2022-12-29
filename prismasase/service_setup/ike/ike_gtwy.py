@@ -1,4 +1,4 @@
-# pylint: disable=duplicate-key,raise-missing-from
+# pylint: disable=duplicate-key,raise-missing-from,no-member
 """IKE Utilities"""
 
 import json
@@ -9,7 +9,7 @@ from prismasase.configs import Auth
 from prismasase.exceptions import (SASEBadParam, SASEBadRequest, SASEMissingParam)
 from prismasase.restapi import prisma_request
 from prismasase.statics import DYNAMIC
-from prismasase.utilities import default_params, set_bool
+from prismasase.utilities import default_params, reformat_exception, set_bool
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
@@ -107,7 +107,8 @@ def ike_gateway_update(ike_gateway_id: str, folder: dict, **kwargs) -> dict:
             # merge dictionaries taking new data as priority
             data = {**ike_gateway_current, **new_data}
         except KeyError as err:
-            error = f"{type(err).__name__}: {str(err)}" if err else ""
+            error = reformat_exception(error=err)
+            prisma_logger.error("Missing needed value error=%s", error)
             raise SASEMissingParam(f"message=\"missing IKE parameter\"|{error=}")
     prisma_logger.info("Updating IKE Gateway: %s", data['name'])
     # print(f"INFO: Updating IKE Gateway: {data['name']}")
@@ -155,7 +156,7 @@ def ike_gateway_create(folder: dict, **kwargs) -> dict:
                                               ike_crypto_profile=ike_crypto_profile,
                                               **kwargs)
     except KeyError as err:
-        error = f"{type(err).__name__}: {str(err)}" if err else ""
+        error = reformat_exception(error=err)
         prisma_logger.error("SASEMissingParam: %s", error)
         raise SASEMissingParam(f"message=\"missing IKE parameter\"|{error=}")
     prisma_logger.info("Creating IKE Gateway: %s", data['name'])

@@ -1,4 +1,6 @@
+# pylint: disable=invalid-name,too-many-arguments
 """Logger"""
+
 import logging
 import logging.handlers
 from pathlib import Path
@@ -43,14 +45,29 @@ class Logger:
 
 
 def set_logdir():
+    """Sets default log dir to users home dir
+
+    Returns:
+        _type_: _description_
+    """
     return Path.home()
 
 
 def with_suffix(logName):
+    """ensures that the logName passed has .log at the end
+
+    Args:
+        logName (str): name of log
+
+    Returns:
+        str: formated log name ensures .log attached
+    """
     return str(Path(logName).with_suffix('.log'))
 
 
 class RotatingLog:
+    """Rotating Logger"""
+
     def __init__(self, name: str, logName='sample.log', logDir=None,
                  maxBytes=5242990, backupCount=5, mode='a', level='INFO', stream=True):
         """ Creates an instance for each new Rotating Logger"""
@@ -59,6 +76,7 @@ class RotatingLog:
         # ensure logDir exists create it if it does not
         self.createLogDir(logDir=Path(logDir))
         self.stream = stream
+        # Set up settings for logger
         self.settings = Logger(
             name=name, logDir=logDir, logName=logName, maxBytes=maxBytes, backupCount=backupCount,
             mode=mode, level=level, level_set=LOGVALUE)
@@ -81,9 +99,25 @@ class RotatingLog:
             self.logger = logging.getLogger(self.settings.name).addHandler(self.stream_handler)
 
     def getLogger(self, name=None):
+        """Gets Logger or adds a new one if name doesnot already exist
+
+        Args:
+            name (str, optional): Returns root logger or the specifc named logger. Defaults to None.
+
+        Returns:
+            Logger: Rotate Logger
+        """
         return logging.getLogger(self.settings.name) if not name else self.addLogger(name)
 
     def addLogger(self, name):
+        """Adds a new Logger to the Rotating logger that attaches to the Root
+
+        Args:
+            name (str): Name of new logger
+
+        Returns:
+            Logger: instance of Rotating Logger
+        """
         self.logger = logging.getLogger(name).setLevel(self.settings.level)
         self.logger = logging.getLogger(name).addHandler(self.file_handler)
         self.logger = logging.getLogger(name).propagate = False
@@ -92,5 +126,10 @@ class RotatingLog:
         return logging.getLogger(name)
 
     def createLogDir(self, logDir: Path) -> None:
+        """Creates log dir if it doesnot exist
+
+        Args:
+            logDir (Path): _description_
+        """
         if not Path.exists(logDir):
             Path(logDir).mkdir(parents=True, exist_ok=True)

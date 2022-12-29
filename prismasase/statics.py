@@ -5,12 +5,16 @@ REMOTE_FOLDER: dict = {"folder": "Remote Networks"}
 MOBILE_FOLDER: dict = {"folder": "Mobile Users"}
 SERVICE_FOLDER: dict = {"folder": "Service Connections"}
 SHARED_FOLDER: dict = {"folder": "Shared"}
+MOBILE_USERS_FOLDER: dict = {"folder": "Mobile Users Container"}
+MOBILE_EXPLICIT_PROXY: dict = {"folder": "Mobile Users Explicit Proxy"}
 
 FOLDER: dict = {
     'Remote Networks': REMOTE_FOLDER,
     'Mobile Users': MOBILE_FOLDER,
     'Service Connections': SERVICE_FOLDER,
-    'Shared': SHARED_FOLDER
+    'Shared': SHARED_FOLDER,
+    'Mobile Users Container': MOBILE_USERS_FOLDER,
+    'Mobile Users Explicit Proxy': MOBILE_EXPLICIT_PROXY
 }
 
 # TAG Statics

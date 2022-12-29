@@ -1,3 +1,4 @@
+# pylint: disable=no-member
 """IPSec Utilities"""
 
 import ipaddress
@@ -9,6 +10,7 @@ from prismasase import return_auth, logger
 from prismasase.configs import Auth
 from prismasase.exceptions import SASEBadRequest, SASEMissingParam
 from prismasase.restapi import prisma_request
+from prismasase.utilities import reformat_exception
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
@@ -48,8 +50,9 @@ def ipsec_tunnel(ipsec_tunnel_name: str,  # pylint: disable=too-many-locals
                 ipaddress.ip_address(monitor_ip)
                 data["tunnel_monitor"] = {"destination_ip": monitor_ip, "enable": True}
             except ValueError as err:
-                error = f"{type(err).__name__}: {err}" if err else ""
-                print(f"ERROR: {error}")
+                error = reformat_exception(error=err)
+                prisma_logger.error("Missing parameter error=%s", error)
+                # print(f"ERROR: {error}")
                 raise SASEMissingParam(f"{error=}")  # pylint: disable=raise-missing-from
         else:
             raise SASEMissingParam("Missing monitor_ip value since " +

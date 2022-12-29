@@ -22,7 +22,7 @@ if exists(filename):
     config.LOGGING = yaml_config.get("PRISMSASE_LOGGING", "INFO")
     config.SET_LOG = yaml_config.get("PRISMASASE_SET_LOG", True)
     config.LOGNAME = yaml_config.get("PRISMASASE_LOGNAME", "prismasase.log")
-    config.LOGSTREAM = yaml_config.get("LOGSTREAM", True)
+    config.LOGSTREAM = yaml_config.get("PRISMASASE_LOGSTREAM", True)
     config.LOGLOCATION = yaml_config.get("PRISMASASE_LOGLOCATION", "")
 else:
     config.CLIENT_ID = os.environ.get("PRISMASASE_CLIENT_ID", "")
@@ -35,6 +35,8 @@ else:
     config.LOGSTREAM = os.environ.get("PRISMASASE_LOGSTREAM", True)
     config.LOGLOCATION = os.environ.get("PRISMASASE_LOGLOCATION", "")
 config.CERT = set_bool(config.CERT)  # type: ignore
+config.SET_LOG = set_bool(config.SET_LOG)
+config.LOGSTREAM = set_bool(config.LOGSTREAM)
 
 
 def return_auth(**kwargs) -> Auth:

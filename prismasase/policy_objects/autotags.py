@@ -2,15 +2,26 @@
 
 import json
 
-from prismasase import return_auth
+from prismasase import return_auth, logger
 from prismasase.configs import Auth
 from prismasase.exceptions import (SASEAutoTagError, SASEAutoTagExists,
                                    SASEAutoTagTooLong, SASEBadParam, SASEMissingParam)
-from prismasase.utilities import (default_params, check_name_length)
+from prismasase.utilities import (default_params, check_name_length, reformat_exception)
 from prismasase.statics import (AUTOTAG_ACTIONS, AUTOTAG_LOG_TYPE,
                                 AUTOTAG_TARGET, FOLDER, SHARED_FOLDER)
 from prismasase.restapi import prisma_request
 from .tags import tags_get
+
+logger.addLogger(__name__)
+prisma_logger = logger.getLogger(__name__)
+
+
+class AutoTags:
+    # placeholder for parent class namespace
+    _parent_class = None
+
+    url_type: str = "auto-tag-actions"
+    __name: str = ''
 
 
 def auto_tag_list(**kwargs) -> dict:
@@ -119,8 +130,9 @@ def auto_tag_create(name: str, tag_filter: str, actions: list, **kwargs) -> dict
         if log_type not in AUTOTAG_LOG_TYPE:
             raise SASEBadParam(f"message=\"incorrect log_type passed\"|{log_type=}")
     except KeyError as err:
-        error = f"{type(err).__name__}: {str(err)}" if err else ""
-        print(f"ERROR: {error=}")
+        error = reformat_exception(error=err)
+        prisma_logger.error("Missing needed value error=%s", error)
+        # print(f"ERROR: {error=}")
         raise SASEMissingParam(f"message=\"missing parameter\"|{error=}")
     data = auto_tag_payload(tag_filter=tag_filter,
                             name=name,
@@ -249,9 +261,10 @@ def auto_tag_confirm_actions(actions: list):
                     print(f"DEGUG: Tag not found {tag_exists=}")
                     raise SASEAutoTagError(f"message=\"tag doesnot exist\"|{tag=}")
     except KeyError as err:
-        error = f"{type(err).__name__}: {str(err)}" if err else ""
-        raise SASEAutoTagError(
-            f"message=\"missing action value\"|{error=}")  # pylint: disable=raise-missing-from
+        error = reformat_exception(error=err)
+        prisma_logger.error("Missing value error=%s", error)
+        raise SASEAutoTagError(  # pylint: disable=raise-missing-from
+            f"message=\"missing action value\"|{error=}")
     # if all chekcks passed than it's a valid action
 
 

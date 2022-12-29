@@ -1,32 +1,31 @@
 """Testing API"""
 
 from prismasase import logger, return_auth
-from prismasase.policy_objects.address_grps import AddressGroups
+from prismasase.policy_objects.tags import Tags
 
-from prismasase.security_policies.security_rules import SecurityRules
-from prismasase.utilities import default_params
+from .utilities import default_params
 from ._version import __version__
+
+from .policy_objects.address_grps import AddressGroups
+from .policy_objects.addresses import Addresses
+
+from .security_policies.security_rules import SecurityRules
 
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
 
 
-class API(object):
+class API:  # pylint: disable=too-many-instance-attributes
     """
     Class for interacting with the SASE API.
 
     Subclass objects are linked to various operations.
 
      - security_rules: links to `prismasase.security_policies.security_rules.SecurityRules`
-     - address_groups: links to `prismasase.policy_objects.address_grps.AddressGroups` for API Post Operations
-     - put: links to `cloudgenix.put_api.Put` for API Put Operations
-     - patch: links to `cloudgenix.patch_api.Patch` for API Patch Operations
-     - delete: links to `cloudgenix.delete_api.Delete` for API Delete Operations
+     - address_groups: links to `prismasase.policy_objects.address_grps.AddressGroups`
+     - addresses: links to `prismasase.policy_objects.addresses.Addresses`
     """
-    # Global structure, previously sdk_vars
-    # Authentication is now stored as cookies, as part of the requests.Session() object.
-    # Authentication can also be stored as an 'X-Auth-Token:' header, but cookies take precedence.
     FOLDERS = ['Shared', 'Mobile Users', 'Remote Networks', 'Service Connections',
                'Mobile Users Container', 'Mobile Users Explicit Proxy']
     POSITION = ['pre', 'post']
@@ -79,8 +78,9 @@ class API(object):
         # Bind API method classes to this object
         subclasses = self._subclass_container()
         self.security_rules = subclasses["security_rules"]()
-        """API object link to `cloudgenix.get_api.Get`"""
         self.address_groups = subclasses["address_groups"]()
+        self.addresses = subclasses["addresses"]()
+        self.tags = subclasses["tags"]()
 
     @property
     def folder(self):
@@ -135,5 +135,15 @@ class API(object):
             def __init__(self):
                 self._parent_class = _parent_class
         return_object["address_groups"] = AddressGroupsWrapper
+
+        class AddressesWrapper(Addresses):
+            def __init__(self):
+                self._parent_class = _parent_class
+        return_object["addresses"] = AddressesWrapper
+
+        class TagsWrapper(Tags):
+            def __init__(self):
+                self._parent_class = _parent_class
+        return_object["tags"] = TagsWrapper
 
         return return_object

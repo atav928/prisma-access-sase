@@ -14,6 +14,33 @@ from .tags import tags_exist
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
 
+
+class Addresses:
+
+    # placeholder for parent class namespace
+    _parent_class = None
+
+    url_type = 'addresses'
+    __name: str = ''
+    ip_network: str = str()
+    fqdn: str = str()
+    ip_range: str = str()
+    ip_wildcard: str = str()
+    description: str = ""
+    tag: list = []
+    address_id: str = str()
+    current_addresses: dict = {}
+    """holds the addresses in a json dictionary searchable value"""
+
+
+    @property
+    def name(self):
+        return self.__name
+
+    @name.setter
+    def name(self, value):
+        self.__name = value
+
 def addresses_list(folder: str, **kwargs) -> dict:
     """List out Addresses
 

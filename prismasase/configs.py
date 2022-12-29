@@ -10,6 +10,7 @@ import orjson
 from prismasase.exceptions import SASEAuthError
 from prismasase.statics import URL_BASE
 
+
 class Auth:
     """Authorization to SASE API and refresh Decorator
 
@@ -96,6 +97,7 @@ def refresh_token(decorated):
         # send back just token from auth class
         return decorated(token.token, *args, **kwargs)
     return wrapper
+
 
 class Config:
     """

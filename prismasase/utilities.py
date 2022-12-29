@@ -1,6 +1,11 @@
 """Utilities"""
 import secrets
 
+from prismasase.exceptions import SASEIncorrectParam
+
+from .statics import FOLDER
+
+
 def gen_pre_shared_key(length: int = 24) -> str:
     """Generates a random password
 
@@ -57,6 +62,7 @@ def default_params(**kwargs) -> dict:
         limit = int(kwargs['limit'])
     return {'offset': offset, 'limit': limit}
 
+
 def set_bool(value: str, default: bool = False) -> bool:
     """sets bool value when pulling string from os env
 
@@ -77,3 +83,28 @@ def set_bool(value: str, default: bool = False) -> bool:
     else:
         value_bool: bool = False
     return value_bool
+
+
+def verify_valid_folder(folder: str) -> None:
+    """Verifies that a valid Folder was passed
+
+    Args:
+        folder (str): _description_
+
+    Raises:
+        SASEIncorrectParam: _description_
+    """
+    if folder not in list(FOLDER):
+        raise SASEIncorrectParam(f"message=\"invalid folder location\"|{folder=}")
+
+
+def reformat_exception(error: Exception) -> str:
+    """Reformates Exception to print out as a string pass for logging
+
+    Args:
+        error (Exception): _description_
+
+    Returns:
+        str: _description_
+    """
+    return f"{type(error).__name__}: {str(error)}" if error else ""

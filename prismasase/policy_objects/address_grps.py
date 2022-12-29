@@ -9,7 +9,7 @@ from prismasase.policy_objects.addresses import addresses_list
 from prismasase.policy_objects.tags import tags_exist
 from prismasase.restapi import prisma_request
 from prismasase.statics import FOLDER
-from prismasase.utilities import default_params
+from prismasase.utilities import default_params, reformat_exception
 
 from prismasase.exceptions import SASEObjectError, SASEMissingParam
 
@@ -200,7 +200,7 @@ def addresses_grp_payload_dynamic(**kwargs) -> dict:
             }
         }
     except KeyError as err:
-        error = f"{type(err).__name__}: {str(err)}" if err else ""
+        error = reformat_exception(error=err)
         prisma_logger.error("SASEMissingParam: %s", error)
         raise SASEMissingParam(f"message=\"missing filter parameter\"|{error=}")
     return data
@@ -235,7 +235,7 @@ def addresses_grp_payload(name: str, folder: str, address_grp_type: str, **kwarg
             address_list = kwargs['static'] if kwargs.get('static') else kwargs['address_list']
             data = {**data, **address_grp_payload_static(folder=folder, auth=auth,address_list=address_list)}
     except KeyError as err:
-        error = f"{type(err).__name__}: {str(err)}" if err else ""
+        error = reformat_exception(error=err)
         prisma_logger.error("SASEMissingParam: %s", error)
         raise SASEMissingParam(f"message=\"missing filter parameter\"|{error=}")
     if kwargs.get('tag'):
@@ -261,7 +261,7 @@ def address_grp_payload_static(**kwargs) -> dict:
                 "static": kwargs['address_list']
             }
     except KeyError as err:
-        error = f"{type(err).__name__}: {str(err)}" if err else ""
+        error = reformat_exception(error=err)
         prisma_logger.error("SASEMissingParam: %s", error)
         raise SASEMissingParam(f"message=\"missing filter parameter\"|{error=}")
     return data

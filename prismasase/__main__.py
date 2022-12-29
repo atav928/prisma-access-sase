@@ -30,6 +30,29 @@ def gen_yaml():
         "CLIENT_SECRET": CLIENT_SECRET,
         "CERT": CERT
     }
+    log_settings = 'empty'
+    while log_settings.lower() not in ['yes', 'no']:
+        log_settings = input("Do you want to set Log Settings? (yes|no)")
+    if log_settings.lower() == 'yes':
+        PRISMSASE_LOGGING = input("What is the Level of Logging you want? (INFO,WARN,DEBUG)\n")
+        if PRISMSASE_LOGGING.upper() not in ['INFO', 'WARN', 'DEBUG']:
+            PRISMSASE_LOGGING = "INFO"
+        PRISMASASE_LOGNAME = input("What is the file name for log? (Default: prismasase.log)\n")
+        if not PRISMASASE_LOGNAME:
+            PRISMASASE_LOGNAME = "prismasase.log"
+        PRISMASASE_LOGSTREAM = input(
+            "Do you want to stream logs to terminal? (Default: true; Values: true,false)\n")
+        if not PRISMASASE_LOGSTREAM:
+            PRISMASASE_LOGSTREAM = 'true'
+        PRISMASASE_LOGLOCATION = input("Location of log directory? (Default: home directory)\n")
+        if not PRISMASASE_LOGLOCATION:
+            PRISMASASE_LOGLOCATION = ""
+        yaml_dict.update({
+            "PRISMSASE_LOGGING": PRISMSASE_LOGGING,
+            "PRISMASASE_LOGNAME": PRISMASASE_LOGNAME,
+            "PRISMASASE_LOGSTREAM": PRISMASASE_LOGSTREAM,
+            "PRISMASASE_LOGLOCATION": PRISMASASE_LOGLOCATION
+        })
     home = expanduser('~')
     base_dir = f"{home}/.config"
     if not exists(f"{home}/.config"):
