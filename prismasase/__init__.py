@@ -35,8 +35,8 @@ else:
     config.LOGSTREAM = os.environ.get("PRISMASASE_LOGSTREAM", True)
     config.LOGLOCATION = os.environ.get("PRISMASASE_LOGLOCATION", "")
 config.CERT = set_bool(config.CERT)  # type: ignore
-config.SET_LOG = set_bool(config.SET_LOG)
-config.LOGSTREAM = set_bool(config.LOGSTREAM)
+config.SET_LOG = set_bool(config.SET_LOG) # type: ignore
+config.LOGSTREAM = set_bool(config.LOGSTREAM) # type: ignore
 
 
 def return_auth(**kwargs) -> Auth:
