@@ -1,4 +1,4 @@
-# pylint: disable=no-member,invalid-name
+# pylint: disable=no-member,invalid-name,oo-few-public-methods
 """configurations"""
 
 import os
@@ -21,6 +21,7 @@ class Auth:
         _type_: _description_
     """
     TOKEN_URL = "https://auth.apps.paloaltonetworks.com/oauth2/access_token"
+    tenant_name = None
 
     def __init__(self, tsg_id: str, client_id: str, client_secret: str, **kwargs):
         """_summary_
@@ -32,14 +33,17 @@ class Auth:
             verify (str|bool, optional): sets request to verify with a custom cert
              bypass verification or verify with standard library. Defaults to True
             timeout (int, optional): sets API call timeout. Defaults to 60
+            thenant_name (str, optional): sets the tenant name
         """
         self.tsg_id = tsg_id
         self.client_id = client_id
-        self.client_secret = client_secret
+        self._client_secret = client_secret
         self.verify = kwargs.get('verify', True)
         self.timeout: int = kwargs.get('timeout', 60)
         self.access_token_expiration = time.time()
         self.token = self.get_token()
+        if kwargs.get('tenant_name'):
+            self.tenant_name = kwargs.get('tenant_name')
 
     def get_token(self) -> str:
         """Get Bearer Token
@@ -53,7 +57,7 @@ class Auth:
         url = self.TOKEN_URL
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         data = f"grant_type=client_credentials&scope=tsg_id:{self.tsg_id}"
-        auth = (self.client_id, self.client_secret)
+        auth = (self.client_id, self._client_secret)
         response = requests.post(url=url, headers=headers, data=data,
                                  auth=auth, timeout=self.timeout, verify=self.verify)
         token = ""

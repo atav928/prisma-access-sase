@@ -1,24 +1,35 @@
+# type: ignore
 """Address Group"""
 
 from copy import copy
 import json
 
+from requests.exceptions import HTTPError
 from prismasase import return_auth, logger
 from prismasase.configs import Auth
 from prismasase.policy_objects.addresses import addresses_list
 from prismasase.policy_objects.tags import tags_exist
 from prismasase.restapi import prisma_request
 from prismasase.statics import FOLDER
-from prismasase.utilities import default_params, reformat_exception
+from prismasase.utilities import (default_params, reformat_exception, verify_valid_folder)
 
-from prismasase.exceptions import SASEObjectError, SASEMissingParam
+from prismasase.exceptions import (
+    SASEIncorrectParam, SASEObjectError, SASEMissingParam, SASEBadRequest)
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
 
 
 class AddressGroups:
+    """_summary_
 
+    Raises:
+        SASEIncorrectParam: _description_
+        SASEMissingParam: _description_
+
+    Returns:
+        _type_: _description_
+    """
     # placeholder for parent class namespace
     _parent_class = None
 
@@ -34,11 +45,26 @@ class AddressGroups:
 
     @property
     def dynamic(self):
-        return self.__dynamic
+        """Dynamic value for creating or editing an DAG"""
+        try:
+            AddressGroups.address_group_dynamic_check(dynamic=self.__dynamic)
+            return self.__dynamic
+        except SASEIncorrectParam as err:
+            error = reformat_exception(error=err)
+            prisma_logger.error(
+                "Invalid Parameter: error=%s", error)
+            self.__dynamic = {}
+            return self.__dynamic
 
     @dynamic.setter
     def dynamic(self, value):
-        self.__dynamic = value
+        try:
+            AddressGroups.address_group_dynamic_check(dynamic=value)
+            self.__dynamic = value
+        except SASEIncorrectParam as err:
+            error = reformat_exception(error=err)
+            prisma_logger.error(
+                "Invalid Parameter: error=%s", error)
 
     @dynamic.deleter
     def dynamic(self):
@@ -46,24 +72,144 @@ class AddressGroups:
 
     @property
     def name(self):
+        """Sets Address Group Name"""
         return self.__name
 
     @name.setter
     def name(self, value):
         self.__name = value
 
-    def address_groups(self, return_values=True, **kwargs):
+    @staticmethod
+    def address_group_dynamic_check(dynamic: dict):
+        """Raises error if incorrectly formated dynamic JSON
+
+        Args:
+            dynamic (dict): _description_
+
+        Raises:
+            SASEIncorrectParam: _description_
+        """
+        # TODO: put in a filter check
+        if not isinstance(dynamic, dict) and not dynamic.get('filter'):
+            raise SASEIncorrectParam(
+                f"message=\"dynamic requires a dictionary with filter value\"|dynamic={dynamic}")
+
+    def get_by_name(self, name: str, **kwargs):
+        """Get Address Group by Name
+
+        Args:
+            name (str, optional): _description_. Defaults to None.
+
+        Returns:
+            _type_: _description_
+        """
+        self.name = name
+        if kwargs.get('folder'):
+            verify_valid_folder(folder=kwargs.get('folder'))
+            self._parent_class.folder = kwargs.pop('folder')
+        response = {
+            'error': f"Cannot find Address Group {self.name} in Folder {self._parent_class.folder}"
+        }
+        address_group_dict = self.list_all(return_values=True)
+        address_group_list = address_group_dict['data']
+        for addr_grp in address_group_list:
+            if name == address_group_list['name']:
+                self._address_groups_reformat_to_json(address_group_list=[addr_grp])
+                prisma_logger.info("Found Address Group %s in Folder %s",
+                                   self.name, self._parent_class.folder)
+                return addr_grp
+        prisma_logger.error("Cannot find Address Group %s in Folder %s",
+                            self.name, self._parent_class.folder)
+        return response
+
+    def get_by_id(self, address_group_id: str = None, **kwargs) -> dict:
+        """Get Address Group by ID. Returns error if address_group_id not
+         set or if not a valid address ID.
+
+        Args:
+            address_group_id (str, optional): _description_. Defaults address_group_id attribute.
+            folder (str, optional): folder location of address grp ID. Defaults to parent Folder/
+
+        Returns:
+            dict: _description_
+        """
+        if address_group_id:
+            self.address_group_id = address_group_id
+        response = {}
+        if kwargs.get('folder'):
+            try:
+                verify_valid_folder(folder=kwargs['folder'])
+            except SASEIncorrectParam as err:
+                error = reformat_exception(error=err)
+                prisma_logger.error("Incorrect folder value: error=%s", error)
+        try:
+            response = addresses_grp_get_address_by_id(address_group_id=self.address_group_id,
+                                                       folder=self._parent_class.folder,
+                                                       auth=self._parent_class.auth)
+            self._address_groups_reformat_to_json(address_group_list=[response])
+            prisma_logger.info("Retrieved Addresss_Group_ID=%s from folder=%s",
+                               self.address_group_id, self._parent_class.folder)
+        except (SASEBadRequest, HTTPError) as err:
+            error = reformat_exception(error=err)
+            prisma_logger.error("Unable to retrieve address_group_id=%s: error=%s",
+                                self.address_group_id, error)
+            response = {"error": "error with filds please check logs"}
+        return response
+
+    def list_all(self, return_values: bool = False, **kwargs):  # pylint: disable=inconsistent-return-statements
+        """Gathers a list of current Address Group. Auto updates current_address_group attribute.
+         If you want the raw return format in Palo Alto formate set return_value
+         to True to recieve the
+         Palo Alto response.
+
+        Args:
+            return_values (bool, optional): _description_. Defaults to True.
+
+        Returns:
+            _type_: _description_
+        """
         response = self._address_groups(**kwargs)
         if return_values:
             return response
 
-    def address_groups_create(self, address_grp_type: str, return_values=True, **kwargs):
+    def create(self, address_grp_type: str, return_values: bool = False, **kwargs):  # pylint: disable=inconsistent-return-statements
+        """_summary_
+
+        Args:
+            address_grp_type (str): _description_
+            return_values (bool, optional): _description_. Defaults to True.
+            folder (str, optional): Folder location. Defaults to parent folder.
+            description (str, optional): addes descritpion to Address Group Object
+
+
+        Returns:
+            _type_: _description_
+        """
         response = self._address_groups_create(address_grp_type=address_grp_type, **kwargs)
         if return_values:
             return response
 
+    def edit(self, address_group_id: str = None, return_values: bool = False, **kwargs):
+        # Todo: Build out
+        response = {"error": "unable to edit address group"}
+        if address_group_id:
+            self.address_group_id = address_group_id
+        # Confirm Address Group ID Exists
+        address_group_exists: bool = False
+        address_group = self.get_by_id()
+        if 'error' not in list(address_group.keys()):
+            address_group_exists = True
+        if not address_group_exists:
+            prisma_logger.error("Cannot edit address id %s as it it is not found",
+                                self.address_group_id)
+        else:
+            response = self._address_groups_edit(**kwargs)
+        if return_values:
+            return response
+
     def _address_groups(self, **kwargs):
-        """List out Addresses
+        """List out Addresses called from Create Method; pass arguments to
+         override existing attributes.
 
         Args:
             folder (str): _description_
@@ -83,7 +229,7 @@ class AddressGroups:
                                       method="GET",
                                       url_type=self.url_type,
                                       params=params,
-                                      verify=self._parent_class.auth.verify)
+                                      verify=self._parent_class.verify)
             data = data + response['data']
             params = {**params, **{'offset': params['offset'] + params['limit']}}
             count += 1
@@ -103,7 +249,7 @@ class AddressGroups:
         if kwargs.get('name'):
             self.name = kwargs.pop('name')
         if not self.name:
-            raise SASEParamMissing(f"message=\"missing name of address group\"")
+            raise SASEMissingParam("message=\"missing name of address group\"")
         if kwargs.get('tag') and isinstance(kwargs.get('tag'), list):
             self.tag = kwargs.pop('tag')
         else:
@@ -131,6 +277,10 @@ class AddressGroups:
         self._address_groups_reformat_to_json(address_group_list=[response])
         return response
 
+    def _address_groups_edit(self) -> dict:
+        # TODO: Build Out
+        return {}
+
     def _address_groups_reformat_to_json(self, address_group_list: list) -> None:
         for addr_grp in address_group_list:
             if addr_grp['folder'] not in list(self.current_address_group):
@@ -151,16 +301,51 @@ def address_grp_list(folder: str, **kwargs) -> dict:
     auth: Auth = return_auth(**kwargs)
     params = default_params(**kwargs)
     params = {**FOLDER[folder], **params}
+    data = []
+    count = 0
+    response = {
+        'data': [],
+        'offset': 0,
+        'total': 0,
+        'limit': 0
+    }
+    while (len(data) < response['total']) or count == 0:
+        try:
+            response = prisma_request(token=auth,
+                                      method="GET",
+                                      url_type="address-groups",
+                                      params=params,
+                                      verify=auth.verify)
+            data = data + response['data']
+            params = {**params, **{"offset": params["offset"] + params['limit']}}
+            count += 1
+            prisma_logger.debug("Retrieved count=%s with data of %s", count, response['data'])
+        except Exception as err:
+            error = reformat_exception(error=err)
+            prisma_logger.error("Unable to get address object data error=%s", error)
+            return {'error': error}
+    response['data'] = data
+    prisma_logger.info("Retrieved List of all Address Groups in Folder =%s total=%s",
+                       folder, response["total"])
+    # think of what to do here
     if kwargs.get('name'):
-        name = kwargs['name']
-        params = {**params, **{"name": name}}
-    response = prisma_request(token=auth,
-                              method="GET",
-                              url_type="address-groups",
-                              params=params,
-                              verify=auth.verify)
-    # print(f"DEBUG: {response}")
+        response = address_grop_by_name(folder=folder, name=kwargs['name'], auth=auth)
     return response
+
+# duplicate inside of the class decide if we want to move it to a single function or
+# it in method
+def address_grop_by_name(folder: str, name: str, **kwargs):
+    auth: Auth = return_auth(**kwargs)
+    address_group_list = []
+    if kwargs.get(address_group_list):
+        address_group_list = kwargs['address_group_list']
+    else:
+        address_group_list = address_grp_list(folder=folder, auth=auth)
+        address_group_list = address_group_list['data']
+    for add_grp in address_group_list:
+        if name == add_grp['name']:
+            return add_grp
+    return {'error': f"cannot find {name} in Address Group List in folder {folder}"}
 
 
 def addresses_grp_create():
@@ -171,11 +356,50 @@ def addresses_grp_delete():
     pass
 
 
-def addresses_grp_get_address_by_id():
-    pass
+def addresses_grp_get_address_by_id(address_group_id: str, folder: str, **kwargs) -> dict:
+    """Get Address Group by ID
+
+    Args:
+        address_group_id (str): _description_
+        folder (str): _description_
+
+    Returns:
+        dict: _description_
+    """
+    auth: Auth = return_auth(**kwargs)
+    params = {
+        'folder': folder
+    }
+    response = prisma_request(token=auth,
+                              method="GET",
+                              get_object=f"/{address_group_id}",
+                              params=params,
+                              url_type='address-groups',
+                              verify=auth.verify)
+    return response
 
 
 def addresses_grp_edit():
+    # for static to work you will have to pull the existing address group hold it and adjust hte values that you need
+    # than from there you will need to add/remove or addjust the same object keeping everything else the same, but allowing you to change
+    # if you only send a new list it will overwrite the current list... therefore you need to append to the current list or grab current list and remove
+    address_type: str
+    add_address: list
+    remove_address: list
+    add_tag: list
+    remove_tag: list
+    description: str
+    existing_adddress_object: dict
+    pass
+
+
+def _addresses_grp_edit_static():
+    # this will edit static based address groups that are passed from the edit method
+    pass
+
+
+def _addresses_grp_edit_dynamic():
+    # this will be used to edit the dynamic groups when passed values from address grp edit
     pass
 
 
@@ -226,6 +450,8 @@ def addresses_grp_payload(name: str, folder: str, address_grp_type: str, **kwarg
         "name": name,
         "folder": folder,
     }
+    if kwargs.get('description'):
+        data['description'] = kwargs.pop('description')
     try:
         if address_grp_type == 'dynamic':
             kwargs['auth'] = auth
@@ -233,13 +459,16 @@ def addresses_grp_payload(name: str, folder: str, address_grp_type: str, **kwarg
             data = {**data, **addresses_grp_payload_dynamic(**kwargs)}
         elif address_grp_type == 'static':
             address_list = kwargs['static'] if kwargs.get('static') else kwargs['address_list']
-            data = {**data, **address_grp_payload_static(folder=folder, auth=auth,address_list=address_list)}
+            data = {
+                **data, **
+                address_grp_payload_static(
+                    folder=folder, auth=auth, address_list=address_list)}
     except KeyError as err:
         error = reformat_exception(error=err)
         prisma_logger.error("SASEMissingParam: %s", error)
         raise SASEMissingParam(f"message=\"missing filter parameter\"|{error=}")
     if kwargs.get('tag'):
-        data = {**data, **addresses_grp_tag_payload(folder=folder,tag=kwargs.get('tag'), auth=auth)}
+        data = {**data, **addresses_grp_tag_payload(folder=folder, tag=kwargs.get('tag'), auth=auth)}
     prisma_logger.info("Created Payload for %s Address Group Type", address_grp_type)
     prisma_logger.debug("Created Address Group Payload: %s", data)
     return data

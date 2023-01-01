@@ -175,7 +175,7 @@ def tags_create(folder: str, tag_name: str, **kwargs) -> dict:
     if tags_get_tag:
         raise SASEObjectExists(f"Object already exists tag={tag_name}")
     data = tags_create_data(tag_name=tag_name, **kwargs)
-    print(data)
+    prisma_logger.debug("Tag data created %s", data)
     response = prisma_request(token=auth,
                               method="POST",
                               url_type='tags',

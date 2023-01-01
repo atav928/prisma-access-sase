@@ -61,14 +61,16 @@ class API:  # pylint: disable=too-many-instance-attributes
         # set version from outer scope.
         self.version = __version__ if __version__ else ""
         self.auth = return_auth(**kwargs)
+        self.tenant_id = self.auth.tsg_id
+        self._client_secret = self.auth._client_secret
+        self.client_id = self.auth.client_id
+        self.verify = self.auth.verify
         self.params = default_params()
         self._folder = 'Shared' if not kwargs.get('folder') and (
             kwargs.get('folder') not in self.FOLDERS) else kwargs['folder']
         self._position = 'pre' if not kwargs.get('position') and not isinstance(
             kwargs.get('position'), str) else kwargs['position']
-        self.tenant_id = self.auth.tsg_id
-        self._client_secret = self.auth.client_secret
-        self.client_id = self.auth.client_id
+        
         self.base_list_response = {
             'data': [],
             'offset': 0,
