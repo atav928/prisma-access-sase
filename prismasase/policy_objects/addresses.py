@@ -6,9 +6,9 @@ from prismasase import return_auth, logger
 from prismasase.configs import Auth
 from prismasase.exceptions import (SASEBadParam, SASEBadRequest,
                                    SASEIncorrectParam, SASEMissingParam, SASEObjectExists)
-from prismasase.restapi import prisma_request
+from prismasase.restapi import (prisma_request, default_list_all)
 from prismasase.statics import FOLDER
-from prismasase.utilities import default_params, reformat_exception, verify_valid_folder
+from prismasase.utilities import (default_params, reformat_exception, verify_valid_folder)
 
 from .tags import tags_exist
 
@@ -183,7 +183,8 @@ def addresses_list(folder: str, **kwargs) -> dict:
     if kwargs.get('name'):
         response = _addresses_list_by_name(folder=folder, name=str(kwargs.get('name')), auth=auth)
     else:
-        response = _address_list_all(folder=folder, auth=auth)
+        #response = _address_list_all(folder=folder, auth=auth)
+        response = default_list_all(folder=folder, url_type="addresses", auth=auth)
     prisma_logger.debug("Address List response=%s", response)
     return response
 
@@ -206,42 +207,6 @@ def _addresses_list_by_name(folder: str, name: str, **kwargs) -> dict:
         response = {"error": error}
     prisma_logger.info("Retrieved address name=%s response=%s",
                        name, response)
-    return response
-
-
-def _address_list_all(folder: str, **kwargs) -> dict:
-    auth: Auth = return_auth(**kwargs)
-    params = default_params(**kwargs)
-    params = {**FOLDER[folder], **params}
-    data = []
-    count = 0
-    response = {
-        'data': [],
-        'offset': 0,
-        'total': 0,
-        'limit': 0
-    }
-    # TODO: refactor this into a fucntion that can pass for any object and return the same
-    # no need to repoeat this code.
-    while (len(data) < response['total']) or count == 0:
-        # Loops through to get all addresses in the folder specified
-        try:
-            response = prisma_request(token=auth,
-                                      method="GET",
-                                      url_type="addresses",
-                                      params=params,
-                                      verify=auth.verify)
-            data = data + response['data']
-            params = {**params, **{"offset": params["offset"] + params['limit']}}
-            count += 1
-            prisma_logger.debug("Retrieved count=%s with data of %s", count, response['data'])
-        except Exception as err:
-            error = reformat_exception(error=err)
-            prisma_logger.error("Unable to get address object data error=%s", error)
-            return {'error': error}
-    response['data'] = data
-    prisma_logger.info("Retrieved List of all Addresses in folder=%s total=%s",
-                       folder, response['total'])
     return response
 
 
@@ -407,9 +372,7 @@ def addresses_edit(address_id: str, folder: str, **kwargs) -> dict:
     # Takes the supplied name otherwise uses the same
     # name that was retrieved from address exist check
     name = kwargs.pop('name') if kwargs.get('name') else address_exists['name']
-    # print(f"DEBUG: {name=}")
     data = addresses_create_payload(name=name, folder=folder, **kwargs)
-    # print(f"DEBUG: {json.dumps(data)}")
     response = prisma_request(token=auth,
                               method="PUT",
                               url_type='addresses',

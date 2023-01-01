@@ -2,8 +2,7 @@
 import secrets
 
 from prismasase.exceptions import SASEIncorrectParam
-
-from .statics import FOLDER
+from prismasase.statics import FOLDER
 
 
 def gen_pre_shared_key(length: int = 24) -> str:
@@ -108,3 +107,4 @@ def reformat_exception(error: Exception) -> str:
         str: _description_
     """
     return f"{type(error).__name__}: {str(error)}" if error else ""
+    

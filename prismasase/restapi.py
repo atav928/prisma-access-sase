@@ -4,15 +4,20 @@ from typing import Any, Dict
 import requests
 import orjson
 
+from prismasase import config, logger, return_auth
+
+from prismasase.statics import FOLDER, BASE_LIST_RESPONSE
 from prismasase.configs import Auth, refresh_token
-from prismasase import config, logger
+from prismasase.utilities import default_params, reformat_exception
 from prismasase.exceptions import SASEBadRequest, SASEMissingParam
+
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
 
+
 @refresh_token
-def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]: # pylint: disable=too-many-locals
+def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]:  # pylint: disable=too-many-locals
     """_summary_
 
     Args:
@@ -39,13 +44,14 @@ def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]: # pylint: disable=t
         method: str = kwargs['method'].upper()
     except KeyError as err:
         prisma_logger.error("SASEMissingParam: %s", str(err))
-        raise SASEMissingParam(str(err)) # pylint: disable=raise-missing-from
+        raise SASEMissingParam(str(err))  # pylint: disable=raise-missing-from
     params: dict = kwargs.get('params', {})
     try:
         url: str = config.REST_API[url_type]
     except KeyError as err:
         prisma_logger.error("SASEMissingParam: %s", str(err))
-        raise SASEMissingParam(f'incorrect url type: {str(err)}') # pylint: disable=raise-missing-from
+        raise SASEMissingParam(
+            f'incorrect url type: {str(err)}')  # pylint: disable=raise-missing-from
     if kwargs.get('name'):
         params.update({'name': kwargs.get('name')})
     if kwargs.get('limit'):
@@ -77,8 +83,10 @@ def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]: # pylint: disable=t
                                 verify=verify,
                                 timeout=timeout)
     if '_errors' in response.json():
-        prisma_logger.error("SASEBadRequest: %s", (orjson.dumps(response.json()).decode('utf-8'))) # pylint: disable=no-member
-        raise SASEBadRequest(orjson.dumps(response.json()).decode('utf-8'))  # pylint: disable=no-member
+        prisma_logger.error("SASEBadRequest: %s", (orjson.dumps(  # pylint: disable=no-member
+            response.json()).decode('utf-8')))
+        raise SASEBadRequest(orjson.dumps(response.json()).decode('utf-8')  # pylint: disable=no-member
+                             )
     if response.status_code == 404:
         prisma_logger.error("404 Error: %s", response.json())
     if response.status_code == 400:
@@ -86,3 +94,42 @@ def prisma_request(token: Auth, **kwargs) -> Dict[str, Any]: # pylint: disable=t
         return response.json()
     response.raise_for_status()
     return response.json()
+
+
+def default_list_all(folder: str, url_type: str, **kwargs) -> dict:
+    """Default list all using standard API calls for each Object type.
+
+    Args:
+        folder (str): _description_
+        url_type (str): _description_
+
+    Returns:
+        dict: _description_
+    """
+    auth = return_auth(**kwargs)
+    params = default_params(**kwargs)
+    params = {**FOLDER[folder], **params}
+    data = []
+    count = 0
+    response = BASE_LIST_RESPONSE
+    while (len(data) < response['total']) or count == 0:
+        # Loops through to get all object specific types in the folder specified
+        try:
+            response = prisma_request(token=auth,
+                                      method="GET",
+                                      url_type=url_type,
+                                      params=params,
+                                      verify=auth.verify)
+            data = data + response['data']
+            params = {**params, **{"offset": params["offset"] + params['limit']}}
+            count += 1
+            prisma_logger.debug("Retrieved count=%s with data of %s for url_type=%s",
+                                count, response['data'], url_type.title())
+        except Exception as err:
+            error = reformat_exception(error=err)
+            prisma_logger.error("Unable to get address object data error=%s", error)
+            return {'error': error}
+    response['data'] = data
+    prisma_logger.info("Retrieved List of all URL Type %s in folder=%s total=%s",
+                       url_type.title(), folder, response['total'])
+    return response

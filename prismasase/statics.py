@@ -33,3 +33,10 @@ AUTOTAG_LOG_TYPE = ["traffic", "wildfire", "threat", "url", "data", "tunnel", "a
 
 # IKE Static
 DYNAMIC = {'dynamic': {}}
+
+BASE_LIST_RESPONSE = {
+    'data': [],
+    'offset': 0,
+    'total': 0,
+    'limit': 0
+}

@@ -5,13 +5,15 @@ from copy import copy
 import json
 
 from requests.exceptions import HTTPError
+
 from prismasase import return_auth, logger
 from prismasase.configs import Auth
 from prismasase.policy_objects.addresses import addresses_list
 from prismasase.policy_objects.tags import tags_exist
-from prismasase.restapi import prisma_request
+from prismasase.restapi import prisma_request, default_list_all
 from prismasase.statics import FOLDER
-from prismasase.utilities import (default_params, reformat_exception, verify_valid_folder)
+from prismasase.utilities import (default_params, reformat_exception,
+                                  verify_valid_folder)
 
 from prismasase.exceptions import (
     SASEIncorrectParam, SASEObjectError, SASEMissingParam, SASEBadRequest)
@@ -217,26 +219,15 @@ class AddressGroups:
         Returns:
             dict: _description_
         """
-        data = []
-        count = 0
-        response = self._parent_class.base_list_response
         folder = kwargs.get('folder') if kwargs.get('folder') and kwargs.get(
             'folder') in self._parent_class.FOLDERS else self._parent_class.folder
         self._parent_class.folder = folder
-        params = {**self._parent_class.params, **{'folder': self._parent_class.folder}}
-        while (len(data) < response['total'] or count == 0):
-            response = prisma_request(token=self._parent_class.auth,
-                                      method="GET",
-                                      url_type=self.url_type,
-                                      params=params,
-                                      verify=self._parent_class.verify)
-            data = data + response['data']
-            params = {**params, **{'offset': params['offset'] + params['limit']}}
-            count += 1
-            prisma_logger.debug("going through address group retrieval %s times", (count))
+        response = default_list_all(folder=self._parent_class.folder,
+                                    url_type=self.url_type, auth=self._parent_class.auth)
         prisma_logger.debug("adddress group response: %s", (response))
-        prisma_logger.info("Retrieved total of %s Address Group Objects", (response['total']))
-        self._address_groups_reformat_to_json(address_group_list=response['data'])
+        #prisma_logger.info("Retrieved total of %s Address Group Objects", (response['total']))
+        if 'error' not in response:
+            self._address_groups_reformat_to_json(address_group_list=response['data'])
         return response
 
     def _address_groups_create(self, address_grp_type: str, **kwargs) -> dict:
@@ -334,6 +325,8 @@ def address_grp_list(folder: str, **kwargs) -> dict:
 
 # duplicate inside of the class decide if we want to move it to a single function or
 # it in method
+
+
 def address_grop_by_name(folder: str, name: str, **kwargs):
     auth: Auth = return_auth(**kwargs)
     address_group_list = []
