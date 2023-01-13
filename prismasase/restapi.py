@@ -6,7 +6,7 @@ import orjson
 
 from prismasase import config, logger, return_auth
 
-from prismasase.statics import FOLDER, BASE_LIST_RESPONSE
+from prismasase.statics import (FOLDER, BASE_LIST_RESPONSE)
 from prismasase.configs import Auth, refresh_token
 from prismasase.utilities import default_params, reformat_exception
 from prismasase.exceptions import SASEBadRequest, SASEMissingParam

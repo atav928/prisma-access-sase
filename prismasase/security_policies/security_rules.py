@@ -124,7 +124,7 @@ class SecurityRules:
         for i, k in kwargs.items():
             setattr(self, i, k)
 
-    def security_rules_list(self, **kwargs):
+    def list_all(self, **kwargs):
         """_summary_
 
         Returns:
@@ -215,7 +215,7 @@ class SecurityRules:
         attrs = str([x for x in self.__dict__])
         return attrs
 
-    def security_rules_create(self, **kwargs) -> dict:
+    def create(self, **kwargs) -> dict:
         """_summary_
 
         Args:
@@ -247,7 +247,7 @@ class SecurityRules:
         self._update_current_rulebase(to_do='create', rule=[response])
         return response
 
-    def security_rules_get(self, security_rules_id: str = None, folder: str = None) -> dict:
+    def get_by_id(self, security_rules_id: str = None, folder: str = None) -> dict:
         """Get Security Rule by ID
 
         Args:
@@ -265,8 +265,8 @@ class SecurityRules:
             raise SASEMissingParam("message=\"requires security rule ID param\"")
         if not folder and not self._parent_class.folder:
             raise SASEMissingParam("message=\"requires folder\"")
-        if not security_rules_id:
-            security_rules_id = self.security_rules_id
+        if security_rules_id:
+            self.security_rules_id = security_rules_id
         if not folder:
             folder = self._parent_class.folder
         params = {'folder': folder}
@@ -275,8 +275,9 @@ class SecurityRules:
                                   params=params,
                                   url_type=self.url_type,
                                   verify=self._parent_class.auth.verify,
-                                  get_object=f"/{security_rules_id}")
+                                  get_object=f"/{self.security_rules_id}")
         prisma_logger.info("Retrieved Security Rule ID: %s", self.security_rules_id)
+        self.current_payload = response
         return response
 
     def _security_rules_reformat_to_json(self, security_rule_list: list) -> None:
@@ -292,7 +293,7 @@ class SecurityRules:
                 self.current_rulebase[rule['folder']].update({rule['position']: {}})
             self.current_rulebase[rule['folder']][rule['position']].update({rule['id']: rule})
 
-    def security_rules_delete(self, security_rules_id: str = None, folder: str = None):
+    def delete(self, security_rules_id: str = None, folder: str = None):
         """_summary_
 
         Args:
@@ -328,8 +329,44 @@ class SecurityRules:
         self._update_current_rulebase(to_do='delete', rule=[response])
         return response
 
-    def security_rules_edit(self):
-        pass
+    def edit(self, security_rule_id: str, **kwargs):
+        # Create grouping of checks on this
+        # Pull existing rule id and then apply changes as needed
+        # svc_add
+        # svc_delete
+        # application_add
+        # application_delete
+        # action
+        # log_setting
+        # profile_setting
+        # destination_hip_add
+        # desintation_hip_delete
+        # source_hip_add
+        # soure_hip_delete
+        # zone_from_add
+        # zone_from_delete
+        # zone_to_add
+        # zone_to_delete
+        # tag_add
+        # tag_delete
+        # source_add
+        # source_delete
+        # destination_add
+        # destiation_delete
+        # category_add
+        # category_delete
+        # description
+
+        # First lets pull the current rule Folder should not be needed,
+        # but still is so may return error
+        self.get_by_id(security_rules_id=security_rule_id)
+        # Adds rule to "current.payload"
+        # manipulate current attributes to create a new data
+        try:
+            self.name = self.current_payload['name']
+            
+        except KeyError as err:
+            error = reformat_error(error=err)
 
     def _update_current_rulebase(self, to_do: str, rule: list) -> None:
         if to_do == 'delete':

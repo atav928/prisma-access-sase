@@ -5,8 +5,9 @@ import json
 
 from prismasase import return_auth, logger
 from prismasase.configs import Auth
-from prismasase.exceptions import (SASEError, SASEMissingParam, SASEObjectExists, SASEIncorrectParam)
-from prismasase.restapi import prisma_request
+from prismasase.exceptions import (SASEError, SASEMissingParam,
+                                   SASEObjectExists, SASEIncorrectParam)
+from prismasase.restapi import (prisma_request, default_list_all)
 from prismasase.statics import FOLDER, TAG_COLORS
 from prismasase.utilities import (default_params, reformat_exception, verify_valid_folder)
 
@@ -82,7 +83,7 @@ class Tags:
         if color not in TAG_COLORS:
             raise SASEIncorrectParam(f"message=\"invalid color\"|{color=}")
 
-    def tags(self, return_value: bool = False, **kwargs):  # pylint: disable=inconsistent-return-statements
+    def list_all(self, return_value: bool = False, **kwargs):  # pylint: disable=inconsistent-return-statements
         """Get a list of all current tags in folder
 
         Args:
@@ -106,7 +107,10 @@ class Tags:
         if not self._parent_class.folder:
             prisma_logger.error("Folder is not set and a required param")
             raise SASEMissingParam("Folder not set")
-        response = tags_list(folder=self._parent_class.folder, auth=self._parent_class.auth)
+        # response = tags_list(folder=self._parent_class.folder, auth=self._parent_class.auth)
+        response = default_list_all(folder=self._parent_class.folder,
+                                    url_type=self.url_type,
+                                    auth=self._parent_class.auth)
         self._tags_reformat_to_json(tag_list=response['data'])
         prisma_logger.info("Gathered list of all tags in folder=%s", self._parent_class.folder)
         return response
@@ -130,30 +134,12 @@ def tags_list(folder: str, **kwargs) -> dict:
     Returns:
         dict: _description_
     """
-    auth: Auth = return_auth(**kwargs)
-    params = default_params(**kwargs)
-    params = {**FOLDER[folder], **params}
-    data = []
-    count = 0
-    response = {
-        'data': [],
-        'offset': 0,
-        'total': 0,
-        'limit': 0
-    }
-    # Loops through to get all data in specified folder depending on limit and totals
-    while (len(data) < response['total']) or count == 0:
-        response = prisma_request(token=auth,
-                                  method="GET",
-                                  url_type='tags',
-                                  params=params,
-                                  verify=auth.verify)
-        data = data + response['data']
-        # Adjust to get the next set until you get all values
-        params = {**params, **{'offset': params['offset'] + params['limit']}}
-        count += 1
-        # print(f"DEBUG: {params=}|{response=}|{count=}|{data=}|{len(data)}")
-    response['data'] = data
+    try:
+        verify_valid_folder(folder=folder)
+    except SASEIncorrectParam as err:
+        error = reformat_exception(error=err)
+        prisma_logger.error("Incorrect value for Folder error=%s", error)
+    response = default_list_all(folder=folder, url_type='tags', **kwargs)
     return response
 
 
