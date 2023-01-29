@@ -12,7 +12,7 @@ from prismasase.configs import Auth
 from prismasase.exceptions import (
     SASEBadParam, SASEBadRequest, SASEMissingIkeOrIpsecProfile, SASEMissingParam,
     SASENoBandwidthAllocation)
-from prismasase.restapi import prisma_request
+from prismasase.restapi import (prisma_request, retrieve_full_list)
 from prismasase.statics import FOLDER, REMOTE_FOLDER
 from prismasase.utilities import set_bool
 from ..ipsec.ipsec_tun import ipsec_tunnel
@@ -22,6 +22,7 @@ from ..ike.ike_gtwy import ike_gateway
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
+
 
 def bulk_import_remote_networks(remote_sites: list):
     """_summary_
@@ -333,7 +334,7 @@ def remote_network_update(data: dict, remote_network_id: str, folder: dict, **kw
     # print(f"DEBUG: response={response}")
     if '_errors' in response:
         prisma_logger.error("SASEBadRequest: %s", orjson.dumps(response).decode('utf-8'))
-        raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  
+        raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))
     return response
 
 
@@ -469,3 +470,37 @@ def remote_network_identifier(name: str, folder: dict, **kwargs) -> dict:
             response = remote_net
             break
     return response
+
+
+class RemoteNetworks:
+    _parent_class = None
+
+    url_type = 'remote-networks'
+    current_remote_networks = {
+        "Remote Networks": {}
+    }
+    _remote_network = "Remote Networks"
+
+    def list_all(self, returns_values: bool = False, **kwargs) -> (dict | None):
+        """Lists All Remote Networks
+
+        Args:
+            returns_values (bool, optional): _description_. Defaults to False.
+
+        Returns:
+            _type_: _description_
+        """
+        # folder must be set to "Remote Networks"
+        kwargs["folder"] = self._remote_network
+        self._parent_class._change_values(**kwargs)
+        response = retrieve_full_list(folder=self._parent_class.folder,
+                                      url_type=self.url_type,
+                                      list_type=self._remote_network,
+                                      auth=self._parent_class.auth)
+        self._remote_networks_reformat_to_json(remote_net_list=response["data"])
+        if returns_values:
+            return response
+
+    def _remote_networks_reformat_to_json(self, remote_net_list: list):
+        for remote_net in remote_net_list:
+            self.current_remote_networks["Remote Networks"][remote_net['id']] = remote_net

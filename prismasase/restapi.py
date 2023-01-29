@@ -133,3 +133,51 @@ def default_list_all(folder: str, url_type: str, **kwargs) -> dict:
     prisma_logger.info("Retrieved List of all URL Type %s in folder=%s total=%s",
                        url_type.title(), folder, response['total'])
     return response
+
+
+def retrieve_full_list(folder: str, url_type: str, **kwargs) -> dict:
+    """Blanket function to retrieve a full list of all types
+
+    Args:
+        folder (str): _description_
+        url_type (str): _description_
+        list_type (str): Adds logging info on type of item retrieving
+
+    Returns:
+        _type_: _description_
+    """
+    auth: Auth = return_auth(**kwargs)
+    list_type: str = kwargs.get("list_type", "unknown type")
+    params = {
+        "limit": 200,
+        "offset": 0,
+        "folder": folder,
+    }
+    data = []
+    count = 0
+    response = {
+        "data": [],
+        "offset": 0,
+        "total": 0,
+        "limit": 0
+    }
+    prisma_logger.info("Retrieving a list of all %s from folder %s", list_type, folder)
+    while (len(data) < response["total"]) or count == 0:
+        try:
+            response = prisma_request(token=auth,
+                                      method="GET",
+                                      url_type=url_type,
+                                      params=params,
+                                      verify=auth.verify)
+            data = data + response["data"]
+            params = {**params, **{"offset": params["offset"] + params["limit"]}}
+            count += 1
+            prisma_logger.debug("Retrieved count=%s with data of %s", count, response['data'])
+        except Exception as err:
+            error = reformat_exception(error=err)
+            prisma_logger.error("Unable to get %s data error=%s", list_type, error)
+            return {'error': error}
+    response['data'] = data
+    prisma_logger.info("Retrieved List of all %s in Folder=%s total=%s",
+                       list_type, folder, response["total"])
+    return response

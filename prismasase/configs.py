@@ -74,23 +74,6 @@ class Auth:
         self.token = token
         return token
 
-    class Decorators():
-        """Decorators
-
-        Returns:
-            _type_: _description_
-        """
-        @staticmethod
-        def refresh_token(decorated):
-            """refreshes token"""
-            def wrapper(token: Auth, *args, **kwargs):
-                if time.time() > token.access_token_expiration:
-                    # regenerate token and reset timmer
-                    token.get_token()
-                # send back just token from auth class
-                return decorated(token.token, *args, **kwargs)
-            return wrapper
-
 
 def refresh_token(decorated):
     """refreshes token"""

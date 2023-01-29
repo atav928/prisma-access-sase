@@ -44,13 +44,13 @@ class Logger:
     propegate: bool = False
 
 
-def set_logdir():
+def set_logdir() -> str:
     """Sets default log dir to users home dir
 
     Returns:
         _type_: _description_
     """
-    return Path.home()
+    return str(Path.home())
 
 
 def with_suffix(logName):
@@ -68,8 +68,14 @@ def with_suffix(logName):
 class RotatingLog:
     """Rotating Logger"""
 
-    def __init__(self, name: str, logName='sample.log', logDir=None,
-                 maxBytes=5242990, backupCount=5, mode='a', level='INFO', stream=True):
+    def __init__(self, name: str,
+                 logName: str = 'sample.log',
+                 logDir: (str | None) = None,
+                 maxBytes: int = 5242990,
+                 backupCount: int = 5,
+                 mode: str = 'a',
+                 level: str = 'INFO',
+                 stream: bool = True):
         """ Creates an instance for each new Rotating Logger"""
         logDir = logDir if logDir else set_logdir()
         logName = with_suffix(logName)

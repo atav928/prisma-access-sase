@@ -192,6 +192,15 @@ class AddressGroups:
             return response
 
     def edit(self, address_group_id: str = None, return_values: bool = False, **kwargs):
+        """Edit Address Group
+
+        Args:
+            address_group_id (str, optional): _description_. Defaults to None.
+            return_values (bool, optional): _description_. Defaults to False.
+
+        Returns:
+            _type_: _description_
+        """
         # Todo: Build out
         response = {"error": "unable to edit address group"}
         if address_group_id:
@@ -320,14 +329,23 @@ def address_grp_list(folder: str, **kwargs) -> dict:
                        folder, response["total"])
     # think of what to do here
     if kwargs.get('name'):
-        response = address_grop_by_name(folder=folder, name=kwargs['name'], auth=auth)
+        response = address_grp_by_name(folder=folder, name=kwargs['name'], auth=auth)
     return response
 
 # duplicate inside of the class decide if we want to move it to a single function or
 # it in method
 
 
-def address_grop_by_name(folder: str, name: str, **kwargs):
+def address_grp_by_name(folder: str, name: str, **kwargs):
+    """Get Address by Name
+
+    Args:
+        folder (str): _description_
+        name (str): _description_
+
+    Returns:
+        _type_: _description_
+    """
     auth: Auth = return_auth(**kwargs)
     address_group_list = []
     if kwargs.get(address_group_list):

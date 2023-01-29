@@ -364,9 +364,9 @@ class SecurityRules:
         # manipulate current attributes to create a new data
         try:
             self.name = self.current_payload['name']
-            
         except KeyError as err:
             error = reformat_error(error=err)
+            prisma_logger.error(f"{error=}")
 
     def _update_current_rulebase(self, to_do: str, rule: list) -> None:
         if to_do == 'delete':

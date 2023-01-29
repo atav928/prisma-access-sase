@@ -6,6 +6,8 @@ from prismasase.policy_objects.tags import Tags
 from .utilities import default_params
 from ._version import __version__
 
+from .service_setup.remotenetworks.remote_networks import RemoteNetworks
+
 from .policy_objects.address_grps import AddressGroups
 from .policy_objects.addresses import Addresses
 
@@ -70,7 +72,7 @@ class API:  # pylint: disable=too-many-instance-attributes
             kwargs.get('folder') not in self.FOLDERS) else kwargs['folder']
         self._position = 'pre' if not kwargs.get('position') and not isinstance(
             kwargs.get('position'), str) else kwargs['position']
-        
+
         self.base_list_response = {
             'data': [],
             'offset': 0,
@@ -83,6 +85,7 @@ class API:  # pylint: disable=too-many-instance-attributes
         self.address_groups = subclasses["address_groups"]()
         self.addresses = subclasses["addresses"]()
         self.tags = subclasses["tags"]()
+        self.remote_networks = subclasses["remote_networks"]()
 
     @property
     def folder(self):
@@ -118,6 +121,21 @@ class API:  # pylint: disable=too-many-instance-attributes
     def position(self):
         del self._position
 
+    def reset_values(self) -> None:
+        """Resets the values at the parent level
+
+        Args:
+            position (str): Default "pre"
+            folder (str): Default "Shared"
+
+        """
+        self._position = 'pre'
+        self._folder = "Shared"
+
+    def _change_values(self, **kwargs):
+        self._folder = kwargs["folder"] if kwargs.get("folder") else self._folder
+        self._position = kwargs["position"] if kwargs.get("position") else self._position
+
     def _subclass_container(self):
         """
         Call subclasses via function to allow passing parent namespace to subclasses.
@@ -147,5 +165,10 @@ class API:  # pylint: disable=too-many-instance-attributes
             def __init__(self):
                 self._parent_class = _parent_class
         return_object["tags"] = TagsWrapper
+
+        class RemoteNetworksWrapper(RemoteNetworks):
+            def __init__(self):
+                self._parent_class = _parent_class
+        return_object["remote_networks"] = RemoteNetworksWrapper
 
         return return_object

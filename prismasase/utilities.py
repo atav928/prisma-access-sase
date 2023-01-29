@@ -107,4 +107,3 @@ def reformat_exception(error: Exception) -> str:
         str: _description_
     """
     return f"{type(error).__name__}: {str(error)}" if error else ""
-    
