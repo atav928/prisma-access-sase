@@ -1,3 +1,4 @@
+# pylint: disable=missing-docstring,too-few-public-methods
 """Testing API"""
 
 from prismasase import logger, return_auth
