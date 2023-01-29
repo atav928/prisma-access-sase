@@ -8,12 +8,13 @@ from prismasase import return_auth, logger
 from prismasase.configs import Auth
 from prismasase.exceptions import (SASEBadParam, SASEBadRequest, SASEMissingParam)
 from prismasase.restapi import prisma_request
-from prismasase.statics import DYNAMIC
+from prismasase.statics import DYNAMIC, FOLDER
 from prismasase.utilities import default_params, reformat_exception, set_bool
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
 
+IKE_GWY_URL = 'ike-gateways'
 
 def ike_gateway(pre_shared_key: str,
                 ike_crypto_profile: str,
@@ -354,3 +355,23 @@ def ike_gateway_get_by_id(ike_gateway_id: str, folder: dict, **kwargs) -> dict:
                               verify=auth.verify,
                               get_object=f'/{ike_gateway_id}')
     return response
+
+def ike_gateway_get_by_name(ike_gateway_name: str, folder: str, **kwargs) -> str:
+    """Finds a IKE Gateway in a folder by Name returns the ID
+
+    Args:
+        ike_gateway_name (str): _description_
+        folder (str): _description_
+
+    Returns:
+        str: _description_
+    """
+    auth: Auth = return_auth(**kwargs)
+    ike_gateway_full_list = ike_gateway_list(folder=FOLDER[folder], auth=auth)
+    ike_gateway_full_list = ike_gateway_full_list['data']
+    ike_gateway_id = ""
+    for gateway in ike_gateway_full_list:
+        if gateway['name'] == ike_gateway_name:
+            ike_gateway_id = gateway['id']
+            prisma_logger.info("Found %s in %s", ike_gateway_name, folder)
+    return ike_gateway_id

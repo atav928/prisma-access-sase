@@ -9,11 +9,13 @@ import orjson
 from prismasase import return_auth, logger
 from prismasase.configs import Auth
 from prismasase.exceptions import SASEBadRequest, SASEMissingParam
-from prismasase.restapi import prisma_request
+from prismasase.restapi import prisma_request, retrieve_full_list
 from prismasase.utilities import reformat_exception
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
+
+IPSEC_URL = "ipsec-tunnels"
 
 
 def ipsec_tunnel(ipsec_tunnel_name: str,  # pylint: disable=too-many-locals
@@ -57,11 +59,8 @@ def ipsec_tunnel(ipsec_tunnel_name: str,  # pylint: disable=too-many-locals
         else:
             raise SASEMissingParam("Missing monitor_ip value since " +
                                    "tunnel_monitor is set to enable")
-    ipsec_tunnels = prisma_request(token=auth,
-                                   method='GET',
-                                   url_type='ipsec-tunnels',
-                                   params=params,
-                                   verify=auth.verify)
+    ipsec_tunnels = ipsec_tun_get_all(folder=params['folder'],
+                                      auth=auth)
     for tunnel in ipsec_tunnels['data']:
         if tunnel['name'] == ipsec_tunnel_name:
             ipsec_tunnel_exists = True
@@ -182,3 +181,40 @@ def create_ipsec_tunnel_payload(
         "name": ipsec_tunnel_name
     }
     return data
+
+
+def ipsec_tun_get_all(folder: str, **kwargs) -> dict:
+    """Retrieves a full list of IPSec Tunnels based on folder passed.
+
+    Args:
+        folder (str): _description_
+
+    Returns:
+        dict: _description_
+    """
+    auth: Auth = return_auth(**kwargs)
+    response = retrieve_full_list(folder=folder,
+                                  url_type=IPSEC_URL,
+                                  auth=auth,
+                                  list_type=IPSEC_URL)
+    return response
+
+def ipsec_tun_get_by_name(folder: str, ipsec_tunnel_name: str, **kwargs) -> str:
+    """Return the IPsec Tunnel ID for a provided name if exists
+
+    Args:
+        folder (str): _description_
+        ipsec_tunnel_name (str): _description_
+
+    Returns:
+        str: _description_
+    """
+    auth: Auth = return_auth(**kwargs)
+    ipsec_tun_list = ipsec_tun_get_all(folder=folder, auth=auth)
+    ipsec_tun_list = ipsec_tun_list['data']
+    ipsec_id = ""
+    for tunnel in ipsec_tun_list:
+        if tunnel['name'] == ipsec_tunnel_name:
+            ipsec_id = tunnel['id']
+            break
+    return ipsec_id

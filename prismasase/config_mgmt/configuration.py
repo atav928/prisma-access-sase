@@ -15,7 +15,7 @@ from prismasase.restapi import prisma_request
 from prismasase.utilities import check_items_in_list
 
 logger.addLogger(__name__)
-prisma_logger  = logger.getLogger(__name__)
+prisma_logger = logger.getLogger(__name__)
 
 
 def config_manage_list_versions(limit: int = 50, offset: int = 0, **kwargs):
@@ -70,7 +70,7 @@ def config_manage_push(folders: list, description: str = "No Description Provide
     # verify the folders list
     show_run = config_manage_show_run(auth=auth)
     folders_valid: list = [device['device'] for device in show_run['data']]
-    print(f"INFO: pushing candiate config for {str(', '.join(folders))}")
+    prisma_logger.info("Pushing candiate config for %s", str(', '.join(folders)))
     if not check_items_in_list(list_of_items=folders, full_list=folders_valid):
         raise SASEBadParam(f"Invalid list of folders {str(', '.join(folders))}")
     # Set up json body
@@ -85,7 +85,8 @@ def config_manage_push(folders: list, description: str = "No Description Provide
                               data=json.dumps(data),
                               verify=auth.verify)
     # print(f"INFO: response={orjson.dumps(response).decode('utf-8')}")
-    prisma_logger.info("Config Management Push: response=%s", (orjson.dumps(response).decode('utf-8')))
+    prisma_logger.info("Config Management Push: response=%s",
+                       (orjson.dumps(response).decode('utf-8')))
     return response
 
 
@@ -236,8 +237,9 @@ def config_check_job_id(job_id: str, timeout: int = 2700, interval: int = 30, **
             response['job_id'][str(job_id)] = config_job_check['data'][0]
             delta = datetime.datetime.now() - start_time
             response['job_id'][str(job_id)]['total_time'] = str(delta.seconds)
-            print("INFO: Push returned success")
-            # print(f"DEBUG: response={orjson.dumps(config_job_check['data'][0]).decode('utf-8')}")
+            prisma_logger.info("Push returned success")
+            prisma_logger.debug("Response=%s", orjson.dumps(
+                config_job_check['data'][0]).decode('utf-8'))
             break
         if status == 'FIN' and results == 'FAIL':
             response['status'] = 'failure'
@@ -246,7 +248,8 @@ def config_check_job_id(job_id: str, timeout: int = 2700, interval: int = 30, **
             response['job_id'][str(job_id)]['total_time'] = str(delta.seconds)
             # print(f"DEBUG: response={orjson.dumps(config_job_check['data'][0]).decode('utf-8')}")
             break
-        # print(f"DEBUG: response={orjson.dumps(config_job_check['data'][0]).decode('utf-8')}")
+        prisma_logger.debug("response=%s",
+                            orjson.dumps(config_job_check['data'][0]).decode('utf-8'))
         time.sleep(interval)
         config_job_check = config_manage_list_job_id(job_id=job_id, auth=auth)
         status = config_job_check['data'][0]['status_str']
@@ -290,7 +293,7 @@ def config_commit(folders: list,  # pylint: disable=too-many-locals
         response['status'] = 'success'
         response['message'] = message
         response['parent_job'] = str(job_id)
-        print(f"INFO: Pushed successfully {job_id=}|{message=}")
+        prisma_logger.info("Pushed successfully job_id=%s|message=%s", job_id, message)
         # Check original push appends it to response
         response_config_check_job = config_check_job_id(job_id=job_id, timeout=timeout, auth=auth)
         response = {**response, **response_config_check_job}
@@ -304,7 +307,7 @@ def config_commit(folders: list,  # pylint: disable=too-many-locals
     # Once that commit is completed there may be additional sub jobs
     time.sleep(5)  # Provide time to create children
     config_job_subs = config_manage_commit_subjobs(job_id=job_id, auth=auth)
-    print(f"INFO: Additional job search returned Jobs {','.join(config_job_subs)}")
+    prisma_logger.info("Additional job search returned Jobs %s", ','.join(config_job_subs))
     # TODO: fix checking subjob as not returning error properly
     if config_job_subs:
         # TODO: Multithread this as each job runs in parallel and isnt' giving the full picture
@@ -339,8 +342,34 @@ def config_commit(folders: list,  # pylint: disable=too-many-locals
         version = obj['version']
         break
     prisma_logger.info("Current Running configurations are %s", (str(version)))
-    # print(f"INFO: Current Running configurations are {str(version)}")
     response['version_info'] = show_version['data']
     prisma_logger.info("Final Response:\n%s", (json.dumps(response, indent=4)))
-    # print(f"INFO: Final Response:\n{json.dumps(response, indent=4)}")
     return response
+
+
+class ConfigurationManagment:
+    """Config Management Class
+
+    Returns:
+        _type_: _description_
+    """
+    _parent_class = None
+    commit_response: dict = {}
+    current_version: dict = {}
+
+    def commit(self, folder_list: list, description: str) -> dict:
+        """Sample Commit Config
+
+        Args:
+            folder_list (list): _description_
+            description (str): _description_
+
+        Returns:
+            dict: _description_
+        """
+        response = config_commit(folders=folder_list,
+                                 description=description,
+                                 timeout=3600,
+                                 auth=self._parent_class.auth)  # type: ignore
+        self.commit_response = response
+        return response

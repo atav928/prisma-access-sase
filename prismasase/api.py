@@ -1,16 +1,24 @@
 """Testing API"""
 
 from prismasase import logger, return_auth
+from prismasase.config_mgmt.configuration import ConfigurationManagment
 from prismasase.policy_objects.tags import Tags
+
 
 from .utilities import default_params
 from ._version import __version__
 
+# Service Setup
+from .service_setup.locations import locations_get
 from .service_setup.remotenetworks.remote_networks import RemoteNetworks
+from .service_setup.service_conn.service_connections import ServiceConnections
+from .service_setup.infra.infrastructure import InfrastructureSettings
 
+# Objects
 from .policy_objects.address_grps import AddressGroups
 from .policy_objects.addresses import Addresses
 
+# Policies
 from .security_policies.security_rules import SecurityRules
 
 
@@ -57,6 +65,11 @@ class API:  # pylint: disable=too-many-instance-attributes
     """Default Parameters"""
 
     base_list_response: dict = {}
+    locations: dict = {}
+    ipsec_crypto: dict = {}
+    ipsec_tunnels: dict = {}
+    ike_crypto: dict = {}
+    ike_gateways: dict = {}
 
     def __init__(self, **kwargs):
 
@@ -86,6 +99,9 @@ class API:  # pylint: disable=too-many-instance-attributes
         self.addresses = subclasses["addresses"]()
         self.tags = subclasses["tags"]()
         self.remote_networks = subclasses["remote_networks"]()
+        self.service_connections = subclasses["service_connections"]()
+        self.infrastructure_settings = subclasses["infrastructure_settings"]()
+        self.configuration_management = subclasses["configuration_management"]()
 
     @property
     def folder(self):
@@ -120,6 +136,23 @@ class API:  # pylint: disable=too-many-instance-attributes
     @position.deleter
     def position(self):
         del self._position
+
+    def get_locations(self) -> None:
+        """Get a list of all locations and update internal
+            records based on Continent and Display Name
+        """
+        response = locations_get(auth=self.auth)
+        self._locations_reformat(locations_list=response)
+        prisma_logger.info("Retrieved a list of %s Locations avaiabile", str(len(response)))
+
+    def _locations_reformat(self, locations_list: list):
+        for location in locations_list:
+            if location['continent'] not in self.locations:
+                self.locations[location['continent']] = {}
+            if location['display'] not in self.locations[location['continent']]:
+                self.locations[location['continent']][location['display']] = location
+            else:
+                self.locations[location['continent']].update({location['display']: location})
 
     def reset_values(self) -> None:
         """Resets the values at the parent level
@@ -170,5 +203,20 @@ class API:  # pylint: disable=too-many-instance-attributes
             def __init__(self):
                 self._parent_class = _parent_class
         return_object["remote_networks"] = RemoteNetworksWrapper
+
+        class ServiceConnectionsWrapper(ServiceConnections):
+            def __init__(self):
+                self._parent_class = _parent_class
+        return_object["service_connections"] = ServiceConnectionsWrapper
+
+        class InfrastructureSettingsWrapper(InfrastructureSettings):
+            def __init__(self):
+                self._parent_class = _parent_class
+        return_object["infrastructure_settings"] = InfrastructureSettingsWrapper
+
+        class ConfigurationManagementWrapper(ConfigurationManagment):
+            def __init__(self):
+                self._parent_class = _parent_class
+        return_object["configuration_management"] = ConfigurationManagementWrapper
 
         return return_object

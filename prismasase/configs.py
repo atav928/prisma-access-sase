@@ -1,4 +1,4 @@
-# pylint: disable=no-member,invalid-name,oo-few-public-methods
+# pylint: disable=no-member,invalid-name,too-few-public-methods
 """configurations"""
 
 import os
@@ -107,6 +107,7 @@ class Config:
         "remote-networks": f"{URL_BASE}/remote-networks",
         "locations": f"{URL_BASE}/locations",
         "service-connections": f"{URL_BASE}/service-connections",
+        "regions": f"{URL_BASE}/regions",
         # Security Services
         "profile-groups": f"{URL_BASE}/profile-groups",
         "security-rules": f"{URL_BASE}/security-rules",
