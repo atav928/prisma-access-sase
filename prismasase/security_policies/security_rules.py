@@ -179,7 +179,6 @@ class SecurityRules:
             raise SASEMissingParam("message=\"missing name parameter\"")
         if not self.action:
             raise SASEMissingParam(f"message=\"missing {str(self.action)}\"")
-
         data = {
             "name": self.name,
             "action": self.action,
@@ -379,3 +378,4 @@ class SecurityRules:
         if to_do == 'create':
             self._security_rules_list()
         # TODO: Build Edit to current rulebase
+

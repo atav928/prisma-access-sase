@@ -288,6 +288,8 @@ class AddressGroups:
             self.current_address_group[addr_grp['folder']].update({addr_grp['id']: addr_grp})
             prisma_logger.debug("Updated json formated current_address_group with: %s", (addr_grp))
 
+from prismasase.exceptions import SASEObjectError
+
 
 def address_grp_list(folder: str, **kwargs) -> dict:
     """List out Addresses
@@ -412,6 +414,7 @@ def _addresses_grp_edit_static():
 def _addresses_grp_edit_dynamic():
     # this will be used to edit the dynamic groups when passed values from address grp edit
     pass
+
 
 
 def addresses_grp_payload_dynamic(**kwargs) -> dict:
