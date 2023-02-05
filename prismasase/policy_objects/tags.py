@@ -1,13 +1,130 @@
+# type: ignore
 """Tags"""
 
 import json
 
-from prismasase import return_auth
+from prismasase import return_auth, logger
 from prismasase.configs import Auth
-from prismasase.exceptions import (SASEError, SASEObjectExists)
-from prismasase.restapi import prisma_request
+from prismasase.exceptions import (SASEError, SASEMissingParam,
+                                   SASEObjectExists, SASEIncorrectParam)
+from prismasase.restapi import (prisma_request, default_list_all)
 from prismasase.statics import FOLDER, TAG_COLORS
-from prismasase.utilities import default_params
+from prismasase.utilities import (default_params, reformat_exception,
+                                  verify_valid_folder, reformat_to_json)
+
+logger.addLogger(__name__)
+prisma_logger = logger.getLogger(__name__)
+
+
+class Tags:
+    """Tag Subclass Moudule
+
+    Raises:
+        SASEIncorrectParam: _description_
+        SASEMissingParam: _description_
+
+    Returns:
+        _type_: _description_
+    """
+    # placeholder for parent class namespace
+    _parent_class = None
+
+    url_type: str = "tags"
+    __name: str = ''
+    __color: str = 'Empty'
+    comment: str = ''
+    tag_id: str = ''
+    current_tag_payload: dict = {}
+    previous_tag_payload: dict = {}
+    tags: dict = {}
+
+    TAG_COLORS = TAG_COLORS
+
+    @property
+    def name(self):
+        """Tag Name"""
+        return self.__name
+
+    @name.setter
+    def name(self, value):
+        self.__name = value
+
+    @property
+    def color(self):
+        """Tag Color"""
+        try:
+            Tags.check_valid_color(self.__color)
+            return self.__color
+        except SASEIncorrectParam as err:
+            error = reformat_exception(error=err)
+            prisma_logger.error("Invalid color set: %s, valid colors are: %s, error=%s",
+                                self.__color, ','.join(self.TAG_COLORS), error)
+
+    @color.setter
+    def color(self, value):
+        try:
+            # reformat color value since format is Capital first letter
+            Tags.check_valid_color(value.title())
+            self.__color = value.title()
+        except SASEIncorrectParam as err:
+            error = reformat_exception(error=err)
+            prisma_logger.error("Invalid color set: %s, valid colors are: %s, error=%s",
+                                value, ','.join(self.TAG_COLORS), error)
+
+    @staticmethod
+    def check_valid_color(color) -> None:
+        """Check if Color being set is valid
+
+        Args:
+            color (_type_): _description_
+
+        Raises:
+            SASEIncorrectParam: _description_
+        """
+        if color not in TAG_COLORS:
+            raise SASEIncorrectParam(f"message=\"invalid color\"|{color=}")
+
+    def get(self, return_value: bool = False, **kwargs):  # pylint: disable=inconsistent-return-statements
+        """Get a list of all current tags in folder
+
+        Args:
+            return_value (_type_, optional): _description_. Defaults to Fale.
+
+        Returns:
+            dict: _description_
+        """
+        response = self._tags(**kwargs)
+        if return_value:
+            return response
+
+    def _tags(self, **kwargs) -> dict:
+        if kwargs.get('folder'):
+            try:
+                verify_valid_folder(folder=kwargs['folder'])
+                self._parent_class.folder = kwargs['folder']
+            except SASEIncorrectParam as err:
+                error = reformat_exception(error=err)
+                prisma_logger.error("Invalid Folder error=%s", error)
+        if not self._parent_class.folder:
+            prisma_logger.error("Folder is not set and a required param")
+            raise SASEMissingParam("Folder not set")
+        # response = tags_list(folder=self._parent_class.folder, auth=self._parent_class.auth)
+        response = default_list_all(folder=self._parent_class.folder,
+                                    url_type=self.url_type,
+                                    auth=self._parent_class.auth)
+        self._update_tags(tag_list=response['data'])
+        prisma_logger.info("Gathered list of all tags in folder=%s", self._parent_class.folder)
+        return response
+
+    def _update_tags(self, tag_list) -> None:
+        tags_formated = reformat_to_json(data=tag_list)
+        if 'predefined' in tags_formated:
+            self.tags['predefined'] = tags_formated['predefined']
+        self.tags[self._parent_class.folder] = tags_formated[self._parent_class.folder]
+        self._update_parent()
+
+    def _update_parent(self) -> None:
+        self._parent_class.tag_obj = self.tags
 
 
 def tags_list(folder: str, **kwargs) -> dict:
@@ -19,30 +136,12 @@ def tags_list(folder: str, **kwargs) -> dict:
     Returns:
         dict: _description_
     """
-    auth: Auth = return_auth(**kwargs)
-    params = default_params(**kwargs)
-    params = {**FOLDER[folder], **params}
-    data = []
-    count = 0
-    response = {
-        'data': [],
-        'offset': 0,
-        'total': 0,
-        'limit': 0
-    }
-    # Loops through to get all data in specified folder depending on limit and totals
-    while (len(data) < response['total']) or count == 0:
-        response = prisma_request(token=auth,
-                                  method="GET",
-                                  url_type='tags',
-                                  params=params,
-                                  verify=auth.verify)
-        data = data + response['data']
-        # Adjust to get the next set until you get all values
-        params = {**params, **{'offset': params['offset'] + params['limit']}}
-        count += 1
-        # print(f"DEBUG: {params=}|{response=}|{count=}|{data=}|{len(data)}")
-    response['data'] = data
+    try:
+        verify_valid_folder(folder=folder)
+    except SASEIncorrectParam as err:
+        error = reformat_exception(error=err)
+        prisma_logger.error("Incorrect value for Folder error=%s", error)
+    response = default_list_all(folder=folder, url_type='tags', **kwargs)
     return response
 
 
@@ -64,7 +163,7 @@ def tags_create(folder: str, tag_name: str, **kwargs) -> dict:
     if tags_get_tag:
         raise SASEObjectExists(f"Object already exists tag={tag_name}")
     data = tags_create_data(tag_name=tag_name, **kwargs)
-    print(data)
+    prisma_logger.debug("Tag data created %s", data)
     response = prisma_request(token=auth,
                               method="POST",
                               url_type='tags',
@@ -92,7 +191,8 @@ def tags_get(folder: str, tag_name: str, **kwargs) -> dict:
     for tag in tag_get_list:
         if tag_name == tag['name']:
             response = tag
-            print(f"INFO: Found Tag: {response}")
+            prisma_logger.info("Fopund Tag: %s", {response})
+            # print(f"INFO: Found Tag: {response}")
             break
     return response
 
@@ -130,9 +230,11 @@ def tags_exist(tag_list: list, folder: str, **kwargs) -> bool:
         bool: _description_
     """
     if not isinstance(tag_list, list):
+        prisma_logger.error("SASEError: requires a list of tagnames tag_list=%s", (tag_list))
         raise SASEError(f"message=\"requires a list of tagnames\"|{tag_list=}")
     for tag in tag_list:
         if not tags_get(tag_name=tag, folder=folder, **kwargs):
+            prisma_logger.debug("Tag doesnot exist: %s", (tag))
             # print(f"DEBUG: {tag=} doesnot exist")
             return False
     return True

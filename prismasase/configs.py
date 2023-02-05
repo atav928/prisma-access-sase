@@ -1,4 +1,4 @@
-# pylint: disable=no-member,invalid-name
+# pylint: disable=no-member,invalid-name,too-few-public-methods
 """configurations"""
 
 import os
@@ -10,6 +10,7 @@ import orjson
 from prismasase.exceptions import SASEAuthError
 from prismasase.statics import URL_BASE
 
+
 class Auth:
     """Authorization to SASE API and refresh Decorator
 
@@ -20,6 +21,7 @@ class Auth:
         _type_: _description_
     """
     TOKEN_URL = "https://auth.apps.paloaltonetworks.com/oauth2/access_token"
+    tenant_name = None
 
     def __init__(self, tsg_id: str, client_id: str, client_secret: str, **kwargs):
         """_summary_
@@ -31,14 +33,17 @@ class Auth:
             verify (str|bool, optional): sets request to verify with a custom cert
              bypass verification or verify with standard library. Defaults to True
             timeout (int, optional): sets API call timeout. Defaults to 60
+            thenant_name (str, optional): sets the tenant name
         """
         self.tsg_id = tsg_id
         self.client_id = client_id
-        self.client_secret = client_secret
+        self._client_secret = client_secret
         self.verify = kwargs.get('verify', True)
         self.timeout: int = kwargs.get('timeout', 60)
         self.access_token_expiration = time.time()
         self.token = self.get_token()
+        if kwargs.get('tenant_name'):
+            self.tenant_name = kwargs.get('tenant_name')
 
     def get_token(self) -> str:
         """Get Bearer Token
@@ -52,7 +57,7 @@ class Auth:
         url = self.TOKEN_URL
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         data = f"grant_type=client_credentials&scope=tsg_id:{self.tsg_id}"
-        auth = (self.client_id, self.client_secret)
+        auth = (self.client_id, self._client_secret)
         response = requests.post(url=url, headers=headers, data=data,
                                  auth=auth, timeout=self.timeout, verify=self.verify)
         token = ""
@@ -69,23 +74,6 @@ class Auth:
         self.token = token
         return token
 
-    class Decorators():
-        """Decorators
-
-        Returns:
-            _type_: _description_
-        """
-        @staticmethod
-        def refresh_token(decorated):
-            """refreshes token"""
-            def wrapper(token: Auth, *args, **kwargs):
-                if time.time() > token.access_token_expiration:
-                    # regenerate token and reset timmer
-                    token.get_token()
-                # send back just token from auth class
-                return decorated(token.token, *args, **kwargs)
-            return wrapper
-
 
 def refresh_token(decorated):
     """refreshes token"""
@@ -96,6 +84,7 @@ def refresh_token(decorated):
         # send back just token from auth class
         return decorated(token.token, *args, **kwargs)
     return wrapper
+
 
 class Config:
     """
@@ -118,9 +107,12 @@ class Config:
         "remote-networks": f"{URL_BASE}/remote-networks",
         "locations": f"{URL_BASE}/locations",
         "service-connections": f"{URL_BASE}/service-connections",
+        "regions": f"{URL_BASE}/regions",
+        "qos-profiles": f"{URL_BASE}/qos-profiles",
         # Security Services
         "profile-groups": f"{URL_BASE}/profile-groups",
         "security-rules": f"{URL_BASE}/security-rules",
+        "qos-policy-rules": f"{URL_BASE}/qos-policy-rules",
         # Configuration Management
         "config-versions": f"{URL_BASE}/config-versions",
         "jobs": f"{URL_BASE}/jobs",
@@ -138,6 +130,11 @@ class Config:
     }
     LIMIT: int = int(os.environ.get("LIMIT", "100"))
     OFFSET: int = int(os.environ.get("OFFSET", "0"))
+    LOGGING = os.environ.get("PRISMSASE_LOGGING", "DEBUG")
+    SET_LOG = os.environ.get('PRISMASASE_SET_LOG', True)
+    LOGNAME = os.environ.get("PRISMASASE_LOGNAME", "prismasase.log")
+    LOGSTREAM = os.environ.get("PRISMASASE_LOGSTREAM", True)
+    LOGLOCATION = os.environ.get("PRISMASASE_LOGLOCATION", "")
 
     def to_dict(self) -> dict:
         """returns configs as a dict

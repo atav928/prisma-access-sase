@@ -1,3 +1,4 @@
+# pylint: disable=no-member
 """IPSec Utilities"""
 
 import ipaddress
@@ -5,10 +6,16 @@ import json
 from typing import Any, Dict
 import orjson
 
-from prismasase import return_auth
+from prismasase import return_auth, logger
 from prismasase.configs import Auth
 from prismasase.exceptions import SASEBadRequest, SASEMissingParam
-from prismasase.restapi import prisma_request
+from prismasase.restapi import prisma_request, retrieve_full_list
+from prismasase.utilities import reformat_exception
+
+logger.addLogger(__name__)
+prisma_logger = logger.getLogger(__name__)
+
+IPSEC_TUN_URL = "ipsec-tunnels"
 
 
 def ipsec_tunnel(ipsec_tunnel_name: str,  # pylint: disable=too-many-locals
@@ -45,17 +52,15 @@ def ipsec_tunnel(ipsec_tunnel_name: str,  # pylint: disable=too-many-locals
                 ipaddress.ip_address(monitor_ip)
                 data["tunnel_monitor"] = {"destination_ip": monitor_ip, "enable": True}
             except ValueError as err:
-                error = f"{type(err).__name__}: {err}" if err else ""
-                print(f"ERROR: {error}")
+                error = reformat_exception(error=err)
+                prisma_logger.error("Missing parameter error=%s", error)
+                # print(f"ERROR: {error}")
                 raise SASEMissingParam(f"{error=}")  # pylint: disable=raise-missing-from
         else:
             raise SASEMissingParam("Missing monitor_ip value since " +
                                    "tunnel_monitor is set to enable")
-    ipsec_tunnels = prisma_request(token=auth,
-                                   method='GET',
-                                   url_type='ipsec-tunnels',
-                                   params=params,
-                                   verify=auth.verify)
+    ipsec_tunnels = ipsec_tun_get_all(folder=params['folder'],
+                                      auth=auth)
     for tunnel in ipsec_tunnels['data']:
         if tunnel['name'] == ipsec_tunnel_name:
             ipsec_tunnel_exists = True
@@ -80,7 +85,8 @@ def ipsec_tunnel_create(data: Dict[str, Any], folder: dict, **kwargs):
         SASEBadRequest: _description_
     """
     auth: Auth = return_auth(**kwargs)
-    print(f"INFO: Creating IPSec Tunnel {data['name']}")
+    prisma_logger.info("Creating IPSec Tunnel: %s", data['name'])
+    # print(f"INFO: Creating IPSec Tunnel {data['name']}")
     # print(f"DEBUG: Creating IPSec Tunnel Using data={json.dumps(data)}")
     params = folder
     response = prisma_request(token=auth,
@@ -91,6 +97,7 @@ def ipsec_tunnel_create(data: Dict[str, Any], folder: dict, **kwargs):
                               verify=auth.verify)
     # print(f"DEBUG: response={response}")
     if '_errors' in response:
+        prisma_logger.error("SASEBadRequest: %s", orjson.dumps(response).decode('utf-8'))
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
     return response
 
@@ -106,7 +113,8 @@ def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str, folder: dict
         SASEBadRequest: _description_
     """
     auth: Auth = return_auth(**kwargs)
-    print(f"INFO: Updating IPSec Tunnel {data['name']}")
+    prisma_logger.info("Updating IPSec Tunnel: %s", data['name'])
+    # print(f"INFO: Updating IPSec Tunnel {data['name']}")
     # print(f"DEBUG: Updating IPSec Tunnel Using data={json.dumps(data)}")
     params = folder
     response = prisma_request(token=auth,
@@ -118,6 +126,7 @@ def ipsec_tunnel_update(data: Dict[str, Any], ipsec_tunnel_id: str, folder: dict
                               verify=auth.verify)
     # print(f"DEBUG: response={response}")
     if '_errors' in response:
+        prisma_logger.error("SASEBadRequest: %s", orjson.dumps(response).decode('utf-8'))
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
     return response
 
@@ -172,3 +181,74 @@ def create_ipsec_tunnel_payload(
         "name": ipsec_tunnel_name
     }
     return data
+
+
+def ipsec_tun_get_all(folder: str, **kwargs) -> dict:
+    """Retrieves a full list of IPSec Tunnels based on folder passed.
+
+    Args:
+        folder (str): _description_
+
+    Returns:
+        dict: _description_
+    """
+    auth: Auth = return_auth(**kwargs)
+    response = retrieve_full_list(folder=folder,
+                                  url_type=IPSEC_TUN_URL,
+                                  auth=auth,
+                                  list_type=IPSEC_TUN_URL)
+    return response
+
+def ipsec_tunnel_get_name_list(folder: str, **kwargs) -> list:
+    """Returns a list of names of IPSec Tunnels provided the Folder
+
+    Args:
+        folder (str): _description_
+
+    Returns:
+        list: _description_
+    """
+    auth: Auth = return_auth(**kwargs)
+    ipsec_tunnel_name_list: list = []
+    ipsec_tunnel_dict: dict = ipsec_tun_get_all(folder=folder, auth=auth)
+    for tunnel in ipsec_tunnel_dict['data']:
+        ipsec_tunnel_name_list.append(tunnel['name'])
+    return ipsec_tunnel_name_list
+
+def ipsec_tun_get_dict_folder(folder: str, **kwargs) -> dict:
+    """Returns a formated Folder Dictionary of IPSec Tunnels
+
+    Args:
+        folder (str): folder needed to pull data from
+
+    Returns:
+        dict: {"Folder Name": {"IPSec Tun ID": {"Tunnel Data"}}}
+    """
+    auth: Auth = return_auth(**kwargs)
+    ipsec_tunnel_dict_by_folder: dict = {
+        folder: {}
+    }
+    ipsec_tunnel_dict: dict = ipsec_tun_get_all(folder=folder, auth=auth)
+    for tunnel in ipsec_tunnel_dict['data']:
+        ipsec_tunnel_dict_by_folder[folder][tunnel['id']] = tunnel
+    return ipsec_tunnel_dict_by_folder
+
+def ipsec_tun_get_by_name(folder: str, ipsec_tunnel_name: str, **kwargs) -> str:
+    """Return the IPsec Tunnel ID for a provided name if exists
+
+    Args:
+        folder (str): _description_
+        ipsec_tunnel_name (str): _description_
+
+    Returns:
+        str: _description_
+    """
+    auth: Auth = return_auth(**kwargs)
+    ipsec_tun_list = ipsec_tun_get_all(folder=folder, auth=auth)
+    ipsec_tun_list = ipsec_tun_list['data']
+    ipsec_id = ""
+    for tunnel in ipsec_tun_list:
+        if tunnel['name'] == ipsec_tunnel_name:
+            ipsec_id = tunnel['id']
+            break
+    return ipsec_id
