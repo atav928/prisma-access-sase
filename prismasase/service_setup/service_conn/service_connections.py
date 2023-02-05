@@ -14,7 +14,7 @@ from prismasase.service_setup.ipsec.ipsec_tun import (
 from prismasase.statics import FOLDER, SERVICE_FOLDER
 from prismasase.configs import Auth
 from prismasase.restapi import (prisma_request, retrieve_full_list)
-from prismasase.utilities import reformat_exception, remove_dups_from_list
+from prismasase.utilities import reformat_exception, reformat_to_json, reformat_to_named_dict, remove_dups_from_list
 
 SERVICE_CONNECTION_URL = "service-connections"
 SERVICE_CONNECTION = "Service Connections"
@@ -70,7 +70,10 @@ class ServiceConnections:
             _type_: _description_
         """
         response = svc_connection_get(auth=self._parent_class.auth)  # type: ignore
+        # self.service_connections = reformat_to_json(data=response['data'])
         self._svc_conn_refresh(service_conn_list=response['data'])
+        # service_name_list = reformat_to_named_dict(data=response['data'], data_type='list')
+        # self.service_connection_names = service_name_list[self._service_connections]
         if return_values:
             return response
 
@@ -85,7 +88,7 @@ class ServiceConnections:
         """
         response = svc_connection_get_by_id(service_conn_id=service_conn_id,
                                             auth=self._parent_class.auth)  # type: ignore
-        self._svc_conn_update(response)
+        self.get()
         return response
 
     def delete(self, servcie_connection_id: str):
@@ -135,6 +138,7 @@ class ServiceConnections:
         prisma_logger.info("Deleted IKE Gateway %s", orjson.dumps(  # pylint: disable=no-member
             ike_gtwy_delete_response).decode('utf-8'))
         self.get_ike_gateways()
+        self._update_parent_ike_gateways
 
     def delete_ipsec_tunnel(self, ipsec_tunnel_name) -> dict:
         """Delete Service Connector IPSec Tunnel by Name
@@ -265,24 +269,10 @@ class ServiceConnections:
         response = ike_gateway_list(folder=self.svc_conn_folder_dict,
                                     auth=self._parent_class.auth)  # type: ignore
         prisma_logger.info("Gathering all IKE Tunnels in %s", self._service_connections)
-        self._update_ike_gateways(ike_gateways=response['data'])
+        self.ike_gateways = reformat_to_json(data=response['data'])
+        self._update_parent_ike_gateways()
 
-    def _update_ike_gateways(self, ike_gateways: list):
-        # Requires full list to do a sync up with current list
-        gateway_id_list = []
-        removed = {}
-        for gateway in ike_gateways:
-            if not self.ike_gateways:
-                self.ike_gateways[self._service_connections] = {}
-            self.ike_gateways[self._service_connections][gateway['id']] = gateway
-            gateway_id_list.append(gateway['id'])
-        gateway_id_current_list = self.ike_gateways[self._service_connections]
-        for tunnel_id in gateway_id_current_list:
-            if tunnel_id not in gateway_id_list:
-                removed = self.ike_gateways[self._service_connections].pop(tunnel_id)
-                prisma_logger.info("Removed %s from Service Connection IKE Gateway", tunnel_id)
-                prisma_logger.debug("Removed %s", orjson.dumps(  # pylint: disable=no-member
-                    removed).decode('utf-8'))
+    def _update_parent_ike_gateways(self):
         self._parent_class.ike_gateways.update(  # type: ignore
             {self._service_connections: self.ike_gateways[self._service_connections]})
 
@@ -312,6 +302,7 @@ def svc_connection_get(**kwargs) -> dict:
     auth: Auth = return_auth(**kwargs)
     response = retrieve_full_list(folder="Service Connections",
                                   url_type="service-connections",
+                                  list_type="Service Connections",
                                   auth=auth)
     prisma_logger.info("Retrieved TSG=%s Infrastructure Configurations", auth.tsg_id)
     return response

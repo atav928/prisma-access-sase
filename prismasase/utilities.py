@@ -133,9 +133,9 @@ def reformat_to_json(data: list) -> dict:
     return_dict = {}
     for value in data:
         # Baseline strucutre
-        if value['folder'] not in return_dict:
+        if value.get('folder') not in return_dict:
             return_dict[value['folder']] = {}
-        if value['folder'] == "predefined":
+        if value.get('folder') == "predefined":
             return_dict[value['folder']][value['name']] = value
             continue
         # used in seucrity structure

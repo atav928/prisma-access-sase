@@ -108,9 +108,11 @@ class Config:
         "locations": f"{URL_BASE}/locations",
         "service-connections": f"{URL_BASE}/service-connections",
         "regions": f"{URL_BASE}/regions",
+        "qos-profiles": f"{URL_BASE}/qos-profiles",
         # Security Services
         "profile-groups": f"{URL_BASE}/profile-groups",
         "security-rules": f"{URL_BASE}/security-rules",
+        "qos-policy-rules": f"{URL_BASE}/qos-policy-rules",
         # Configuration Management
         "config-versions": f"{URL_BASE}/config-versions",
         "jobs": f"{URL_BASE}/jobs",

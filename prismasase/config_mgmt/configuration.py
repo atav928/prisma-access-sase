@@ -11,14 +11,18 @@ from prismasase import return_auth, logger
 
 from prismasase.configs import Auth
 from prismasase.exceptions import SASEBadParam, SASECommitError
-from prismasase.restapi import prisma_request
+from prismasase.restapi import prisma_request, retrieve_full_list
+from prismasase.statics import FOLDER
 from prismasase.utilities import check_items_in_list
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
 
+CONFIG_URL = 'config-versions'
+LIST_TYPE = "Configuration Management"
 
-def config_manage_list_versions(limit: int = 50, offset: int = 0, **kwargs):
+
+def config_manage_list_versions(limit: int = 200, offset: int = 0, **kwargs):
     """List the Candidate Configurations
 
     Args:
@@ -29,12 +33,10 @@ def config_manage_list_versions(limit: int = 50, offset: int = 0, **kwargs):
         _type_: _description_
     """
     auth: Auth = return_auth(**kwargs)
-    response = prisma_request(token=auth,
-                              method='GET',
-                              url_type='config-versions',
-                              offset=offset,
-                              limit=limit,
-                              verify=auth.verify)
+    response = retrieve_full_list(folder="",
+                                  url_type=CONFIG_URL,
+                                  list_type=LIST_TYPE,
+                                  auth=auth)
     return response
 
 
@@ -91,7 +93,7 @@ def config_manage_push(folders: list, description: str = "No Description Provide
 
 
 def config_manage_show_run(**kwargs) -> dict:
-    """Show the running configuratio
+    """Show the running configuration
 
     Args:
         auth (Auth, Required): authorization required or must use configs auth
@@ -276,7 +278,6 @@ def config_commit(folders: list,  # pylint: disable=too-many-locals
         _type_: _description_
     """
     auth: Auth = return_auth(**kwargs)
-    # print(f"DEBUG: {kwargs=}|{auth=}")
     response = {
         'status': 'error',
         'message': '',
@@ -356,20 +357,41 @@ class ConfigurationManagment:
     _parent_class = None
     commit_response: dict = {}
     current_version: dict = {}
+    version_info: list = []
+    running_config: dict = {}
+    version_list: list = []
 
-    def commit(self, folder_list: list, description: str) -> dict:
+    def commit(self, folders: list, description: str) -> dict:
         """Sample Commit Config
 
         Args:
-            folder_list (list): _description_
+            folders (list): _description_
             description (str): _description_
 
         Returns:
             dict: _description_
         """
-        response = config_commit(folders=folder_list,
+        response = config_commit(folders=folders,
                                  description=description,
                                  timeout=3600,
                                  auth=self._parent_class.auth)  # type: ignore
         self.commit_response = response
+        self.version_info = response['version_info']
         return response
+
+    def show_run(self) -> dict:
+        """_summary_
+
+        Returns:
+            dict: _description_
+        """
+        response = config_manage_show_run(auth=self._parent_class.auth)  # type: ignore
+        self.running_config = response
+        return response
+
+    def list_all_versions(self) -> None:
+        """_summary_
+        """
+        response = config_manage_list_versions(auth=self._parent_class.auth) # type: ignore
+        self.version_list = response['data']
+        prisma_logger.info("Retrieved a list of %s historical versions", str(response['total']))

@@ -7,14 +7,15 @@ import orjson
 from prismasase import return_auth, logger
 from prismasase.configs import Auth
 from prismasase.exceptions import (SASEBadParam, SASEBadRequest, SASEMissingParam)
-from prismasase.restapi import prisma_request
+from prismasase.restapi import (prisma_request, retrieve_full_list)
 from prismasase.statics import DYNAMIC, FOLDER
-from prismasase.utilities import default_params, reformat_exception, set_bool
+from prismasase.utilities import (reformat_exception, set_bool)
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
 
 IKE_GWY_URL = 'ike-gateways'
+
 
 def ike_gateway(pre_shared_key: str,
                 ike_crypto_profile: str,
@@ -289,28 +290,10 @@ def ike_gateway_list(folder: dict, **kwargs) -> dict:
     # Get all current IKE Gateways
     # TODO: loop through get every single IKE Gateway like done in tags
     auth: Auth = return_auth(**kwargs)
-    params = default_params(**kwargs)
-    params.update(folder)
-    data = []
-    count = 0
-    response = {
-        'data': [],
-        'offset': 0,
-        'total': 0,
-        'limit': 0
-    }
-    # loops through to get all data
-    while (len(data) < response['total']) or count == 0:
-        response = prisma_request(token=auth,
-                                  url_type='ike-gateways',
-                                  method='GET',
-                                  params=params,
-                                  verify=auth.verify)
-        data = data + response['data']
-        # Adjust Params
-        params = {**params, **{'offset': params['offset'] + params['limit']}}
-        count += 1
-    response['data'] = data
+    response = retrieve_full_list(folder=folder['folder'],
+                                  url_type=IKE_GWY_URL,
+                                  list_type="IKE Gateways",
+                                  auth=auth)
     return response
 
 
@@ -328,7 +311,7 @@ def ike_gateway_delete(ike_gateway_id: str, folder: dict, **kwargs) -> dict:
     auth: Auth = return_auth(**kwargs)
     params = folder
     response = prisma_request(token=auth,
-                              url_type='ike-gateways',
+                              url_type=IKE_GWY_URL,
                               method='DELETE',
                               params=params,
                               delete_object=f'/{ike_gateway_id}',
@@ -355,6 +338,7 @@ def ike_gateway_get_by_id(ike_gateway_id: str, folder: dict, **kwargs) -> dict:
                               verify=auth.verify,
                               get_object=f'/{ike_gateway_id}')
     return response
+
 
 def ike_gateway_get_by_name(ike_gateway_name: str, folder: str, **kwargs) -> str:
     """Finds a IKE Gateway in a folder by Name returns the ID

@@ -142,17 +142,21 @@ def retrieve_full_list(folder: str, url_type: str, **kwargs) -> dict:
         folder (str): _description_
         url_type (str): _description_
         list_type (str): Adds logging info on type of item retrieving
+        position (str): Required when a position is needed in params
 
     Returns:
         _type_: _description_
     """
     auth: Auth = return_auth(**kwargs)
     list_type: str = kwargs.get("list_type", "unknown type")
-    params = {
+    params: Dict[str,Any] = {
         "limit": 200,
         "offset": 0,
-        "folder": folder,
     }
+    if folder:
+        params.update({'folder': folder})
+    if kwargs.get('position'):
+        params.update({'position': kwargs['position']})
     data = []
     count = 0
     response = {

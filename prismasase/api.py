@@ -4,6 +4,7 @@
 from prismasase import logger, return_auth
 from prismasase.config_mgmt.configuration import ConfigurationManagment
 from prismasase.policy_objects.tags import Tags
+from prismasase.service_setup.qos_profile import QoSProfiles
 
 from .utilities import default_params
 from ._version import __version__
@@ -121,6 +122,7 @@ class API:  # pylint: disable=too-many-instance-attributes
         self.service_connections = subclasses["service_connections"]()
         self.infrastructure_settings = subclasses["infrastructure_settings"]()
         self.configuration_management = subclasses["configuration_management"]()
+        self.qos_profiles = subclasses["qos_profiles"]()
 
     @property
     def folder(self):
@@ -241,5 +243,10 @@ class API:  # pylint: disable=too-many-instance-attributes
             def __init__(self):
                 self._parent_class = _parent_class
         return_object["configuration_management"] = ConfigurationManagementWrapper
+
+        class QoSProfileWrapper(QoSProfiles):
+            def __init__(self):
+                self._parent_class = _parent_class
+        return_object["qos_profiles"] = QoSProfileWrapper
 
         return return_object

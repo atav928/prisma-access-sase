@@ -467,12 +467,289 @@ INFO: Created Remote Network
 }
 ```
 
+#### Using API tool
+
+You can now leverage the API tool to run most subclasses throughout the API call and orchestrate events.
+
+**Example:**
+
+This command will just gather all information from Remote Networks
+
+```bash
+>>> from prismasase.api import API
+>>> api = API(folder='Shared')
+>>> api.remote_networks.get_all()
+INFO    : Retrieving a list of all Remote Networks from folder Remote Networks
+INFO    : Retrieved List of all Remote Networks in Folder=Remote Networks total=6
+INFO    : Retrieved 6 Remote Networks
+INFO    : Retrieving a list of all IKE Crypto from folder Remote Networks
+INFO    : Retrieved List of all IKE Crypto in Folder=Remote Networks total=16
+INFO    : Gathering all IKE Crypto Profiles in Remote Networks
+INFO    : Retrieving a list of all IKE Gateways from folder Remote Networks
+INFO    : Retrieved List of all IKE Gateways in Folder=Remote Networks total=9
+INFO    : Gathering all IKE Tunnels in Remote Networks
+INFO    : Retrieving a list of all IPSec Crypto from folder Remote Networks
+INFO    : Retrieved List of all IPSec Crypto in Folder=Remote Networks total=16
+INFO    : Gathering all IPSec Crypto Profiles in Remote Networks
+INFO    : Retrieving a list of all IPSec Tunnels from folder Remote Networks
+INFO    : Retrieved List of all IPSec Tunnels in Folder=Remote Networks total=9
+INFO    : Gathering all IPsec Tunnels in Remote Networks
+```
+
+You can than view your configurations or make changes just like onboarding above, but instead using the api command instead
+
+```bash
+>>> api.remote_networks.remote_networks
+```
+
+```json
+{
+  "Remote Networks": {
+    "fe0a8ae4-b0fa-4ce3-b603-b3069ac4a8b0": {
+      "id": "fe0a8ae4-b0fa-4ce3-b603-b3069ac4a8b0",
+      "name": "savannah-01",
+      "folder": "Remote Networks",
+      "license_type": "FWAAS-AGGREGATE",
+      "region": "us-southeast",
+      "spn_name": "us-southeast-whitebeam",
+      "ecmp_load_balancing": "disable",
+      "ipsec_tunnel": "ipsec-tunnel-savannah-01",
+      "subnets": [
+        "192.168.99.0/25",
+      ]
+    },
+    "70e40ad8-b005-4315-825f-600446b0da56": {
+      "id": "70e40ad8-b005-4315-825f-600446b0da56",
+      "name": "atlanta-99b",
+      "folder": "Remote Networks",
+      "ipsec_tunnel": "ipsec-tunnel-atlanta-99b",
+      "license_type": "FWAAS-AGGREGATE",
+      "region": "us-east-1",
+      "spn_name": "us-east-teak",
+      "subnets": [
+        "192.168.95.180/30"
+      ],
+      "ecmp_load_balancing": "disable"
+    },
+    "2e6f9968-c04d-4132-98a0-27e2503186bd": {
+      "id": "2e6f9968-c04d-4132-98a0-27e2503186bd",
+      "name": "guest-55a",
+      "folder": "Remote Networks",
+      "ipsec_tunnel": "ipsec-tunnel-guest-55a",
+      "license_type": "FWAAS-AGGREGATE",
+      "region": "us-west-201",
+      "spn_name": "us-southwest-boxwood",
+      "subnets": [
+        "192.168.100.164/30"
+      ],
+      "ecmp_load_balancing": "disable"
+    },
+    "b44f5950-ecdf-44bc-a326-78146321f65f": {
+      "id": "b44f5950-ecdf-44bc-a326-78146321f65f",
+      "name": "chicago-176a",
+      "folder": "Remote Networks",
+      "ipsec_tunnel": "ipsec-tunnel-chicago-176a",
+      "license_type": "FWAAS-AGGREGATE",
+      "region": "us-west-2",
+      "spn_name": "us-northwest-lily",
+      "subnets": [
+        "192.168.60.176/30"
+      ],
+      "ecmp_load_balancing": "disable"
+    },
+    "65e48d31-e052-411f-ba0e-f366c2564f14": {
+      "id": "65e48d31-e052-411f-ba0e-f366c2564f14",
+      "name": "test-qa",
+      "folder": "Remote Networks",
+      "ipsec_tunnel": "ipsec-tunnel-test-qa",
+      "license_type": "FWAAS-AGGREGATE",
+      "region": "us-southeast",
+      "spn_name": "us-southeast-whitebeam",
+      "subnets": [
+        "192.168.11.2/32"
+      ],
+      "protocol": {
+        "bgp": {
+          "do_not_export_routes": false,
+          "enable": true,
+          "local_ip_address": "192.168.10.1",
+          "originate_default_route": true,
+          "peer_as": "65505",
+          "peer_ip_address": "192.168.11.2",
+          "peering_type": "exchange-v4-over-v4",
+          "summarize_mobile_user_routes": true
+        },
+        "bgp_peer": {
+          "local_ip_address": "192.168.10.1",
+          "peer_ip_address": "192.168.11.2"
+        }
+      },
+      "bgp_peer": {
+        "local_ip_address": "192.168.10.1",
+        "peer_ip_address": "192.168.11.2"
+      },
+      "ecmp_load_balancing": "disable"
+    }
+  }
+}
+```
+
+**NOTE:** I continue to make the Gateways and Tunnels corralate with one another so it makes it easier to troubleshoot. Still building out ECMP and ironing out issues with BGP and the service connection
+
+### Service Connections
+
+Similary the API connection can be used to retreive information on the Service Connections and than be configured:
+
+```bash
+>>> api.service_connections.get_all()
+INFO    : Retrieving a list of all Service Connections from folder Service Connections
+INFO    : Retrieved List of all Service Connections in Folder=Service Connections total=1
+INFO    : Retrieved TSG=1234567890 Infrastructure Configurations
+INFO    : Gathering all IKE Crypto Profiles in Service Connections
+INFO    : Retrieving a list of all unknown type from folder Service Connections
+INFO    : Retrieved List of all unknown type in Folder=Service Connections total=13
+INFO    : Retrieving a list of all unknown type from folder Service Connections
+INFO    : Retrieved List of all unknown type in Folder=Service Connections total=13
+INFO    : Found 13 IKE Crypto Profiles in Service Connections
+INFO    : Retrieving a list of all IKE Gateways from folder Service Connections
+INFO    : Retrieved List of all IKE Gateways in Folder=Service Connections total=1
+INFO    : Gathering all IKE Tunnels in Service Connections
+INFO    : Gathering all IPSec Crypto Profiles in Service Connections
+INFO    : Retrieving a list of all unknown type from folder Service Connections
+INFO    : Retrieved List of all unknown type in Folder=Service Connections total=13
+INFO    : Retrieving a list of all unknown type from folder Service Connections
+INFO    : Retrieved List of all unknown type in Folder=Service Connections total=13
+INFO    : Gathering all IPsec Tunnels in Service Connections
+INFO    : Retrieving a list of all ipsec-tunnels from folder Service Connections
+INFO    : Retrieved List of all ipsec-tunnels in Folder=Service Connections total=1
+INFO    : Retrieving a list of all ipsec-tunnels from folder Service Connections
+INFO    : Retrieved List of all ipsec-tunnels in Folder=Service Connections total=1
+```
+
 ### Configuration Management
 
 **Description:** Configuraiton Management structure found under:
 
 ```python
 from prismasase.config_mgmt import configurations
+```
+
+#### Using Config Management API tool
+
+To use the config management tool you can just publish your changes in a shorter function:
+
+```bash
+>>> api.configuration_management.commit(folders=["Remote Networks", "Service Connections"], description="Commit Test")
+INFO    : Pushing candiate config for Remote Networks, Service Connections
+INFO    : Config Management Push: response={"success":true,"job_id":"598","message":"CommitAndPush job enqueued with jobid 598"}
+INFO    : Pushed successfully job_id=598|message=CommitAndPush job enqueued with jobid 598
+INFO    : Push returned success
+INFO    : Additional job search returned Jobs 600,599
+INFO    : Checking on job_id 600
+INFO    : Push returned success
+INFO    : Checking on job_id 599
+INFO    : Push returned success
+INFO    : Gathering Current Commit version for tenant 1234567890
+INFO    : Current Running configurations are 205
+INFO    : Final Response:
+{
+    "status": "success",
+    "message": "CommitAndPush job enqueued with jobid 598",
+    "parent_job": "598",
+    "version_info": [
+        {
+            "device": "Remote Networks",
+            "version": 205,
+            "date": "2023-02-05T17:55:19.000Z"
+        },
+        {
+            "device": "Service Connections",
+            "version": 205,
+            "date": "2023-02-05T17:55:19.000Z"
+        }
+    ],
+    "job_id": {
+        "598": {
+            "details": "{\"info\":[\"Configuration committed successfully\"],\"errors\":[],\"warnings\":[],\"description\":\"Commit Test\"}",
+            "end_ts": "2023-02-05 17:55:23",
+            "id": "598",
+            "insert_ts": "2023-02-05 17:54:10",
+            "job_result": "2",
+            "job_status": "2",
+            "job_type": "53",
+            "last_update": "2023-02-05 17:55:24",
+            "opaque_int": "0",
+            "opaque_str": "",
+            "owner": "cfgserv",
+            "parent_id": "0",
+            "percent": "100",
+            "result_i": "2",
+            "result_str": "OK",
+            "session_id": "",
+            "start_ts": "2023-02-05 17:54:10",
+            "status_i": "2",
+            "status_str": "FIN",
+            "summary": "",
+            "type_i": "53",
+            "type_str": "CommitAndPush",
+            "uname": "prismaAccessAPI@1234567890.iam.panserviceaccount.com",
+            "total_time": "90"
+        },
+        "600": {
+            "details": "{\"status\":\"FIN\",\"info\":[\"Go to the Prisma Access Dashboard for real-time status information.\"],\"errors\":[],\"warnings\":[],\"description\":\"Service Connections configuration pushed to cloud\",\"result\":\"OK\"}",
+            "end_ts": "2023-02-05 17:56:49",
+            "id": "600",
+            "insert_ts": "2023-02-05 17:55:26",
+            "job_result": "2",
+            "job_status": "2",
+            "job_type": "22",
+            "last_update": "2023-02-05 17:56:49",
+            "opaque_int": "",
+            "opaque_str": "",
+            "owner": "gpcs-ext",
+            "parent_id": "598",
+            "percent": "100",
+            "result_i": "2",
+            "result_str": "OK",
+            "session_id": "",
+            "start_ts": "2023-02-05 17:55:26",
+            "status_i": "2",
+            "status_str": "FIN",
+            "summary": "Configuration push finished",
+            "type_i": "22",
+            "type_str": "CommitAll",
+            "uname": "prismaAccessAPI@1234567890.iam.panserviceaccount.com",
+            "total_time": "90"
+        },
+        "599": {
+            "details": "{\"status\":\"FIN\",\"info\":[\"Go to the Prisma Access Dashboard for real-time status information.\"],\"errors\":[],\"warnings\":[],\"description\":\"Remote Networks configuration pushed to cloud\",\"result\":\"OK\"}",
+            "end_ts": "2023-02-05 17:57:30",
+            "id": "599",
+            "insert_ts": "2023-02-05 17:55:21",
+            "job_result": "2",
+            "job_status": "2",
+            "job_type": "22",
+            "last_update": "2023-02-05 17:57:30",
+            "opaque_int": "",
+            "opaque_str": "",
+            "owner": "gpcs-ext",
+            "parent_id": "598",
+            "percent": "100",
+            "result_i": "2",
+            "result_str": "OK",
+            "session_id": "",
+            "start_ts": "2023-02-05 17:55:21",
+            "status_i": "2",
+            "status_str": "FIN",
+            "summary": "Configuration push finished",
+            "type_i": "22",
+            "type_str": "CommitAll",
+            "uname": "prismaAccessAPI@1234567890.iam.panserviceaccount.com",
+            "total_time": "30"
+        }
+    }
+}
+{'status': 'success', 'message': 'CommitAndPush job enqueued with jobid 598', 'parent_job': '598', 'version_info': [{'device': 'Remote Networks', 'version': 205, 'date': '2023-02-05T17:55:19.000Z'}, {'device': 'Service Connections', 'version': 205, 'date': '2023-02-05T17:55:19.000Z'}], 'job_id': {'598': {'details': '{"info":["Configuration committed successfully"],"errors":[],"warnings":[],"description":"Commit Test"}', 'end_ts': '2023-02-05 17:55:23', 'id': '598', 'insert_ts': '2023-02-05 17:54:10', 'job_result': '2', 'job_status': '2', 'job_type': '53', 'last_update': '2023-02-05 17:55:24', 'opaque_int': '0', 'opaque_str': '', 'owner': 'cfgserv', 'parent_id': '0', 'percent': '100', 'result_i': '2', 'result_str': 'OK', 'session_id': '', 'start_ts': '2023-02-05 17:54:10', 'status_i': '2', 'status_str': 'FIN', 'summary': '', 'type_i': '53', 'type_str': 'CommitAndPush', 'uname': 'prismaAccessAPI@1234567890.iam.panserviceaccount.com', 'total_time': '90'}, '600': {'details': '{"status":"FIN","info":["Go to the Prisma Access Dashboard for real-time status information."],"errors":[],"warnings":[],"description":"Service Connections configuration pushed to cloud","result":"OK"}', 'end_ts': '2023-02-05 17:56:49', 'id': '600', 'insert_ts': '2023-02-05 17:55:26', 'job_result': '2', 'job_status': '2', 'job_type': '22', 'last_update': '2023-02-05 17:56:49', 'opaque_int': '', 'opaque_str': '', 'owner': 'gpcs-ext', 'parent_id': '598', 'percent': '100', 'result_i': '2', 'result_str': 'OK', 'session_id': '', 'start_ts': '2023-02-05 17:55:26', 'status_i': '2', 'status_str': 'FIN', 'summary': 'Configuration push finished', 'type_i': '22', 'type_str': 'CommitAll', 'uname': 'prismaAccessAPI@1234567890.iam.panserviceaccount.com', 'total_time': '90'}, '599': {'details': '{"status":"FIN","info":["Go to the Prisma Access Dashboard for real-time status information."],"errors":[],"warnings":[],"description":"Remote Networks configuration pushed to cloud","result":"OK"}', 'end_ts': '2023-02-05 17:57:30', 'id': '599', 'insert_ts': '2023-02-05 17:55:21', 'job_result': '2', 'job_status': '2', 'job_type': '22', 'last_update': '2023-02-05 17:57:30', 'opaque_int': '', 'opaque_str': '', 'owner': 'gpcs-ext', 'parent_id': '598', 'percent': '100', 'result_i': '2', 'result_str': 'OK', 'session_id': '', 'start_ts': '2023-02-05 17:55:21', 'status_i': '2', 'status_str': 'FIN', 'summary': 'Configuration push finished', 'type_i'
 ```
 
 #### Configuration Rollback
@@ -670,6 +947,47 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 }
 ```
 
+#### Using API tool for Address Objects
+
+You can also leverage the API tool to configure get and move around Prisma SASE to orchestrate migrations
+
+```bash
+>>> api.addresses.get()
+INFO    : Retrieved List of all URL Type Addresses in folder=Shared total=15
+>>> import json
+>>> print(json.dumps(api.addresses.addresses, indent=2))
+{
+  "Shared": {
+    "Shared": {
+      "a1b542d3-e6b5-4a5a-b7dc-61df7ad3a83b": {
+        "id": "a1b542d3-e6b5-4a5a-b7dc-61df7ad3a83b",
+        "name": "Palo Alto Networks Sinkhole",
+        "folder": "Shared",
+        "fqdn": "sinkhole.paloaltonetworks.com",
+        "description": "Palo Alto Networks sinkhole"
+      },
+      "cd0140a3-fbe5-465b-8783-7edb898d12bb": {
+        "id": "cd0140a3-fbe5-465b-8783-7edb898d12bb",
+        "name": "test123",
+        "folder": "Shared",
+        "ip_netmask": "1.1.1.1/32"
+      }
+    }
+  }
+}
+```
+
+Chnage Folder and then retrieve list from that folder which will add to the existing JSON being built
+
+```bash
+>>> api.folder = "Remote Networks"
+>>> api.addresses.get()
+INFO    : Retrieved List of all URL Type Addresses in folder=Remote Networks total=21
+>>> api.addresses.addresses.keys()
+dict_keys(['Shared', 'Remote Networks'])
+>>> 
+```
+
 ### Caveats and known issues
 
 * This is a PREVIEW release; still under works
@@ -747,6 +1065,21 @@ response = addresses.addresses_delete(address_id="13b64f23-f290-4caf-8386-74d66b
 * Updates to be able to run as a cli script as well as a imported package
 
 ### Current Enahancements
+
+#### Vrsion 0.2.10
+
+* Fixed issue with remote network duplicate tunnel name error
+* Added API to orchestrate multiple events and track changes
+* Updated and simplified how to create commits and pull addtiional information from multiple locations
+* Refactored some code to re-use code that will allow for retrieval of entire configurations within a section
+* Added ability to keep track of configurations using api tool
+* Added functionality to handle Policies based on current api calls
+  * Added Objects:
+    * Addresses
+    * Address Groups
+    * Tags
+    * Regions
+    * Locations
 
 #### version 0.2.8
 

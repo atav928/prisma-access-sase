@@ -1,4 +1,4 @@
-# pylint: disable=raise-missing-from,no-member
+# pylint: disable=raise-missing-from,no-member,line-too-long
 """Remote Networks"""
 
 from typing import Any, Dict, List
@@ -14,11 +14,11 @@ from prismasase.exceptions import (
     SASENoBandwidthAllocation)
 from prismasase.restapi import (prisma_request, retrieve_full_list)
 from prismasase.statics import FOLDER, REMOTE_FOLDER
-from prismasase.utilities import reformat_to_json, reformat_to_named_dict, set_bool
-from ..ipsec.ipsec_tun import ipsec_tun_get_all, ipsec_tunnel, ipsec_tunnel_delete
-from ..ipsec.ipsec_crypto import (ipsec_crypto_profiles_get, ipsec_crypto_profiles_get_all)
-from ..ike.ike_crypto import ike_crypto_profiles_get, ike_crypto_profiles_get_all
-from ..ike.ike_gtwy import ike_gateway, ike_gateway_delete, ike_gateway_list
+from prismasase.utilities import (reformat_to_json, reformat_to_named_dict, set_bool)
+from ..ipsec.ipsec_tun import (ipsec_tunnel, ipsec_tunnel_delete)
+from ..ipsec.ipsec_crypto import (ipsec_crypto_profiles_get)
+from ..ike.ike_crypto import ike_crypto_profiles_get
+from ..ike.ike_gtwy import ike_gateway, ike_gateway_delete
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
@@ -63,7 +63,64 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
         bgp_peer_as (str): Required if bgp_enabled is 'true'
         static_enabled (str|bool): Sets Static routing enabled or disabled use string 'true' or 'false' Defaults 'false'
         tunnel_monitor (str|bool): Sets Tunnel Monitoring to enabled or disabled use string 'true' or 'false' Defaults 'false'
-
+        sec_wan_enabled (str|bool): Sets a Secondary WAN circuit; Cannot use if ECMP enabled. Defaults "False"
+        sec_tunnel_namesec_gateway_name (str): Sec Tunnel Name. Required if sec_wan_enabled set to "True"
+        sec_peer_ip_address: (str): Peer IP on Secondary Peer. Required if sec_wan_enabled set to "True"
+        sec_local_id_type (str): Local ID Type. Required if sec_wan_enabled set to "True"
+        sec_local_id_value (str): Local ID Value. Required if sec_wan_enabled set to "True"
+        sec_peer_id_type (str): Peer ID type. Required if sec_wan_enabled set to "True"
+        sec_peer_id_value (str): Peer ID Value. Required if sec_wan_enabled set to "True"
+        sec_monitor_ip (str): Peer Monitor IP if Monitor is wanted. Optional if sec_wan_enabled set to "True"
+        sec_proxy_ids (str): Peer Proxy ID's. Optional if sec_wan_enabled set to "True"
+        ecmp_load_balancing (str): Sets ECMP Load Balancing, cannot be used with Tunnel Configurations. Default "disabled"
+        ecmp_link_1_tunnel_name (str): ECMP Tunnel Name. Required if ecmp_load_balancing set to "enabled"
+        ecmp_link_1_gateway_name (str): ECMP Gateway Name. Required if ecmp_load_balancing set to "enabled"
+        ecmp_link_1_peer_ip_address (str): ECMP Peer IP. Required if ecmp_load_balancing set to "enabled"
+        ecmp_link_1_local_id_type (str): ECMP Local Type. Required if ecmp_load_balancing set to "enabled"
+        ecmp_link_1_local_id_value (str): ECMP Local Value. Required if ecmp_load_balancing set to "enabled"
+        ecmp_link_1_peer_id_type (str): ECMP Peer ID type. Required if ecmp_load_balancing set to "enabled"
+        ecmp_link_1_peer_id_value (str): ECMP Peer ID value. Required if ecmp_load_balancing set to "enabled"
+        ecmp_link_1_monitor_ip (str): ECMP Monitor IP. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_1_proxy_ids (str): ECMP Proxy ID. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_1_bgp_enable (str): ECMP BGP Enabled. Required if ecmp_load_balancing set to "enabled"
+        ecmp_link_1_bgp_peer_as (str): ECMP BGP Peer AS. Required if ecmp_load_balancing set to "enabled" and BGP 'True'
+        ecmp_link_1_bgp_peer_address (str): ECMP BGP Peer. Required if ecmp_load_balancing set to "enabled" and BGP 'True'
+        ecmp_link_2_tunnel_name (str): ECMP Tunnel Name. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_2_gateway_name (str): ECMP Gateway Name. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_2_peer_ip_address (str): ECMP Peer IP. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_2_local_id_type (str): ECMP Local Type. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_2_local_id_value (str): ECMP Local Value. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_2_peer_id_type (str): ECMP Peer ID type. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_2_peer_id_value (str): ECMP Peer ID value. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_2_monitor_ip (str): ECMP Monitor IP. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_2_proxy_ids (str): ECMP Proxy ID. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_2_bgp_enable (str): ECMP BGP Enabled. Required if ecmp_load_balancing set to "enabled"
+        ecmp_link_2_bgp_peer_as (str): ECMP BGP Peer AS. Required if ecmp_load_balancing set to "enabled" and BGP 'True'
+        ecmp_link_2_bgp_peer_address (str): ECMP BGP Peer. Required if ecmp_load_balancing set to "enabled" and BGP 'True'
+        ecmp_link_3_tunnel_name (str): ECMP Tunnel Name. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_3_gateway_name (str): ECMP Gateway Name. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_3_peer_ip_address (str): ECMP Peer IP. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_3_local_id_type (str): ECMP Local Type. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_3_local_id_value (str): ECMP Local Value. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_3_peer_id_type (str): ECMP Peer ID type. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_3_peer_id_value (str): ECMP Peer ID value. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_3_monitor_ip (str): ECMP Monitor IP. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_3_proxy_ids (str): ECMP Proxy ID. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_3_bgp_enable (str): ECMP BGP Enabled. Required if ecmp_load_balancing set to "enabled"
+        ecmp_link_3_bgp_peer_as (str): ECMP BGP Peer AS. Required if ecmp_load_balancing set to "enabled" and BGP 'True'
+        ecmp_link_3_bgp_peer_address (str): ECMP BGP Peer. Required if ecmp_load_balancing set to "enabled" and BGP 'True'
+        ecmp_link_4_tunnel_name (str): ECMP Tunnel Name. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_4_gateway_name (str): ECMP Gateway Name. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_4_peer_ip_address (str): ECMP Peer IP. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_4_local_id_type (str): ECMP Local Type. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_4_local_id_value (str): ECMP Local Value. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_4_peer_id_type (str): ECMP Peer ID type. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_4_peer_id_value (str): ECMP Peer ID value. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_4_monitor_ip (str): ECMP Monitor IP. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_4_proxy_ids (str): ECMP Proxy ID. Optional if ecmp_load_balancing set to "enabled"
+        ecmp_link_4_bgp_enable (str): ECMP BGP Enabled. Required if ecmp_load_balancing set to "enabled"
+        ecmp_link_4_bgp_peer_as (str): ECMP BGP Peer AS. Required if ecmp_load_balancing set to "enabled" and BGP 'True'
+        ecmp_link_4_bgp_peer_address (str): ECMP BGP Peer. Required if ecmp_load_balancing set to "enabled" and BGP 'True'
 
     Raises:
         SASEMissingParam: _description_
@@ -75,15 +132,15 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
     }
     try:
         auth: Auth = return_auth(**kwargs)
+        if kwargs.get('auth'):
+            kwargs.pop('auth')
         remote_network_name: str = kwargs.pop('remote_network_name')
         region: str = kwargs.pop('region')
         spn_name: str = kwargs.pop('spn_name')
         ike_crypto_profile: str = kwargs.pop('ike_crypto_profile')
         ipsec_crypto_profile: str = kwargs.pop('ipsec_crypto_profile')
-        ike_gateway_name: str = kwargs.pop('ike_gateway_name') if kwargs.get(
-            'ike_gateway_name') else f"ike-gwy-{remote_network_name}"
-        ipsec_tunnel_name: str = kwargs.pop('ipsec_tunnel_name') if kwargs.get(
-            'ipsec_tunnel_name') else f"ipsec-tunnel-{remote_network_name}"
+        ecmp_load_balancing: str = kwargs.pop('ecmp_load_balancing') if kwargs.get(
+            'ecmp_load_balancing') else 'disable'
         # Converts string values to bool and passes default values
         tunnel_monitor: bool = set_bool(value=kwargs.pop('tunnel_monitor', ''), default=False)
         # monitor_ip: str = kwargs['monitor_ip'] if tunnel_monitor else ""
@@ -92,15 +149,16 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
         bgp_enabled: bool = set_bool(value=kwargs.pop('bgp_enabled', ''), default=False)
         # Default folder to "Remote Networks" for reverse compatability
         pre_shared_key = kwargs.pop('pre_shared_key')
+        # Should be Remote Network anyway
         if kwargs.get("folder_name"):
             folder: dict = FOLDER[kwargs.pop('folder_name')]
         else:
-            folder: dict = kwargs['folder'] if kwargs.get('folder') else REMOTE_FOLDER
+            folder: dict = kwargs.pop('folder') if kwargs.get('folder') else REMOTE_FOLDER
     except KeyError as err:
         prisma_logger.error("SASEMissingParam: %s", str(err))
         raise SASEMissingParam(f"message=\"missing required parameter\"|param={str(err)}")
+    # Commonly needed configurations
     # Check Bandwdith allocations
-    # print(f"{region=},{spn_name=}")
     bandwidth_check = verify_bandwidth_allocations(
         name=region, spn_name=spn_name, folder=folder, auth=auth)
     if not bandwidth_check:
@@ -115,7 +173,58 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
             'message=\"Missing a profile in configurations\"|' +
             f'{ike_crypto_profile=}|{ipsec_crypto_profile=}')
     prisma_logger.info("Verified region=%s and spn_name=%s exist", region, spn_name)
-    # print(f"INFO: Verified {region=} and {spn_name=} exist")
+    #
+    # Split off
+    # What kind of tunnel are we creating
+    #
+    if ecmp_load_balancing == "disable":
+        tunnel_respnse = _create_remote_network(remote_network_name=remote_network_name,
+                                                folder=FOLDER[folder],
+                                                ipsec_crypto_profile=ipsec_crypto_profile,
+                                                tunnel_monitor=tunnel_monitor,
+                                                static_enabled=static_enabled,
+                                                bgp_enabled=bgp_enabled,
+                                                ike_crypto_profile=ike_crypto_profile,
+                                                pre_shared_key=pre_shared_key,
+                                                spn_name=spn_name,
+                                                region=region,
+                                                auth=auth,
+                                                **kwargs)
+        response = {**response, **tunnel_respnse}
+    else:
+        prisma_logger.error("ECMP not yet supported")
+        raise SASEBadRequest("ECMP not yet supported")
+        # ecmp_response = _create_ecmp_remote_network(**kwargs)
+        # response = {**response, **ecmp_response}
+    return response
+
+
+def _create_remote_network(remote_network_name: str,
+                           ipsec_crypto_profile: str,
+                           tunnel_monitor: bool,
+                           static_enabled: bool,
+                           bgp_enabled: bool,
+                           folder: str,
+                           region: str,
+                           spn_name: str,
+                           ike_crypto_profile: str,
+                           pre_shared_key: str,
+                           **kwargs) -> dict:
+    # Set up standard tunnel
+    # TODO: setup suport for Secondary Tunnel
+    response = {}
+    auth: Auth = return_auth(**kwargs)
+    # remove auth from KWARGS to avoid issue as set above
+    if kwargs.get('auth'):
+        kwargs.pop('auth')
+    try:
+        ike_gateway_name: str = kwargs.pop('ike_gateway_name') if kwargs.get(
+            'ike_gateway_name') else f"ike-gwy-{remote_network_name}"
+        ipsec_tunnel_name: str = kwargs.pop('ipsec_tunnel_name') if kwargs.get(
+            'ipsec_tunnel_name') else f"ipsec-tunnel-{remote_network_name}"
+    except KeyError as err:
+        prisma_logger.error("SASEMissingParam: %s", str(err))
+        raise SASEMissingParam(f"message=\"missing required parameter\"|param={str(err)}")
     # Create IKE Gateway
     prisma_logger.info("IKE Gateway Name = %s", ike_gateway_name)
     # print(f"INFO: IKE Gateway Name = {ike_gateway_name}")
@@ -123,7 +232,8 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
     response_ike_gateway = ike_gateway(pre_shared_key=pre_shared_key,
                                        ike_crypto_profile=ike_crypto_profile,
                                        ike_gateway_name=ike_gateway_name,
-                                       folder=folder,
+                                       folder=FOLDER[folder],
+                                       auth=auth,
                                        **kwargs)
     # print(f"DEBUG: IKE Gateway {response_ike_gateway=}")
     response['message'].update({'ike_gateway': response_ike_gateway})
@@ -132,7 +242,8 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
                                          ipsec_crypto_profile=ipsec_crypto_profile,
                                          ike_gateway_name=ike_gateway_name,
                                          tunnel_monitor=tunnel_monitor,
-                                         folder=folder,
+                                         folder=FOLDER[folder],
+                                         auth=auth,
                                          **kwargs)
     response['message'].update({'ipsec_tunnel': response_ipsec_tunnel})
     # print(f"DEBUG: IPSec Tunnel {response_ipsec_tunnel=}")
@@ -143,13 +254,19 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
                                              spn_name=spn_name,
                                              static_enabled=static_enabled,
                                              bgp_enabled=bgp_enabled,
-                                             folder=folder,
+                                             folder=FOLDER[folder],
+                                             auth=auth,
                                              **kwargs)
     response['message'].update({'remote_network': response_remote_network})
     response['status'] = 'success'
     # print(f"DEBUG: Remote Network {response_remote_network=}")
     prisma_logger.info("Created Remote Network \n%s", (json.dumps(response, indent=4)))
     # print(f"INFO: Created Remote Network \n{json.dumps(response, indent=4)}")
+    return response
+
+
+def _create_ecmp_remote_network(**kwargs) -> dict:
+    response = {}
     return response
 
 
@@ -593,7 +710,15 @@ class RemoteNetworks:
             {self._remote_network: self.ike_crypto[self._remote_network]})
 
     def create(self, **kwargs) -> dict:
-        """Creates a Remote Nework IPSec Tunnel
+        """Creates a Remote Nework IPSec Tunnel. If ECMP is enabled than configurations require that ecmp
+         load balancing be set with a minimum of 1 ecmp configuration up to a maximum of 4 ECMP load balancing
+         tunnels. If standard Primary Secondary Tunnel to be used keep ECMP load balanced disabled as that is
+         the default behavior. And add a Secondary Tunnel for a backup if necessary. A minimum requirement is
+         to have a Primary Tunnel set up at the very basic level. Routing should be set up as needed for BGP
+         and or static. Remember Multihop BGP will require a route to the endpoint. A loopback is creaetd in
+         the infrastructure for that area that is primarily used as the Peer IP. If you do not know about this
+         ahead of time it is recommended you pull that information or set up a new Peer for that region as one
+         is set up upon creation.
 
         Args:
             remote_network_name (str): Remote Network Name used to set up Remote Network
@@ -620,7 +745,64 @@ class RemoteNetworks:
             bgp_peer_as (str): Required if bgp_enabled is 'true'
             static_enabled (str|bool): Sets Static routing enabled or disabled use string 'true' or 'false' Defaults 'false'
             tunnel_monitor (str|bool): Sets Tunnel Monitoring to enabled or disabled use string 'true' or 'false' Defaults 'false'
-
+            sec_wan_enabled (str|bool): Sets a Secondary WAN circuit; Cannot use if ECMP enabled. Defaults "False"
+            sec_tunnel_namesec_gateway_name (str): Sec Tunnel Name. Required if sec_wan_enabled set to "True"
+            sec_peer_ip_address: (str): Peer IP on Secondary Peer. Required if sec_wan_enabled set to "True"
+            sec_local_id_type (str): Local ID Type. Required if sec_wan_enabled set to "True"
+            sec_local_id_value (str): Local ID Value. Required if sec_wan_enabled set to "True"
+            sec_peer_id_type (str): Peer ID type. Required if sec_wan_enabled set to "True"
+            sec_peer_id_value (str): Peer ID Value. Required if sec_wan_enabled set to "True"
+            sec_monitor_ip (str): Peer Monitor IP if Monitor is wanted. Optional if sec_wan_enabled set to "True"
+            sec_proxy_ids (str): Peer Proxy ID's. Optional if sec_wan_enabled set to "True"
+            ecmp_load_balancing (str): Sets ECMP Load Balancing, cannot be used with Tunnel Configurations. Default "disabled"
+            ecmp_link_1_tunnel_name (str): ECMP Tunnel Name. Required if ecmp_load_balancing set to "enabled"
+            ecmp_link_1_gateway_name (str): ECMP Gateway Name. Required if ecmp_load_balancing set to "enabled"
+            ecmp_link_1_peer_ip_address (str): ECMP Peer IP. Required if ecmp_load_balancing set to "enabled"
+            ecmp_link_1_local_id_type (str): ECMP Local Type. Required if ecmp_load_balancing set to "enabled"
+            ecmp_link_1_local_id_value (str): ECMP Local Value. Required if ecmp_load_balancing set to "enabled"
+            ecmp_link_1_peer_id_type (str): ECMP Peer ID type. Required if ecmp_load_balancing set to "enabled"
+            ecmp_link_1_peer_id_value (str): ECMP Peer ID value. Required if ecmp_load_balancing set to "enabled"
+            ecmp_link_1_monitor_ip (str): ECMP Monitor IP. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_1_proxy_ids (str): ECMP Proxy ID. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_1_bgp_enable (str): ECMP BGP Enabled. Required if ecmp_load_balancing set to "enabled"
+            ecmp_link_1_bgp_peer_as (str): ECMP BGP Peer AS. Required if ecmp_load_balancing set to "enabled" and BGP 'True'
+            ecmp_link_1_bgp_peer_address (str): ECMP BGP Peer. Required if ecmp_load_balancing set to "enabled" and BGP 'True'
+            ecmp_link_2_tunnel_name (str): ECMP Tunnel Name. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_2_gateway_name (str): ECMP Gateway Name. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_2_peer_ip_address (str): ECMP Peer IP. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_2_local_id_type (str): ECMP Local Type. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_2_local_id_value (str): ECMP Local Value. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_2_peer_id_type (str): ECMP Peer ID type. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_2_peer_id_value (str): ECMP Peer ID value. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_2_monitor_ip (str): ECMP Monitor IP. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_2_proxy_ids (str): ECMP Proxy ID. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_2_bgp_enable (str): ECMP BGP Enabled. Required if ecmp_load_balancing set to "enabled"
+            ecmp_link_2_bgp_peer_as (str): ECMP BGP Peer AS. Required if ecmp_load_balancing set to "enabled" and BGP 'True'
+            ecmp_link_2_bgp_peer_address (str): ECMP BGP Peer. Required if ecmp_load_balancing set to "enabled" and BGP 'True'
+            ecmp_link_3_tunnel_name (str): ECMP Tunnel Name. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_3_gateway_name (str): ECMP Gateway Name. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_3_peer_ip_address (str): ECMP Peer IP. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_3_local_id_type (str): ECMP Local Type. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_3_local_id_value (str): ECMP Local Value. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_3_peer_id_type (str): ECMP Peer ID type. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_3_peer_id_value (str): ECMP Peer ID value. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_3_monitor_ip (str): ECMP Monitor IP. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_3_proxy_ids (str): ECMP Proxy ID. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_3_bgp_enable (str): ECMP BGP Enabled. Required if ecmp_load_balancing set to "enabled"
+            ecmp_link_3_bgp_peer_as (str): ECMP BGP Peer AS. Required if ecmp_load_balancing set to "enabled" and BGP 'True'
+            ecmp_link_3_bgp_peer_address (str): ECMP BGP Peer. Required if ecmp_load_balancing set to "enabled" and BGP 'True'
+            ecmp_link_4_tunnel_name (str): ECMP Tunnel Name. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_4_gateway_name (str): ECMP Gateway Name. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_4_peer_ip_address (str): ECMP Peer IP. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_4_local_id_type (str): ECMP Local Type. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_4_local_id_value (str): ECMP Local Value. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_4_peer_id_type (str): ECMP Peer ID type. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_4_peer_id_value (str): ECMP Peer ID value. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_4_monitor_ip (str): ECMP Monitor IP. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_4_proxy_ids (str): ECMP Proxy ID. Optional if ecmp_load_balancing set to "enabled"
+            ecmp_link_4_bgp_enable (str): ECMP BGP Enabled. Required if ecmp_load_balancing set to "enabled"
+            ecmp_link_4_bgp_peer_as (str): ECMP BGP Peer AS. Required if ecmp_load_balancing set to "enabled" and BGP 'True'
+            ecmp_link_4_bgp_peer_address (str): ECMP BGP Peer. Required if ecmp_load_balancing set to "enabled" and BGP 'True'
 
         Raises:
             SASEMissingParam: _description_
