@@ -1,19 +1,22 @@
 # pylint: disable=missing-docstring,too-few-public-methods
-"""Testing API"""
+"""API"""
 
 from prismasase import logger, return_auth
 from prismasase.config_mgmt.configuration import ConfigurationManagment
 from prismasase.policy_objects.tags import Tags
 
-
 from .utilities import default_params
 from ._version import __version__
 
 # Service Setup
-from .service_setup.locations import locations_get
+from .service_setup import locations
 from .service_setup.remotenetworks.remote_networks import RemoteNetworks
 from .service_setup.service_conn.service_connections import ServiceConnections
 from .service_setup.infra.infrastructure import InfrastructureSettings
+from .service_setup.ike.ike_crypto import IKE_CRYPTO_URL
+from .service_setup.ike.ike_gtwy import IKE_GWY_URL
+from .service_setup.ipsec.ipsec_crypto import IPSEC_CRYPTO_URL
+from .service_setup.ipsec.ipsec_tun import IPSEC_TUN_URL
 
 # Objects
 from .policy_objects.address_grps import AddressGroups
@@ -63,14 +66,29 @@ class API:  # pylint: disable=too-many-instance-attributes
     """Version string for use once Constructor created."""
 
     params = None
+    """URL Types"""
+    ike_gateways_url_type: str = IKE_GWY_URL
+    ike_crypto_url_type: str = IKE_CRYPTO_URL
+    ipsec_tunnel_url_type: str = IPSEC_TUN_URL
+    ipsec_crypto_url_type: str = IPSEC_CRYPTO_URL
     """Default Parameters"""
 
     base_list_response: dict = {}
     locations: dict = {}
+    locations_list: list = []
+    regions_list: list = []
     ipsec_crypto: dict = {}
     ipsec_tunnels: dict = {}
     ike_crypto: dict = {}
     ike_gateways: dict = {}
+
+    """Object Configurations"""
+    address_obj: dict = {}
+    address_groups_obj: dict = {}
+    tag_obj: dict = {}
+
+    """Policy"""
+    security_policy: dict = {}
 
     def __init__(self, **kwargs):
 
@@ -142,8 +160,12 @@ class API:  # pylint: disable=too-many-instance-attributes
         """Get a list of all locations and update internal
             records based on Continent and Display Name
         """
-        response = locations_get(auth=self.auth)
+        response = locations.get_locations(auth=self.auth)
         self._locations_reformat(locations_list=response)
+        self.locations_list = response
+        self.regions_list = locations.get_regions(
+            locations_list=self.locations_list,
+            auth=self.auth)
         prisma_logger.info("Retrieved a list of %s Locations avaiabile", str(len(response)))
 
     def _locations_reformat(self, locations_list: list):

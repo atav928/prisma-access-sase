@@ -158,7 +158,7 @@ class AddressGroups:
             response = {"error": "error with filds please check logs"}
         return response
 
-    def list_all(self, return_values: bool = False, **kwargs):  # pylint: disable=inconsistent-return-statements
+    def get(self, return_values: bool = False, **kwargs):  # pylint: disable=inconsistent-return-statements
         """Gathers a list of current Address Group. Auto updates current_address_group attribute.
          If you want the raw return format in Palo Alto formate set return_value
          to True to recieve the

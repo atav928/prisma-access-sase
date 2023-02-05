@@ -3,15 +3,21 @@
 import orjson
 
 from prismasase import return_auth, logger
-from prismasase.service_setup.ike.ike_crypto import ike_crypto_profiles_get_all
-from prismasase.service_setup.ike.ike_gtwy import ike_gateway_delete, ike_gateway_get_by_name, ike_gateway_list
-from prismasase.service_setup.ipsec.ipsec_crypto import ipsec_crypto_profiles_get_all
-from prismasase.service_setup.ipsec.ipsec_tun import ipsec_tun_get_all, ipsec_tun_get_by_name, ipsec_tunnel_delete
+from prismasase.exceptions import SASEIncorrectParam, SASEMissingParam, SASEObjectExists
+from prismasase.service_setup.ike.ike_crypto import ike_crypto_get_dict_folder, ike_crypto_get_name_list, ike_crypto_profiles_get_all
+from prismasase.service_setup.ike.ike_gtwy import (
+    ike_gateway_delete, ike_gateway_get_by_name, ike_gateway_list)
+from prismasase.service_setup.ipsec.ipsec_crypto import ipsec_crypto_get_dict_folder, ipsec_crypto_get_name_list, ipsec_crypto_profiles_get_all
+from prismasase.service_setup.ipsec.ipsec_tun import (
+    ipsec_tun_get_all, ipsec_tun_get_by_name, ipsec_tun_get_dict_folder, ipsec_tunnel_delete,
+    ipsec_tunnel_get_name_list)
 from prismasase.statics import FOLDER, SERVICE_FOLDER
 from prismasase.configs import Auth
 from prismasase.restapi import (prisma_request, retrieve_full_list)
+from prismasase.utilities import reformat_exception, remove_dups_from_list
 
 SERVICE_CONNECTION_URL = "service-connections"
+SERVICE_CONNECTION = "Service Connections"
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
@@ -25,16 +31,35 @@ class ServiceConnections:
     """
     _parent_class = None
 
-    _service_connections = "Service Connections"
+    _service_connections = SERVICE_CONNECTION
 
     url_type: str = SERVICE_CONNECTION_URL
     # required to be Shared so will always override parent
     svc_conn_folder_dict: dict = SERVICE_FOLDER
-    current_service_connection: dict = {}
+    service_connections: dict = {
+        SERVICE_CONNECTION: {}
+    }
+    service_connection_names: list = []
     ipsec_crypto: dict = {}
+    ipsec_crypto_names: list = []
     ipsec_tunnels: dict = {}
+    ipsec_tunnels_names: list = []
     ike_crypto: dict = {}
+    ike_crypto_names: list = []
     ike_gateways: dict = {}
+    ike_crypt_names: list = []
+
+    def get_all(self) -> None:
+        """Gets all configurations associated with Service Connection
+
+        Returns:
+            None: updates internal Service Connection, IKE and IPSec Dicts
+        """
+        self.get()
+        self.get_ike_crypto()
+        self.get_ike_gateways()
+        self.get_ipsec_crypto()
+        self.get_ipsec_tunnels()
 
     def get(self, return_values: bool = False) -> (dict | None):  # pylint: disable=inconsistent-return-statements
         """Get Service Connections
@@ -69,19 +94,22 @@ class ServiceConnections:
         Args:
             servcie_connection_id (str): _description_
         """
+        # Delete Service Connection
         response = prisma_request(token=self._parent_class.auth,  # type: ignore
                                   url_type=SERVICE_CONNECTION_URL,
                                   method="DELETE",
                                   delete_object=f"/{servcie_connection_id}",
                                   verify=self._parent_class.auth.verify)  # type: ignore
         prisma_logger.info("Deleted %s Service Connection", servcie_connection_id)
-        # self.current_service_connection[self._service_connections].pop(servcie_connection_id)
+        # Refresh list of Service Connections
         self.get()
         ipsec_delete_response = {}
+        # Delete IP Sec Tunnel associated to Service Connection
         if response.get('ipsec_tunnel'):
             ipsec_delete_response = self.delete_ipsec_tunnel(
                 ipsec_tunnel_name=response['ipsec_tunnel'])
             prisma_logger.info("Delete IPSec Tunnel %s", response['ipsec_tunnel'])
+        # Delete IKE Gateway associated to Service Connection
         if ipsec_delete_response and ipsec_delete_response.get('auto_key'):
             if ipsec_delete_response['auto_key'].get('ike_gateway'):
                 for ike_gtwy in ipsec_delete_response['auto_key']['ike_gateway']:
@@ -126,58 +154,34 @@ class ServiceConnections:
                 ipsec_tunnel_id=ipsec_tunnel_id, folder=self.svc_conn_folder_dict,
                 auth=self._parent_class.auth)  # type: ignore
             self.get_ipsec_tunnels()
+        # update current configs
+        self.get_ipsec_tunnels()
         return response
 
     def get_ipsec_crypto(self):
         """Get all Remote Network IPSec Crypto Profiles
         """
-        response = ipsec_crypto_profiles_get_all(folder=self._service_connections,
-                                                 auth=self._parent_class.auth)  # type: ignore
         prisma_logger.info("Gathering all IPSec Crypto Profiles in %s", self._service_connections)
-        self._update_ipsec_crypto(ipsec_crypto_profiles=response['data'])
+        self.ipsec_crypto = ipsec_crypto_get_dict_folder(
+            folder=self._service_connections, auth=self._parent_class.auth)  # type: ignore
+        self.ipsec_crypto_names = ipsec_crypto_get_name_list(
+            folder=self._service_connections, auth=self._parent_class.auth)  # type: ignore
 
-    def _update_ipsec_crypto(self, ipsec_crypto_profiles: list):
-        # Requires full list to do a sync up with current list
-        crypto_id_list = []
-        removed = {}
-        for crypto in ipsec_crypto_profiles:
-            if not self.ipsec_crypto:
-                self.ipsec_crypto[self._service_connections] = {}
-            self.ipsec_crypto[self._service_connections][crypto['id']] = crypto
-            crypto_id_list.append(crypto['id'])
-        crypto_id_current_list = self.ipsec_crypto[self._service_connections]
-        for crypto_id in crypto_id_current_list:
-            if crypto_id not in crypto_id_list:
-                removed = self.ipsec_crypto[self._service_connections].pop(crypto_id)
-                prisma_logger.info("Removed %s from Remote Networks IPSec Crypto Profiles",
-                                   orjson.dumps(removed).decode('utf-8'))  # pylint: disable=no-member
+    def _update_parent_ipsec_crypt(self) -> None:
         self._parent_class.ipsec_crypto.update(  # type: ignore
             {self._service_connections: self.ipsec_crypto[self._service_connections]})
 
     def get_ipsec_tunnels(self):
         """Get a list of all IPSec Tunnels in Remote Network
         """
-        response = ipsec_tun_get_all(folder=self._service_connections,
-                                     auth=self._parent_class.auth)  # type: ignore
         prisma_logger.info("Gathering all IPsec Tunnels in %s", self._service_connections)
-        self._update_ipsec_tunnels(ipsec_tunnels=response['data'])
+        self.ipsec_tunnels = ipsec_tun_get_dict_folder(
+            folder=self._service_connections, auth=self._parent_class.auth)  # type: ignore
+        self.ipsec_tunnels_names = ipsec_tunnel_get_name_list(
+            folder=self._service_connections, auth=self._parent_class.auth)  # type: ignore
+        self._update_parent_ipsec_tunnels()
 
-    def _update_ipsec_tunnels(self, ipsec_tunnels: list):
-        # Requires full list to do a sync up with current list
-        tunnel_id_list = []
-        removed = {}
-        for tunnel in ipsec_tunnels:
-            if not self.ipsec_tunnels:
-                self.ipsec_tunnels[self._service_connections] = {}
-            self.ipsec_tunnels[self._service_connections][tunnel['id']] = tunnel
-            tunnel_id_list.append(tunnel['id'])
-        tunnel_id_current_list = self.ipsec_tunnels[self._service_connections]
-        for tunnel_id in tunnel_id_current_list:
-            if tunnel_id not in tunnel_id_list:
-                removed = self.ipsec_tunnels[self._service_connections].pop(tunnel_id)
-                prisma_logger.info("Removed %s from Remote Networks IPsec Tunnels", tunnel_id)
-                prisma_logger.debug("Removed %s", orjson.dumps(  # pylint: disable=no-member
-                    removed).decode('utf-8'))
+    def _update_parent_ipsec_tunnels(self) -> None:
         self._parent_class.ipsec_tunnels.update(  # type: ignore
             {self._service_connections: self.ipsec_tunnels[self._service_connections]})
 
@@ -185,6 +189,33 @@ class ServiceConnections:
         """
         Testing creation
         """
+        try:
+            backup_sc: str = kwargs.pop("backup_sc") if kwargs.get("backup_sc") else ""
+            name: str = kwargs.pop('name')
+            # Check if ipsec_tunnel exists
+            ipsec_tunnel: str = kwargs.pop('ipsec_tunnel') if kwargs.get(
+                'ipsec_tunel') else f"ipsec-tunnel-{name}"
+            region: str = kwargs.pop('region')
+        except KeyError as err:
+            error = reformat_exception(error=err)
+            prisma_logger.error("SASEMissingParam: %s", error)
+            raise SASEMissingParam(f"message=\"missing required param\"|param={str(err)}")
+        # Ensure all current configs are updated and verify
+        if name in self.service_connection_names:
+            prisma_logger.error(
+                "SASEObjectExists: Service Connection %s already exists; use update", name)
+            raise SASEObjectExists(f"Service Connection {name} already exists; use update")
+        self.get_all()
+        # need to confirm locations are correct
+        if not self._parent_class.locations:  # type: ignore
+            self._parent_class.get_locations()  # type: ignore
+
+        # Check for valid region being specified
+        if region not in self._parent_class.regions_list:  # type: ignore
+            prisma_logger.error("Invalid region specified %s", region)
+            raise SASEIncorrectParam(f"Invalid region={region}")
+
+        # Check valid ipsec_tunnel must create if doesn't exist
 
     def _location_check(self):
         """Adding a service connection requires knowing the Region and Location that it exists in.
@@ -200,13 +231,20 @@ class ServiceConnections:
         svc_conn_ids = []  # list of ID's
         for svc_conn in service_conn_list:
             svc_conn_ids.append(svc_conn['id'])
-            self.current_service_connection[svc_conn['id']] = svc_conn
+            self.service_connections[self._service_connections][svc_conn['id']] = svc_conn
+            self.service_connection_names.append(svc_conn['name'])
         # delete any missing service connections
         for svc_conn in svc_conn_ids:
-            if svc_conn not in self.current_service_connection:
-                removed = self.current_service_connection.pop(svc_conn)
-                prisma_logger.warning("Removed Service Connection %s", orjson.dumps(  # pylint: disable=no-member
+            if svc_conn not in self.service_connections[self._service_connections]:
+                removed = self.service_connections[self._service_connections].pop(svc_conn)
+                try:
+                    self.service_connection_names.remove(svc_conn['name'])
+                except ValueError:
+                    pass
+                prisma_logger.info("Remvoed Service Connection ID %s from current data", svc_conn)
+                prisma_logger.debug("Removed Service Connection %s", orjson.dumps(  # pylint: disable=no-member
                     removed).decode('utf-8'))
+        self.service_connection_names = remove_dups_from_list(self.service_connection_names)
 
     def _svc_conn_update(self, service_conn_dict: dict):
         """_summary_
@@ -214,7 +252,12 @@ class ServiceConnections:
         Args:
             service_conn_dict (dict): _description_
         """
-        self.current_service_connection.update({service_conn_dict['id']: service_conn_dict})
+        self.service_connections[self._service_connections].update(
+            {service_conn_dict['id']: service_conn_dict})
+        if service_conn_dict['name'] not in self.service_connection_names:
+            self.service_connection_names.append(service_conn_dict['name'])
+        self.service_connection_names = remove_dups_from_list(
+            current_list=self.service_connection_names)
 
     def get_ike_gateways(self):
         """Get a list of all IPSec Tunnels in Remote Network
@@ -246,27 +289,16 @@ class ServiceConnections:
     def get_ike_crypto(self):
         """Get all Remote Network IPSec Crypto Profiles
         """
-        response = ike_crypto_profiles_get_all(folder=self._service_connections,
-                                               auth=self._parent_class.auth)  # type: ignore
         prisma_logger.info("Gathering all IKE Crypto Profiles in %s", self._service_connections)
-        self._update_ike_crypto(ike_crypto_profiles=response['data'])
+        self.ike_crypt_names = ike_crypto_get_name_list(
+            folder=self._service_connections, auth=self._parent_class.auth)  # type: ignore
+        self.ike_crypto = ike_crypto_get_dict_folder(
+            folder=self._service_connections, auth=self._parent_class.auth)  # type: ignore
+        prisma_logger.info("Found %s IKE Crypto Profiles in %s", len(
+            self.ike_crypt_names), self._service_connections)
+        self._update_parent_ike_crypto()
 
-    def _update_ike_crypto(self, ike_crypto_profiles: list):
-        # Requires full list to do a sync up with current list
-        crypto_id_list = []
-        removed = {}
-        for crypto in ike_crypto_profiles:
-            if not self.ike_crypto:
-                self.ike_crypto[self._service_connections] = {}
-            self.ike_crypto[self._service_connections][crypto['id']] = crypto
-            crypto_id_list.append(crypto['id'])
-        crypto_id_current_list = self.ike_crypto[self._service_connections]
-        for crypto_id in crypto_id_current_list:
-            if crypto_id not in crypto_id_list:
-                removed = self.ike_crypto[self._service_connections].pop(crypto_id)
-                prisma_logger.info("Removed IKE Crypto ID %s", crypto_id)
-                prisma_logger.debug("Removed %s from Remote Networks IKE Crypto Profiles",
-                                    orjson.dumps(removed).decode('utf-8'))  # pylint: disable=no-member
+    def _update_parent_ike_crypto(self) -> None:
         self._parent_class.ike_crypto.update(  # type: ignore
             {self._service_connections: self.ike_crypto[self._service_connections]})
 

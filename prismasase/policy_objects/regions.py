@@ -1,10 +1,8 @@
 """Regions"""
-import orjson
 
 from prismasase import return_auth, logger
-from prismasase.statics import FOLDER
 from prismasase.configs import Auth
-from prismasase.restapi import (prisma_request, retrieve_full_list)
+from prismasase.restapi import retrieve_full_list
 
 REGION_URL = "regions"
 logger.addLogger(__name__)
@@ -23,5 +21,6 @@ def regions_get(folder: str, **kwargs) -> dict:
     auth: Auth = return_auth(**kwargs)
     response = retrieve_full_list(folder=folder,
                                   url_type=REGION_URL,
-                                  auth=auth)
+                                  auth=auth,
+                                  list_type=REGION_URL)
     return response

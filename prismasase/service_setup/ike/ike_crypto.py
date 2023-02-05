@@ -45,3 +45,37 @@ def ike_crypto_profiles_get_all(folder: str, **kwargs) -> dict:
            url_type=IKE_CRYPTO_URL,
            auth=auth )
     return response
+
+def ike_crypto_get_name_list(folder: str, **kwargs) -> list:
+    """Returns a list of names of IKE Crypto provided the Folder
+
+    Args:
+        folder (str): _description_
+
+    Returns:
+        list: _description_
+    """
+    auth: Auth = return_auth(**kwargs)
+    ike_crypto_name_list: list = []
+    ike_crypto_dict: dict = ike_crypto_profiles_get_all(folder=folder, auth=auth)
+    for ike in ike_crypto_dict['data']:
+        ike_crypto_name_list.append(ike['name'])
+    return ike_crypto_name_list
+
+def ike_crypto_get_dict_folder(folder: str, **kwargs) -> dict:
+    """Returns a formated Folder Dictionary of IKE Crypto
+
+    Args:
+        folder (str): folder needed to pull data from
+
+    Returns:
+        dict: {"Folder Name": {"IKE Crypto ID": {"Crypto Data"}}}
+    """
+    auth: Auth = return_auth(**kwargs)
+    ike_crypto_dict_by_folder: dict = {
+        folder: {}
+    }
+    ike_cyrypto_dict: dict = ike_crypto_profiles_get_all(folder=folder, auth=auth)
+    for ike in ike_cyrypto_dict['data']:
+        ike_crypto_dict_by_folder[folder][ike['id']] = ike
+    return ike_crypto_dict_by_folder

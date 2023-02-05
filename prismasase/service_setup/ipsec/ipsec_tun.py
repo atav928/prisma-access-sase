@@ -15,7 +15,7 @@ from prismasase.utilities import reformat_exception
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
 
-IPSEC_URL = "ipsec-tunnels"
+IPSEC_TUN_URL = "ipsec-tunnels"
 
 
 def ipsec_tunnel(ipsec_tunnel_name: str,  # pylint: disable=too-many-locals
@@ -194,10 +194,44 @@ def ipsec_tun_get_all(folder: str, **kwargs) -> dict:
     """
     auth: Auth = return_auth(**kwargs)
     response = retrieve_full_list(folder=folder,
-                                  url_type=IPSEC_URL,
+                                  url_type=IPSEC_TUN_URL,
                                   auth=auth,
-                                  list_type=IPSEC_URL)
+                                  list_type=IPSEC_TUN_URL)
     return response
+
+def ipsec_tunnel_get_name_list(folder: str, **kwargs) -> list:
+    """Returns a list of names of IPSec Tunnels provided the Folder
+
+    Args:
+        folder (str): _description_
+
+    Returns:
+        list: _description_
+    """
+    auth: Auth = return_auth(**kwargs)
+    ipsec_tunnel_name_list: list = []
+    ipsec_tunnel_dict: dict = ipsec_tun_get_all(folder=folder, auth=auth)
+    for tunnel in ipsec_tunnel_dict['data']:
+        ipsec_tunnel_name_list.append(tunnel['name'])
+    return ipsec_tunnel_name_list
+
+def ipsec_tun_get_dict_folder(folder: str, **kwargs) -> dict:
+    """Returns a formated Folder Dictionary of IPSec Tunnels
+
+    Args:
+        folder (str): folder needed to pull data from
+
+    Returns:
+        dict: {"Folder Name": {"IPSec Tun ID": {"Tunnel Data"}}}
+    """
+    auth: Auth = return_auth(**kwargs)
+    ipsec_tunnel_dict_by_folder: dict = {
+        folder: {}
+    }
+    ipsec_tunnel_dict: dict = ipsec_tun_get_all(folder=folder, auth=auth)
+    for tunnel in ipsec_tunnel_dict['data']:
+        ipsec_tunnel_dict_by_folder[folder][tunnel['id']] = tunnel
+    return ipsec_tunnel_dict_by_folder
 
 def ipsec_tun_get_by_name(folder: str, ipsec_tunnel_name: str, **kwargs) -> str:
     """Return the IPsec Tunnel ID for a provided name if exists

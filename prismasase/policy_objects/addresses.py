@@ -37,7 +37,8 @@ class Addresses:
     description: str = ""
     tag: list = []
     address_id: str = str()
-    current_addresses: dict = {}
+    addresses: dict = {}
+    address_names: dict = {}  # lists the names by folder since mulple possible locations
     """holds the addresses in a json dictionary searchable value"""
 
     @property
@@ -49,7 +50,7 @@ class Addresses:
     def name(self, value):
         self.__name = value
 
-    def list_all(self, return_values: bool = False, **kwargs):  # pylint: disable=inconsistent-return-statements
+    def get(self, return_values: bool = False, **kwargs):  # pylint: disable=inconsistent-return-statements
         """_summary_
 
         Args:
@@ -119,6 +120,17 @@ class Addresses:
         return response
 
     def delete(self, address_id: str = None, **kwargs):
+        """Delete Address ID
+
+        Args:
+            address_id (str, optional): _description_. Defaults to None.
+
+        Raises:
+            SASEMissingParam: _description_
+
+        Returns:
+            _type_: _description_
+        """
         if kwargs.get('folder'):
             self._parent_class.folder = kwargs.pop('folder')
         if not address_id and not self.address_id:
@@ -132,36 +144,40 @@ class Addresses:
             prisma_logger.error("Address ID does not exist cannot delete")
             return get_address
         # delete address
-        response = addresses_delete(address_id=self.address_id,
-                                    folder=self._parent_class.folder,
-                                    auth=self._parent_class.auth)
+        addresses_delete(address_id=self.address_id,
+                         folder=self._parent_class.folder,
+                         auth=self._parent_class.auth)
+        # update current address dict
+        self.get()
 
     def _addresses(self, search_by_name: bool) -> dict:
         if search_by_name:
             response = addresses_list(folder=self._parent_class.folder,
                                       name=self.name,
                                       auth=self._parent_class.auth)
-        else:
-            response = addresses_list(folder=self._parent_class.folder,
-                                      auth=self._parent_class.auth)
-        if 'error' not in list(response.keys()):
-            address_obj_list = response['data'] if response.get('data') else [response]
-            self._address_objects_reformat_to_json(address_obj_list=address_obj_list)
-        return response
+            return response
+        # Return full addresses inside folder
+        (self.addresses[self._parent_class.folder],
+            self.address_names[self._parent_class.folder]) = addresses_listed_by_dict_names(
+            folder=self._parent_class.folder, auth=self._parent_class.auth)
+        return {'data': list(self.addresses[self._parent_class.folder].values())}  # orig format
 
     def _address_objects_reformat_to_json(self, address_obj_list: list):
         for address in address_obj_list:
-            if address['folder'] not in list(self.current_addresses):
-                self.current_addresses.update({address['folder']: {}})
-            self.current_addresses[address['folder']].update({address['id']: address})
+            if address['folder'] not in list(self.addresses):
+                self.addresses.update({address['folder']: {}})
+            self.addresses[address['folder']].update({address['id']: address})
             prisma_logger.debug("Updated current addresses with object: %s", address)
 
     def _address_objects_delete_from_json(self, address_obj_list: list):
         for address in address_obj_list:
-            if address['folder'] not in list(self.current_addresses):
+            if address['folder'] not in list(self.addresses):
                 break
-            if self.current_addresses[address['folder']].get(address['id']):
-                self.current_addresses[address['folder']].pop(address['id'])
+            if self.addresses[address['folder']].get(address['id']):
+                self.addresses[address['folder']].pop(address['id'])
+
+    def _update_parent_addresses(self) -> None:
+        self._parent_class.address_obj[self._parent_class.folder] = self.addresses[self._parent_class.folder]
 
 
 def addresses_list(folder: str, **kwargs) -> dict:
@@ -183,10 +199,22 @@ def addresses_list(folder: str, **kwargs) -> dict:
     if kwargs.get('name'):
         response = _addresses_list_by_name(folder=folder, name=str(kwargs.get('name')), auth=auth)
     else:
-        #response = _address_list_all(folder=folder, auth=auth)
         response = default_list_all(folder=folder, url_type="addresses", auth=auth)
     prisma_logger.debug("Address List response=%s", response)
     return response
+
+
+def addresses_listed_by_dict_names(folder: str, **kwargs) -> tuple:
+    auth: Auth = return_auth(**kwargs)
+    response = addresses_list(folder=folder, auth=auth)
+    addresses_by_dict: dict = {
+        folder: {}
+    }
+    address_names_list: list = []
+    for address in response['data']:
+        addresses_by_dict[folder][address['id']] = address
+        address_names_list.append(address['name'])
+    return (addresses_by_dict, address_names_list)
 
 
 def _addresses_list_by_name(folder: str, name: str, **kwargs) -> dict:
@@ -381,3 +409,22 @@ def addresses_edit(address_id: str, folder: str, **kwargs) -> dict:
                               data=json.dumps(data),
                               verify=auth.verify)
     return response
+
+
+def addresses_list_by_dict(folder: str, **kwargs) -> dict:
+    """Formates and return Addresses List into a folder structured Dictonary
+
+    Args:
+        folder (str): _description_
+
+    Returns:
+        dict: {'Folder Name': {Address ID: {Address Object}}}
+    """
+    auth: Auth = return_auth(**kwargs)
+    addresses = addresses_list(folder=folder, auth=auth)
+    addresses_dict = {
+        folder: {}
+    }
+    for address in addresses['data']:
+        addresses_dict[folder][address['id']] = address
+    return addresses_dict

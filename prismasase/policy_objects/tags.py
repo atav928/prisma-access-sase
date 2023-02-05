@@ -9,7 +9,8 @@ from prismasase.exceptions import (SASEError, SASEMissingParam,
                                    SASEObjectExists, SASEIncorrectParam)
 from prismasase.restapi import (prisma_request, default_list_all)
 from prismasase.statics import FOLDER, TAG_COLORS
-from prismasase.utilities import (default_params, reformat_exception, verify_valid_folder)
+from prismasase.utilities import (default_params, reformat_exception,
+                                  verify_valid_folder, reformat_to_json)
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
@@ -35,7 +36,7 @@ class Tags:
     tag_id: str = ''
     current_tag_payload: dict = {}
     previous_tag_payload: dict = {}
-    current_tags: dict = {}
+    tags: dict = {}
 
     TAG_COLORS = TAG_COLORS
 
@@ -83,7 +84,7 @@ class Tags:
         if color not in TAG_COLORS:
             raise SASEIncorrectParam(f"message=\"invalid color\"|{color=}")
 
-    def list_all(self, return_value: bool = False, **kwargs):  # pylint: disable=inconsistent-return-statements
+    def get(self, return_value: bool = False, **kwargs):  # pylint: disable=inconsistent-return-statements
         """Get a list of all current tags in folder
 
         Args:
@@ -111,18 +112,19 @@ class Tags:
         response = default_list_all(folder=self._parent_class.folder,
                                     url_type=self.url_type,
                                     auth=self._parent_class.auth)
-        self._tags_reformat_to_json(tag_list=response['data'])
+        self._update_tags(tag_list=response['data'])
         prisma_logger.info("Gathered list of all tags in folder=%s", self._parent_class.folder)
         return response
 
-    def _tags_reformat_to_json(self, tag_list) -> None:
-        for tag in tag_list:
-            if tag['folder'] == 'predefined':
-                # predefined has no ID or UUID to make it unique so pass
-                continue
-            if tag['folder'] not in list(self.current_tags):
-                self.current_tags.update({tag['folder']: {}})
-            self.current_tags[tag['folder']].update({tag['id']: tag})
+    def _update_tags(self, tag_list) -> None:
+        tags_formated = reformat_to_json(data=tag_list)
+        if 'predefined' in tags_formated:
+            self.tags['predefined'] = tags_formated['predefined']
+        self.tags[self._parent_class.folder] = tags_formated[self._parent_class.folder]
+        self._update_parent()
+
+    def _update_parent(self) -> None:
+        self._parent_class.tag_obj = self.tags
 
 
 def tags_list(folder: str, **kwargs) -> dict:

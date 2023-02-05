@@ -6,7 +6,8 @@ from copy import copy
 import json
 
 from prismasase import logger
-from prismasase.restapi import prisma_request
+from prismasase.restapi import (prisma_request, retrieve_full_list)
+from prismasase.utilities import (reformat_to_json, reformat_exception)
 from prismasase.exceptions import SASEMissingParam, SASEBadParam
 
 logger.addLogger(__name__)
@@ -56,8 +57,8 @@ class SecurityRules:
     __name = ''
     current_payload = {}
     previous_payload = {}
-    created_rules = []
-    current_rulebase = {}
+    created_rules: list = []
+    security_rulebase: dict = {}
     deleted_rules = []
 
     @property
@@ -124,7 +125,7 @@ class SecurityRules:
         for i, k in kwargs.items():
             setattr(self, i, k)
 
-    def list_all(self, **kwargs):
+    def get(self, **kwargs):
         """_summary_
 
         Returns:
@@ -146,23 +147,18 @@ class SecurityRules:
             'total': 0,
             'limit': 0
         }
+        # Set folder
         folder = kwargs.get('folder') if kwargs.get('folder') and kwargs.get(
             'folder') in self._parent_class.FOLDERS else self._parent_class.folder
         self._parent_class.folder = folder
+        # Set Position
         position = kwargs.get('position') if kwargs.get('position') and kwargs.get(
             'position') in self._parent_class.POSITION else self._parent_class.position
         self._parent_class.position = position
-        params = {**self._parent_class.params, **{'folder': folder, 'position': position}}
-        while (len(data) < response['total'] or count == 0):
-            response = prisma_request(token=self._parent_class.auth,
-                                      method="GET",
-                                      params=params,
+        # use new retrevial
+        response = retrieve_full_list(folder=self._parent_class.folder,
                                       url_type=self.url_type,
-                                      verify=self._parent_class.auth.verify)
-            data = data + response['data']
-            params = {**params, **{'offset': params['offset'] + params['limit']}}
-            count += 1
-        response['data'] = data
+                                      auth=self._parent_class.auth)
         self._security_rules_reformat_to_json(security_rule_list=data)
         prisma_logger.info(
             "Retrieved Current Security Rule List for folder=%s position=%s",
@@ -286,12 +282,12 @@ class SecurityRules:
         Args:
             security_rule_list (list): _description_
         """
-        for rule in security_rule_list:
-            if rule['folder'] not in list(self.current_rulebase):
-                self.current_rulebase.update({rule['folder']: {}})
-            if rule['position'] not in list(self.current_rulebase[rule['folder']]):
-                self.current_rulebase[rule['folder']].update({rule['position']: {}})
-            self.current_rulebase[rule['folder']][rule['position']].update({rule['id']: rule})
+        formated_security_rules = reformat_to_json(data=security_rule_list)
+        self.security_rulebase[self._parent_class.folder] = formated_security_rules[self._parent_class.folder]
+        self._update_parent()
+
+    def _update_parent(self) -> None:
+        self._parent_class.security_policy = self.security_rulebase
 
     def delete(self, security_rules_id: str = None, folder: str = None):
         """_summary_
@@ -365,7 +361,7 @@ class SecurityRules:
         try:
             self.name = self.current_payload['name']
         except KeyError as err:
-            error = reformat_error(error=err)
+            error = reformat_exception(error=err)
             prisma_logger.error(f"{error=}")
 
     def _update_current_rulebase(self, to_do: str, rule: list) -> None:
@@ -373,9 +369,9 @@ class SecurityRules:
             if not rule[0].get('position'):
                 # set default position as is not returned in delete when deleting in non 'Shared'
                 rule[0]['position'] = 'pre'
-            if self.current_rulebase.get(rule[0]['folder']):
-                if self.current_rulebase[rule[0]['folder']][rule[0]['position']].get(rule[0]['id']):
-                    deleted_rule = self.current_rulebase[rule[0][
+            if self.security_rulebase.get(rule[0]['folder']):
+                if self.security_rulebase[rule[0]['folder']][rule[0]['position']].get(rule[0]['id']):
+                    deleted_rule = self.security_rulebase[rule[0][
                         'folder']][rule[0]['position']].pop(rule[0]['id'])
                     prisma_logger.debug("Removed from current_rulebase: %s", (deleted_rule))
             else:

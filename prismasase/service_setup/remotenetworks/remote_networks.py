@@ -14,11 +14,11 @@ from prismasase.exceptions import (
     SASENoBandwidthAllocation)
 from prismasase.restapi import (prisma_request, retrieve_full_list)
 from prismasase.statics import FOLDER, REMOTE_FOLDER
-from prismasase.utilities import set_bool
-from ..ipsec.ipsec_tun import ipsec_tun_get_all, ipsec_tunnel
+from prismasase.utilities import reformat_to_json, reformat_to_named_dict, set_bool
+from ..ipsec.ipsec_tun import ipsec_tun_get_all, ipsec_tunnel, ipsec_tunnel_delete
 from ..ipsec.ipsec_crypto import (ipsec_crypto_profiles_get, ipsec_crypto_profiles_get_all)
 from ..ike.ike_crypto import ike_crypto_profiles_get, ike_crypto_profiles_get_all
-from ..ike.ike_gtwy import ike_gateway, ike_gateway_list
+from ..ike.ike_gtwy import ike_gateway, ike_gateway_delete, ike_gateway_list
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
@@ -82,13 +82,13 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
         ipsec_crypto_profile: str = kwargs.pop('ipsec_crypto_profile')
         ike_gateway_name: str = kwargs.pop('ike_gateway_name') if kwargs.get(
             'ike_gateway_name') else f"ike-gwy-{remote_network_name}"
-        ipsec_tunnel_name: str = kwargs['ipsec_tunnel_name'] if kwargs.get(
-            'ipsec_tunnal_name') else f"ipsec-tunnel-{remote_network_name}"
+        ipsec_tunnel_name: str = kwargs.pop('ipsec_tunnel_name') if kwargs.get(
+            'ipsec_tunnel_name') else f"ipsec-tunnel-{remote_network_name}"
         # Converts string values to bool and passes default values
         tunnel_monitor: bool = set_bool(value=kwargs.pop('tunnel_monitor', ''), default=False)
         # monitor_ip: str = kwargs['monitor_ip'] if tunnel_monitor else ""
         static_enabled: bool = set_bool(value=kwargs.pop('static_enabled', ''), default=False)
-        #static_routing: list = kwargs.pop('static_routing').split(',') if static_enabled else []
+        # static_routing: list = kwargs.pop('static_routing').split(',') if static_enabled else []
         bgp_enabled: bool = set_bool(value=kwargs.pop('bgp_enabled', ''), default=False)
         # Default folder to "Remote Networks" for reverse compatability
         pre_shared_key = kwargs.pop('pre_shared_key')
@@ -247,7 +247,7 @@ def remote_network(remote_network_name: str,
     if static_enabled:
         try:
             data['subnets'] = kwargs['static_routing'].split(',') if static_enabled else []
-            #data["subnets"] = kwargs['static_routing']
+            # data["subnets"] = kwargs['static_routing']
             for subnet in data['subnets']:
                 try:
                     ipaddress.ip_network(subnet)
@@ -480,18 +480,28 @@ class RemoteNetworks:
     """
     _parent_class = None
 
-    url_type = 'remote-networks'
-    current_remote_networks = {
+    url_type: str = 'remote-networks'
+    remote_networks: dict = {
         "Remote Networks": {}
     }
-    ike_crypto = {}
+    remote_network_names: list = []
+    ike_crypto: dict = {}
     ike_gateways: dict = {}
     ipsec_crypto: dict = {}
-    ipsec_tunnels = {}
+    ipsec_tunnels: dict = {}
     _remote_network = "Remote Networks"
     _remote_network_dict = REMOTE_FOLDER
 
-    def list_all(self, returns_values: bool = False, **kwargs) -> (dict | None):
+    def get_all(self) -> None:
+        """Get all Remote Network Information
+        """
+        self.get()
+        self.get_ike_crypto()
+        self.get_ike_gateways()
+        self.get_ipsec_crypto()
+        self.get_ipsec_tunnels()
+
+    def get(self, returns_values: bool = False, **kwargs) -> (dict | None):
         """Lists All Remote Networks
 
         Args:
@@ -508,118 +518,239 @@ class RemoteNetworks:
                                       url_type=self.url_type,
                                       list_type=self._remote_network,
                                       auth=self._parent_class.auth)  # type: ignore
-        self._remote_networks_reformat_to_json(remote_net_list=response["data"])
+        prisma_logger.info("Retrieved %s Remote Networks", response['total'])
+        self.remote_networks = reformat_to_json(data=response['data'])
+        remote_netowrk_names_dict = reformat_to_named_dict(data=response['data'], data_type='list')
+        self.remote_network_names = remote_netowrk_names_dict[self._remote_network]
         if returns_values:
             return response
-
-    def _remote_networks_reformat_to_json(self, remote_net_list: list):
-        for remote_net in remote_net_list:
-            self.current_remote_networks["Remote Networks"][remote_net['id']] = remote_net
 
     def get_ipsec_crypto(self):
         """Get all Remote Network IPSec Crypto Profiles
         """
-        response = ipsec_crypto_profiles_get_all(folder=self._remote_network,
-                                                 auth=self._parent_class.auth)  # type: ignore
+        response = retrieve_full_list(folder=self._remote_network,
+                                      url_type=self._parent_class.ike_crypto_url_type,  # type: ignore
+                                      list_type="IPSec Crypto",
+                                      auth=self._parent_class.auth)  # type: ignore
         prisma_logger.info("Gathering all IPSec Crypto Profiles in %s", self._remote_network)
-        self._update_ipsec_crypto(ipsec_crypto_profiles=response['data'])
+        prisma_logger.debug("Full Response of IPSec Crypto: %s",
+                            orjson.dumps(response).decode('utf-8'))
+        self.ipsec_crypto = reformat_to_json(data=response['data'])
+        self._update_parent_ipsec_crypto()
 
-    def _update_ipsec_crypto(self, ipsec_crypto_profiles: list):
-        # Requires full list to do a sync up with current list
-        crypto_id_list = []
-        removed = {}
-        for crypto in ipsec_crypto_profiles:
-            if not self.ipsec_crypto:
-                self.ipsec_crypto[self._remote_network] = {}
-            self.ipsec_crypto[self._remote_network][crypto['id']] = crypto
-            crypto_id_list.append(crypto['id'])
-        crypto_id_current_list = self.ipsec_crypto[self._remote_network]
-        for crypto_id in crypto_id_current_list:
-            if crypto_id not in crypto_id_list:
-                removed = self.ipsec_crypto[self._remote_network].pop(crypto_id)
-                prisma_logger.info("Removed %s from Remote Networks IPSec Crypto Profiles",
-                                   orjson.dumps(removed).decode('utf-8'))  # pylint: disable=no-member
+    def _update_parent_ipsec_crypto(self) -> None:
         self._parent_class.ipsec_crypto.update(  # type: ignore
             {self._remote_network: self.ipsec_crypto[self._remote_network]})
 
     def get_ipsec_tunnels(self):
         """Get a list of all IPSec Tunnels in Remote Network
         """
-        response = ipsec_tun_get_all(folder=self._remote_network,
-                                     auth=self._parent_class.auth)  # type: ignore
+        response = retrieve_full_list(folder=self._remote_network,
+                                      url_type=self._parent_class.ipsec_tunnel_url_type,  # type: ignore
+                                      list_type="IPSec Tunnels",
+                                      auth=self._parent_class.auth)  # type: ignore
         prisma_logger.info("Gathering all IPsec Tunnels in %s", self._remote_network)
-        self._update_ipsec_tunnels(ipsec_tunnels=response['data'])
+        prisma_logger.debug("Full list of returned values: %s",
+                            orjson.dumps(response).decode('utf-8'))
+        self.ipsec_tunnels = reformat_to_json(data=response['data'])
+        self._update_parent_ipsec_tunnels()
 
-    def _update_ipsec_tunnels(self, ipsec_tunnels: list):
-        # Requires full list to do a sync up with current list
-        tunnel_id_list = []
-        removed = {}
-        for tunnel in ipsec_tunnels:
-            if not self.ipsec_tunnels:
-                self.ipsec_tunnels[self._remote_network] = {}
-            self.ipsec_tunnels[self._remote_network][tunnel['id']] = tunnel
-            tunnel_id_list.append(tunnel['id'])
-        tunnel_id_current_list = self.ipsec_tunnels[self._remote_network]
-        for tunnel_id in tunnel_id_current_list:
-            if tunnel_id not in tunnel_id_list:
-                removed = self.ipsec_tunnels[self._remote_network].pop(tunnel_id)
-                prisma_logger.info("Removed %s from Remote Networks IPsec Tunnels", tunnel_id)
-                prisma_logger.debug("Removed %s", orjson.dumps(
-                    removed).decode('utf-8'))  # pylint: disable=no-member
+    def _update_parent_ipsec_tunnels(self) -> None:
         self._parent_class.ipsec_tunnels.update(  # type: ignore
             {self._remote_network: self.ipsec_tunnels[self._remote_network]})
 
     def get_ike_gateways(self):
         """Get a list of all IPSec Tunnels in Remote Network
         """
-        response = ike_gateway_list(folder=self._remote_network_dict,
-                                     auth=self._parent_class.auth)  # type: ignore
+        response = retrieve_full_list(folder=self._remote_network,
+                                      url_type=self._parent_class.ike_gateways_url_type,  # type: ignore
+                                      list_type="IKE Gateways",
+                                      auth=self._parent_class.auth)  # type: ignore
         prisma_logger.info("Gathering all IKE Tunnels in %s", self._remote_network)
-        self._update_ike_gateways(ike_gateways=response['data'])
+        self.ike_gateways = reformat_to_json(response['data'])
+        self._update_parent_ike_gateways()
 
-    def _update_ike_gateways(self, ike_gateways: list):
-        # Requires full list to do a sync up with current list
-        gateway_id_list = []
-        removed = {}
-        for gateway in ike_gateways:
-            if not self.ike_gateways:
-                self.ike_gateways[self._remote_network] = {}
-            self.ike_gateways[self._remote_network][gateway['id']] = gateway
-            gateway_id_list.append(gateway['id'])
-        gateway_id_current_list = self.ike_gateways[self._remote_network]
-        for tunnel_id in gateway_id_current_list:
-            if tunnel_id not in gateway_id_list:
-                removed = self.ike_gateways[self._remote_network].pop(tunnel_id)
-                prisma_logger.info("Removed %s from Remote Networks IPsec Tunnels", tunnel_id)
-                prisma_logger.debug("Removed %s", orjson.dumps(
-                    removed).decode('utf-8'))  # pylint: disable=no-member
+    def _update_parent_ike_gateways(self) -> None:
         self._parent_class.ike_gateways.update(  # type: ignore
             {self._remote_network: self.ike_gateways[self._remote_network]})
 
     def get_ike_crypto(self):
         """Get all Remote Network IPSec Crypto Profiles
         """
-        response = ike_crypto_profiles_get_all(folder=self._remote_network,
-                                                 auth=self._parent_class.auth)  # type: ignore
+        # response = ike_crypto_profiles_get_all(folder=self._remote_network,
+        #                                         auth=self._parent_class.auth)  # type: ignore
+        response = retrieve_full_list(folder=self._remote_network,
+                                      list_type="IKE Crypto",
+                                      url_type=self._parent_class.ike_crypto_url_type,  # type: ignore
+                                      auth=self._parent_class.auth)  # type: ignore
         prisma_logger.info("Gathering all IKE Crypto Profiles in %s", self._remote_network)
-        self._update_ike_crypto(ike_crypto_profiles=response['data'])
+        prisma_logger.debug("Gathered full list of IKE Crypto Profiles in %s: %s",
+                            self._remote_network, response['data'])
+        self.ike_crypto = reformat_to_json(data=response['data'])
 
-    def _update_ike_crypto(self, ike_crypto_profiles: list):
-        # Requires full list to do a sync up with current list
-        crypto_id_list = []
-        removed = {}
-        for crypto in ike_crypto_profiles:
-            if not self.ike_crypto:
-                self.ike_crypto[self._remote_network] = {}
-            self.ike_crypto[self._remote_network][crypto['id']] = crypto
-            crypto_id_list.append(crypto['id'])
-        crypto_id_current_list = self.ike_crypto[self._remote_network]
-        for crypto_id in crypto_id_current_list:
-            if crypto_id not in crypto_id_list:
-                removed = self.ike_crypto[self._remote_network].pop(crypto_id)
-                prisma_logger.info("Removed IKE Crypto ID %s", crypto_id)
-                prisma_logger.debug("Removed %s from Remote Networks IKE Crypto Profiles",
-                                   orjson.dumps(removed).decode('utf-8'))  # pylint: disable=no-member
+    def _update_parent_ike_crypto(self) -> None:
         self._parent_class.ike_crypto.update(  # type: ignore
             {self._remote_network: self.ike_crypto[self._remote_network]})
-    
+
+    def create(self, **kwargs) -> dict:
+        """Creates a Remote Nework IPSec Tunnel
+
+        Args:
+            remote_network_name (str): Remote Network Name used to set up Remote Network
+            region (str): region checking for bandwidth allocation
+            spn_name (str): IPSec Termination Node name
+            pre_shared_key (str, Required): required to set a pre-shared-key
+            ike_crypto_profile (str): IKE Crypto Profile to use (must exist in tenant)
+            ipsec_crypto_profile (str): IPSec Crypto profile to use (must exist in tenant)
+            ike_gateway_name (str, Optional): The IKE Gateway Name. Default: ike-gw-{remote_network_name}
+            ipsec_tunnel_name (str, Optional): The IPsec Tunnel Name. Default: ipsec-tunnel-{remote_network_name}
+            auth (Auth, Optional): Authorization if none supplied it defaults to the Yaml Config
+            fragmentation (str): IKE Protocol Fragmentation. Default False
+            nat_traversal (str): IKE Protocal Allow NAT Traversal. Default True
+            peer_id_type (str): Requires one of 'ipaddr'|'fqdn'|'keyid'|'ufqdn'. Defaults 'ufqdn
+            peer_id_value (str): Dependign on peer_id_type this requires the corresponding value
+            peer_address_type (str): Requires one of 'ipaddr'|'fqdn'|'dynamic'
+            peer_address (str): Requires literal "dynamic" for ufqdn or ip_address or fqdn_name or key if other is selected as peer_id_type
+            local_id_type (str): Requires one of 'ipaddr'|'fqdn'|'keyid'|'ufqdn'. Defaults 'ufqdn'
+            local_id_value (str): Depending on the local_id_type will determine the type of value needed
+            passive_mode (str): Sets IKE passive mode deafaults to 'true'
+            bgp_enabled (str|bool): Sets BGP routing enabled or disabled use string 'true' or 'false' Defaults 'false'
+            bgp_peer_ip (str): Required if bgp_enabled is 'true'
+            bgp_local_ip (str): Required if bgp_enabled is 'true'
+            bgp_peer_as (str): Required if bgp_enabled is 'true'
+            static_enabled (str|bool): Sets Static routing enabled or disabled use string 'true' or 'false' Defaults 'false'
+            tunnel_monitor (str|bool): Sets Tunnel Monitoring to enabled or disabled use string 'true' or 'false' Defaults 'false'
+
+
+        Raises:
+            SASEMissingParam: _description_
+            SASENoBandwidthAllocation: _description_
+        """
+        if kwargs.get('auth'):
+            kwargs.pop('auth')
+        response = create_remote_network(auth=self._parent_class.auth, **kwargs)  # type: ignore
+        # Update all current configurations with new ones
+        self.get_all()
+        # returns all confiugraitons created for remote network
+        return response
+
+    def delete(self, **kwargs) -> dict:
+        """Delete Remote Network
+
+        Args:
+            remote_network_name (str): Name of Remote network to remove
+            remote_network_id (str) ID of Remote Network to be deleted
+
+        Raises:
+            SASEMissingParam: _description_
+            SASEBadParam: _description_
+
+        Returns:
+            dict: _description_
+        """
+        response: dict = {
+            "status": "success",
+            "remote_network_deleted": {},
+            "ipsec_tunnel_deleted": [],
+            "ike_gateway_deleted": []
+        }
+        remote_network_name: str = kwargs.pop(
+            'remote_network_name') if kwargs.get('remote_network_name') else ""
+        remote_network_id: str = kwargs.pop(
+            'remote_network_id') if kwargs.get('remote_network_id') else ""
+        if not remote_network_id and not remote_network_name:
+            prisma_logger.error("Missing remote_network_id or remote_network_name")
+            raise SASEMissingParam("requires either remote_network_name or remote_network_id")
+        if remote_network_name and not remote_network_id:
+            self.get()
+            prisma_logger.info("Looking for Remote Network ID using %s", remote_network_name)
+            for value in self.remote_networks[self._remote_network].values():
+                if value['name'] == remote_network_name:
+                    remote_network_id = value['id']
+                    prisma_logger.info("Found Remote Network %s ID is %s",
+                                       remote_network_name, remote_network_id)
+                    break
+            if not remote_network_id:
+                prisma_logger.error("Cannot find Remote Network %s by name", remote_network_name)
+                raise SASEBadParam(f"Invalid Remote Network Name: {remote_network_name}")
+        prisma_logger.info("Removing Remote Network ID: %s", remote_network_id)
+        # Update Response
+        response['remote_network_deleted'] = remote_network_delete(
+            remote_network_id=remote_network_id, folder=self._remote_network_dict,
+            auth=self._parent_class.auth)  # type: ignore
+        # Check if ECMP is enabled or disabled
+        self.get_all()
+        # Delete non ECMP
+        if response['remote_network_deleted']['ecmp_load_balncing'] == "disabled":
+            response["ipsec_tunnel_deleted"] = self._delete_tunnels(
+                remote_network_dict=response['remote_network_deleted'])
+        # Delete ECMP tunnels
+        else:
+            response["ipsec_tunnel_deleted"] = self._delete_ecmp_tunnels(
+                remote_network_dict=response["remote_network_deleted"])
+        # Delete IKE Gateways assocated to tunnels
+        response["ike_gateway_deleted"] = self._delete_ike_gateways(
+            ipsec_tunnel_list=response["ipsec_tunnel_deleted"])
+        prisma_logger.info("Updating Remote Network information")
+        self.get_all()
+        return response
+
+    def _delete_ecmp_tunnels(self, remote_network_dict: dict) -> list:
+        response = []
+        return response
+
+    def _delete_tunnels(self, remote_network_dict: dict) -> list:
+        response = []
+        ipsec_tunnel_name: str = ""
+        secondary_tunnel_name: str = ""
+        ipsec_tunnel_dict: dict = {}
+        secondary_tunnel_dict: dict = {}
+        ipsec_tunnel_name = remote_network_dict['ipsec_tunnel']
+        ipsec_tunnel_dict = self._return_ipsec_tunnel_dict(ipsec_tunnel_name=ipsec_tunnel_name)
+        response.append(ipsec_tunnel_delete(ipsec_tunnel_id=ipsec_tunnel_dict['id'],
+                                            folder=self._remote_network_dict,
+                                            auth=self._parent_class.auth))  # type: ignore
+        if remote_network_dict.get('seconday_ipsec_tunnel'):
+            secondary_tunnel_name = remote_network_dict['secondary_ipsec_tunnel']
+            secondary_tunnel_dict = self._return_ipsec_tunnel_dict(
+                ipsec_tunnel_name=secondary_tunnel_name)
+            response.append(ipsec_tunnel_delete(ipsec_tunnel_id=secondary_tunnel_dict['id'],
+                                                folder=self._remote_network_dict,
+                                                auth=self._parent_class.auth))  # type: ignore
+        return response
+
+    def _return_ipsec_tunnel_dict(self, ipsec_tunnel_name: str) -> dict:
+        ipsec_tunnel_dict: dict = {}
+        for value in self.ipsec_tunnels[self._remote_network].values():
+            if value['name'] == ipsec_tunnel_name:
+                ipsec_tunnel_id = value['id']
+                ike_gateway_name = value['auto_key']['ike_gateway'][0]['name']
+                prisma_logger.info("Found IPsec Tunnel %s with ID %s and IKE Gateway %s",
+                                   ipsec_tunnel_name, ipsec_tunnel_id, ike_gateway_name)
+                ipsec_tunnel_dict = value
+                break
+        return ipsec_tunnel_dict
+
+    def _delete_ike_gateways(self, ipsec_tunnel_list: list) -> list:
+        response: list = []
+        ike_gateway_delete_list: list = []
+        for value in ipsec_tunnel_list:
+            ike_gtwy_dict = self._return_ike_gtwy_dict(ike_gateway_name=value['name'])
+            ike_gateway_delete_list.append({'name': value['name'], 'id': ike_gtwy_dict['id']})
+        for value in ike_gateway_delete_list:
+            response.append(ike_gateway_delete(ike_gateway_id=value['id'],
+                                               folder=self._remote_network_dict,
+                                               auth=self._parent_class.auth))  # type: ignore
+        return response
+
+    def _return_ike_gtwy_dict(self, ike_gateway_name: str) -> dict:
+        ike_gtwy_dict: dict = {}
+        for value in self.ike_gateways[self._remote_network].values():
+            if value['name'] == ike_gateway_name:
+                ike_gateway_id = value['id']
+                prisma_logger.info("Found IKE Gateway %s ID as %s",
+                                   ike_gateway_name,
+                                   ike_gateway_id)
+                ike_gtwy_dict = value
+                break
+        return ike_gtwy_dict

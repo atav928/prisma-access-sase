@@ -107,3 +107,66 @@ def reformat_exception(error: Exception) -> str:
         str: _description_
     """
     return f"{type(error).__name__}: {str(error)}" if error else ""
+
+
+def remove_dups_from_list(current_list: list) -> list:
+    """Removes duplicats from a list
+
+    Args:
+        current_list (list): _description_
+
+    Returns:
+        list: _description_
+    """
+    return list(set(current_list))
+
+
+def reformat_to_json(data: list) -> dict:
+    """Reformates data strucure into a json format with a folder hierarcy
+
+    Args:
+        data (list): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    return_dict = {}
+    for value in data:
+        # Baseline strucutre
+        if value['folder'] not in return_dict:
+            return_dict[value['folder']] = {}
+        if value['folder'] == "predefined":
+            return_dict[value['folder']][value['name']] = value
+            continue
+        # used in seucrity structure
+        if value.get('position'):
+            if value['position'] not in return_dict[value['folder']]:
+                return_dict[value['folder']][value['position']] = {}
+            return_dict[value['folder']][value['position']][value['id']] = value
+            continue
+        # default structure
+        return_dict[value['folder']][value['id']] = value
+    return return_dict
+
+
+def reformat_to_named_dict(data: (dict | list), data_type: str) -> dict:
+    """Reformates direct data from a return as a list of objects or a reforemated dictionary
+    in the current folder higherchy
+
+    Args:
+        data (dict | list): _description_
+        data_type (str): _description_
+
+    Returns:
+        list: _description_
+    """
+    named_list: list = []
+    named_dictionary: dict = {}
+    if data_type.lower() == 'list':
+        for value in data:
+            named_list.append(value['name'])
+        named_dictionary[data[0]['folder']] = named_list
+    if data_type.lower() == 'dict':
+        for folder, identifier in data.items():  # type: ignore
+            named_dictionary[folder] = [value['name'] for value in identifier.values()]
+    return named_dictionary
