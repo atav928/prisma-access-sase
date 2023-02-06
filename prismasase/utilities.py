@@ -149,7 +149,7 @@ def reformat_to_json(data: list) -> dict:
     return return_dict
 
 
-def reformat_to_named_dict(data: (dict | list), data_type: str) -> dict:
+def reformat_to_named_dict(data, data_type: str) -> dict:
     """Reformates direct data from a return as a list of objects or a reforemated dictionary
     in the current folder higherchy
 

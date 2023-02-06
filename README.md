@@ -1069,6 +1069,7 @@ dict_keys(['Shared', 'Remote Networks'])
 #### Vrsion 0.2.10
 
 * Fixed issue with remote network duplicate tunnel name error
+* Fixed issue to support => 3.8
 * Added API to orchestrate multiple events and track changes
 * Updated and simplified how to create commits and pull addtiional information from multiple locations
 * Refactored some code to re-use code that will allow for retrieval of entire configurations within a section

@@ -61,7 +61,7 @@ class ServiceConnections:
         self.get_ipsec_crypto()
         self.get_ipsec_tunnels()
 
-    def get(self, return_values: bool = False) -> (dict | None):  # pylint: disable=inconsistent-return-statements
+    def get(self, return_values: bool = False):  # pylint: disable=inconsistent-return-statements
         """Get Service Connections
 
         Args:
