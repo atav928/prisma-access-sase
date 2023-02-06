@@ -618,7 +618,7 @@ class RemoteNetworks:
         self.get_ipsec_crypto()
         self.get_ipsec_tunnels()
 
-    def get(self, returns_values: bool = False, **kwargs) -> (dict | None):
+    def get(self, returns_values: bool = False, **kwargs):
         """Lists All Remote Networks
 
         Args:

@@ -70,7 +70,7 @@ class RotatingLog:
 
     def __init__(self, name: str,
                  logName: str = 'sample.log',
-                 logDir: (str | None) = None,
+                 logDir: str= None,
                  maxBytes: int = 5242990,
                  backupCount: int = 5,
                  mode: str = 'a',
