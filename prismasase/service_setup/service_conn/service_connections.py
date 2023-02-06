@@ -190,12 +190,81 @@ class ServiceConnections:
             {self._service_connections: self.ipsec_tunnels[self._service_connections]})
 
     def create(self, **kwargs):
-        """
-        Testing creation
+        """Create a Service Connector
+
+        Args:
+            backup_sc, String (255)
+            sec_bgp_enabled, String (255)
+            sec_bgp_peer, String (255)
+            sec_local_ip_address, String (255)
+            sec_local_ipv6_address, String (255)
+            sec_peer_ip_address, String (255)
+            sec_peer_ipv6_address, String (255)
+            same_as_primary, String (255)
+            sec_bgp_secret, String (255)
+            secondary_ipsec_tunnel_name, String (255)
+            sec_ike_gateway_name, String (255)
+            sec_ipsec_tunnel_name, String (255)
+            sec_ipsec_anti_replay, String (255)
+            sec_ipsec_crypto_profile, String (255)
+            sec_ike_gateway_name, String (255)
+            sec_monitor_ip, String (255)
+            sec_ipsec_copy_tos, String (255)
+            sec_ipsec_enable_gre_encapsulation, String (255)
+            sec_monitor_ip, String (255)
+            sec_ipsec_copy_tos, String (255)
+            sec_ipsec_enable_gre_encapsulation, String (255)
+            sec_ike_gateway_name, String (255)
+            sec_ike_authentication_pre_shared_key, String (255)
+            sec_ike_authentication_cert_allow_id_payload_mismatch, String (255)
+            sec_ike_authentication_cert_certificate_profile, String (255)
+            sec_ike_authentication_cert_local_certificate_name, String (255)
+            sec_ike_authentication_cert_strict_validation_revocation, String (255)
+            sec_ike_authentication_cert_use_management_as_source, String (255)
+            sec_ike_local_id, String (255)
+            sec_ike_local_id_type, String (255)
+
+            # Primary
+            ipsec_tunnel_name, String (255)
+            ipsec_anti_replay, String (255)
+            ipsec_crypto_profile, String (255)
+            monitor_ip, String (255)
+            ipsec_copy_tos, String (255)
+            ipsec_enable_gre_encapsulation, String (255)
+            ike_gateway_name, String (255)
+            ike_authentication_pre_shared_key, String (255)
+            ike_authentication_cert_allow_id_payload_mismatch, String (255)
+            ike_authentication_cert_certificate_profile, String (255)
+            ike_authentication_cert_local_certificate_name, String (255)
+            ike_authentication_cert_strict_validation_revocation, String (255)
+            ike_authentication_cert_use_management_as_source, String (255)
+            ike_local_id, String (255)
+            ike_local_id_type, String (255)
+
+            service_connection_name, String (255)
+            nat_pool, String (255)
+            onboarding_type, String (255)
+            bgp_no_export_community, String (255)
+            bgp_enabled, String (255)
+            bgp_do_not_export_routes, String (255)
+            bgp_fast_failover, String (255)
+            bgp_local_ip_address, String (255)
+            bgp_originate_default_route, String (255)
+            bgp_peer_as, String (255)
+            bgp_peer_ip_address, String (255)
+            bgp_secret, String (255)
+            bgp_summarize_mobile_user_routes": True
+            
+            qos_enable, String (255)
+            qos_profile, String (255)
+            region, String (255)
+
+            source_nat, String (255)
+            subnets, String (255)
         """
         try:
             backup_sc: str = kwargs.pop("backup_sc") if kwargs.get("backup_sc") else ""
-            name: str = kwargs.pop('name')
+            service_connection_name: str = kwargs.pop('service_connection_name')
             # Check if ipsec_tunnel exists
             ipsec_tunnel: str = kwargs.pop('ipsec_tunnel') if kwargs.get(
                 'ipsec_tunel') else f"ipsec-tunnel-{name}"

@@ -64,7 +64,8 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
         static_enabled (str|bool): Sets Static routing enabled or disabled use string 'true' or 'false' Defaults 'false'
         tunnel_monitor (str|bool): Sets Tunnel Monitoring to enabled or disabled use string 'true' or 'false' Defaults 'false'
         sec_wan_enabled (str|bool): Sets a Secondary WAN circuit; Cannot use if ECMP enabled. Defaults "False"
-        sec_tunnel_namesec_gateway_name (str): Sec Tunnel Name. Required if sec_wan_enabled set to "True"
+        sec_tunnel_name (str): (str): Sec Gateway Name. Required if sec_wan_enabled set to "True"
+        sec_gateway_name (str): Sec Tunnel Name. Required if sec_wan_enabled set to "True"
         sec_peer_ip_address: (str): Peer IP on Secondary Peer. Required if sec_wan_enabled set to "True"
         sec_local_id_type (str): Local ID Type. Required if sec_wan_enabled set to "True"
         sec_local_id_value (str): Local ID Value. Required if sec_wan_enabled set to "True"

@@ -34,6 +34,13 @@ AUTOTAG_LOG_TYPE = ["traffic", "wildfire", "threat", "url", "data", "tunnel", "a
 # IKE Static
 DYNAMIC = {'dynamic': {}}
 
+IKE_IDENTIFIER_TYPES = [
+    'ipaddr',
+    'fqdn',
+    'keyid',
+    'ufqdn'
+]
+
 BASE_LIST_RESPONSE = {
     'data': [],
     'offset': 0,
