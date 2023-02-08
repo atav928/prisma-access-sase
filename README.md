@@ -1081,6 +1081,7 @@ dict_keys(['Shared', 'Remote Networks'])
     * Tags
     * Regions
     * Locations
+* Fixed bug with Security Rulebase retrieval; need to update process to retrieve entire rules
 
 #### version 0.2.8
 
