@@ -13,6 +13,8 @@ from prismasase.exceptions import SASEMissingParam, SASEBadParam
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
 
+SECURITY_RULE_URL = 'security-rules'
+SECURITY_LIST_TYPE = "Security Rules"
 
 class SecurityRules:
     """_summary_
@@ -29,7 +31,8 @@ class SecurityRules:
     # placeholder for parent class namespace
     _parent_class = None
 
-    url_type = 'security-rules'
+    url_type: str = SECURITY_RULE_URL
+    list_type: str = SECURITY_LIST_TYPE
     security_rules_id = None
     """Security Rule ID"""
 
@@ -139,14 +142,6 @@ class SecurityRules:
         Returns:
             _type_: _description_
         """
-        data = []
-        count = 0
-        response = {
-            'data': [],
-            'offset': 0,
-            'total': 0,
-            'limit': 0
-        }
         # Set folder
         folder = kwargs.get('folder') if kwargs.get('folder') and kwargs.get(
             'folder') in self._parent_class.FOLDERS else self._parent_class.folder
@@ -155,11 +150,14 @@ class SecurityRules:
         position = kwargs.get('position') if kwargs.get('position') and kwargs.get(
             'position') in self._parent_class.POSITION else self._parent_class.position
         self._parent_class.position = position
+        # TODO: Try to use this to call all rules or specify if you want all rules called on
         # use new retrevial
         response = retrieve_full_list(folder=self._parent_class.folder,
                                       url_type=self.url_type,
+                                      list_type=self.list_type,
+                                      position=self._parent_class.position,
                                       auth=self._parent_class.auth)
-        self._security_rules_reformat_to_json(security_rule_list=data)
+        self._security_rules_reformat_to_json(security_rule_list=response['data'])
         prisma_logger.info(
             "Retrieved Current Security Rule List for folder=%s position=%s",
             folder,
@@ -281,12 +279,16 @@ class SecurityRules:
         Args:
             security_rule_list (list): _description_
         """
+        #prisma_logger.info("data = %s", security_rule_list)
         formated_security_rules = reformat_to_json(data=security_rule_list)
+        #prisma_logger.info("Formated seucrity rules: %s", formated_security_rules)
+        if not self.security_rulebase.get(self._parent_class.folder):
+            self.security_rulebase[self._parent_class.folder] = {}
         self.security_rulebase[self._parent_class.folder] = formated_security_rules[self._parent_class.folder]
         self._update_parent()
 
     def _update_parent(self) -> None:
-        self._parent_class.security_policy = self.security_rulebase
+        self._parent_class.security_rulebase = self.security_rulebase
 
     def delete(self, security_rules_id: str = None, folder: str = None):
         """_summary_

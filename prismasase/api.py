@@ -89,7 +89,7 @@ class API:  # pylint: disable=too-many-instance-attributes
     tag_obj: dict = {}
 
     """Policy"""
-    security_policy: dict = {}
+    security_rulebase: dict = {}
 
     def __init__(self, **kwargs):
 
