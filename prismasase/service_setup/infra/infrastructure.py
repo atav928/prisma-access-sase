@@ -54,7 +54,7 @@ def infra_get(**kwargs) -> dict:
     return response
 
 
-def infra_get_ip(service_type: str, addr_type: str, location: str, egress_api: str = None) -> dict:
+def infra_get_ip(service_type: str, addr_type: str, location: str, egress_api: str = "") -> dict:
     if not egress_api:
         egress_api = config.EGRESS_API
     if service_type not in INFRA_SERVICE_TYPE:
