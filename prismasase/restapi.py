@@ -189,6 +189,15 @@ def retrieve_full_list(folder: str, url_type: str, **kwargs) -> dict:
 
 
 def infra_request(payload: dict, token: str, ) -> dict:
+    """Infrastructure Reqeust for retrieving IP Address associations.
+
+    Args:
+        payload (dict): _description_
+        token (str): _description_
+
+    Returns:
+        dict: _description_
+    """
     url = config.EGRESS_API_URL
     if not token:
         token = config.EGRESS_API
