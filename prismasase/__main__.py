@@ -20,6 +20,7 @@ def gen_yaml():
     TSG = input("Please enter TSG ID: ")
     CERT = input("Please enter custom cert location" +
                  "('true'|'false'|<custom_cert_location>): ")
+    EGRESS_API = input("Enter Egress API Key if you have one? ")
     if CERT.lower() in ['true', 'false']:
         CERT = CERT.lower()
     elif not exists(CERT):
@@ -28,7 +29,8 @@ def gen_yaml():
         "TSG": TSG,
         "CLIENT_ID": CLIENT_ID,
         "CLIENT_SECRET": CLIENT_SECRET,
-        "CERT": CERT
+        "CERT": CERT,
+        "PRISMASASE_EGRESS_API": EGRESS_API
     }
     log_settings = 'empty'
     while log_settings.lower() not in ['yes', 'no']:

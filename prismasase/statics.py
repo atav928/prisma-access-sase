@@ -47,3 +47,9 @@ BASE_LIST_RESPONSE = {
     'total': 0,
     'limit': 0
 }
+
+# Infrastruture IP Restrictions
+INFRA_SERVICE_TYPE = ["all", "remote_network", "gp_gateway", "gp_portal", "swg_proxy"]
+INFRA_ADDR_TYPE = ["all", "active", "service_ip", "auth_cache_service", "network_load_balancer"]
+INFRA_ACTION_TYPE = ["pre_allocate"]
+INFRA_LOCATION = ["all", "deployed"]

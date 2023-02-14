@@ -24,6 +24,7 @@ if exists(filename):
     config.LOGNAME = yaml_config.get("PRISMASASE_LOGNAME", "prismasase.log")
     config.LOGSTREAM = yaml_config.get("PRISMASASE_LOGSTREAM", True)
     config.LOGLOCATION = yaml_config.get("PRISMASASE_LOGLOCATION", "")
+    config.EGRESS_API = yaml_config.get("PRISMASASE_EGRESS_API", "")
 else:
     config.CLIENT_ID = os.environ.get("PRISMASASE_CLIENT_ID", "")
     config.CLIENT_SECRET = os.environ.get("PRISMASASE_CLIENT_SECRET", "")
@@ -34,6 +35,7 @@ else:
     config.LOGNAME = os.environ.get("PRISMASASE_LOGNAME", "prismasase.log")
     config.LOGSTREAM = os.environ.get("PRISMASASE_LOGSTREAM", True)
     config.LOGLOCATION = os.environ.get("PRISMASASE_LOGLOCATION", "")
+    config.EGRESS_API = os.environ.get("PRISMASASE_EGRESS_API", "")
 config.CERT = set_bool(config.CERT)  # type: ignore
 config.SET_LOG = set_bool(config.SET_LOG) # type: ignore
 config.LOGSTREAM = set_bool(config.LOGSTREAM) # type: ignore

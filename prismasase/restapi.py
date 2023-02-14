@@ -1,5 +1,6 @@
 """Rest Calls"""
 
+import json
 from typing import Any, Dict
 import requests
 import orjson
@@ -149,7 +150,7 @@ def retrieve_full_list(folder: str, url_type: str, **kwargs) -> dict:
     """
     auth: Auth = return_auth(**kwargs)
     list_type: str = kwargs.get("list_type", "unknown type")
-    params: Dict[str,Any] = {
+    params: Dict[str, Any] = {
         "limit": 200,
         "offset": 0,
     }
@@ -184,4 +185,19 @@ def retrieve_full_list(folder: str, url_type: str, **kwargs) -> dict:
     response['data'] = data
     prisma_logger.info("Retrieved List of all %s in Folder=%s total=%s",
                        list_type, folder, response["total"])
+    return response
+
+
+def infra_request(payload: dict, token: str, ) -> dict:
+    url = config.EGRESS_API_URL
+    if not token:
+        token = config.EGRESS_API
+    headers = {
+        "Content-Type": "application/json",
+        "header-api-key": token
+    }
+    response = requests.request(method="POST",
+                                url=url,
+                                headers=headers,
+                                data=json.dumps(payload))
     return response
