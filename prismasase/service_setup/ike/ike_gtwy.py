@@ -123,7 +123,6 @@ def ike_gateway_update(ike_gateway_id: str, folder: dict, **kwargs) -> dict:
                               params=params,
                               verify=auth.verify,
                               put_object=f'/{ike_gateway_id}')
-    # print(f"DEBUG: response={response}")
     if '_errors' in response:
         prisma_logger.error("SASEBadRequest: %s", orjson.dumps(response).decode('utf-8'))
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member

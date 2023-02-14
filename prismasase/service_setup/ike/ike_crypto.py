@@ -2,9 +2,10 @@
 
 from prismasase import return_auth
 from prismasase.configs import Auth
-from prismasase.restapi import prisma_request, retrieve_full_list
+from prismasase.restapi import (prisma_request, retrieve_full_list)
 
 IKE_CRYPTO_URL = 'ike-crypto-profiles'
+IKE_CRYPTO_TYPE = ' '.join(IKE_CRYPTO_URL.title().split('-'))
 
 def ike_crypto_profiles_get(ike_crypto_profile: str, folder: dict, **kwargs) -> str:
     """Checks if IKE Crypto Profile Exists
@@ -43,6 +44,7 @@ def ike_crypto_profiles_get_all(folder: str, **kwargs) -> dict:
     auth: Auth = return_auth(**kwargs)
     response = retrieve_full_list(folder=folder,
            url_type=IKE_CRYPTO_URL,
+           list_type=IKE_CRYPTO_TYPE,
            auth=auth )
     return response
 

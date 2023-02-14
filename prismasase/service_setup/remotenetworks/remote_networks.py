@@ -155,6 +155,8 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
             folder: dict = FOLDER[kwargs.pop('folder_name')]
         else:
             folder: dict = kwargs.pop('folder') if kwargs.get('folder') else REMOTE_FOLDER
+        # Check if Secondary WAN is set up
+        sec_wan_enabled: bool = set_bool(value=kwargs.pop('sec_wan_enabled', False))
     except KeyError as err:
         prisma_logger.error("SASEMissingParam: %s", str(err))
         raise SASEMissingParam(f"message=\"missing required parameter\"|param={str(err)}")
@@ -189,6 +191,7 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
                                                 pre_shared_key=pre_shared_key,
                                                 spn_name=spn_name,
                                                 region=region,
+                                                sec_wan_enabled=sec_wan_enabled,
                                                 auth=auth,
                                                 **kwargs)
         response = {**response, **tunnel_respnse}
@@ -210,6 +213,7 @@ def _create_remote_network(remote_network_name: str,
                            spn_name: str,
                            ike_crypto_profile: str,
                            pre_shared_key: str,
+                           sec_wan_enabled: bool,
                            **kwargs) -> dict:
     # Set up standard tunnel
     # TODO: setup suport for Secondary Tunnel

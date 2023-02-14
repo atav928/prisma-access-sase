@@ -14,6 +14,8 @@ prisma_logger = logger.getLogger(__name__)
 
 
 class InfrastructureSettings:
+    """Instrastructure Settings
+    """
     _parent_class = None
 
     url_type = INFRA_URL

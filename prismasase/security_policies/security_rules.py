@@ -15,7 +15,7 @@ logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
 
 SECURITY_RULE_URL = 'security-rules'
-SECURITY_LIST_TYPE = "Security Rules"
+SECURITY_LIST_TYPE = ' '.join(SECURITY_RULE_URL.title().split('-'))
 
 
 class SecurityRules:
@@ -146,14 +146,14 @@ class SecurityRules:
         for _ in list(FOLDER):
             response = retrieve_full_list(folder=_,
                                           url_type=self.url_type,
-                                          list_type=' '.join(self.url_type.title().split('-')),
+                                          list_type=self.list_type,
                                           position=position,
                                           auth=self._parent_class.auth)
             data = data + response['data']
             if _ == "Shared":
                 response = retrieve_full_list(folder=_,
                                               url_type=self.url_type,
-                                              list_type=' '.join(self.url_type.title().split('-')),
+                                              list_type=self.list_type,
                                               position='post',
                                               auth=self._parent_class.auth)
             data = data + response['data']
