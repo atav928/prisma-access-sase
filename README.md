@@ -1035,6 +1035,7 @@ dict_keys(['Shared', 'Remote Networks'])
 | **0.2.6** | **final** | adds delete functions and a few updates to auto tagging |
 | **0.2.7** | **hotfix** | missing url_type in remote networks delete |
 | **0.2.8** | **final** | adjusted requirements due to some confilicts in ohter projects |
+| **0.2.10** | **a9** | adding ipsec tunnel to help build connectors into api |
 
 ### Known Bugs/Futue Features
 
@@ -1082,6 +1083,7 @@ dict_keys(['Shared', 'Remote Networks'])
     * Regions
     * Locations
 * Fixed bug with Security Rulebase retrieval; need to update process to retrieve entire rules
+* Added IPSec Tunnel functionality into API tool
 
 #### version 0.2.8
 

@@ -186,7 +186,7 @@ class ServiceConnections:
         self._update_parent_ipsec_tunnels()
 
     def _update_parent_ipsec_tunnels(self) -> None:
-        self._parent_class.ipsec_tunnels.update(  # type: ignore
+        self._parent_class.ipsec_tunnels_dict.update(  # type: ignore
             {self._service_connections: self.ipsec_tunnels[self._service_connections]})
 
     def create(self, **kwargs):

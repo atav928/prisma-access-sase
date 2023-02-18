@@ -678,7 +678,7 @@ class RemoteNetworks:
         self._update_parent_ipsec_tunnels()
 
     def _update_parent_ipsec_tunnels(self) -> None:
-        self._parent_class.ipsec_tunnels.update(  # type: ignore
+        self._parent_class.ipsec_tunnels_dict.update(  # type: ignore
             {self._remote_network: self.ipsec_tunnels[self._remote_network]})
 
     def get_ike_gateways(self):

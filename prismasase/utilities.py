@@ -170,3 +170,14 @@ def reformat_to_named_dict(data, data_type: str) -> dict:
         for folder, identifier in data.items():  # type: ignore
             named_dictionary[folder] = [value['name'] for value in identifier.values()]
     return named_dictionary
+
+def reformat_url_type(url_type: str) -> str:
+    """Reformates the url secific value into a readable type value used for logging.
+
+    Args:
+        url_type (str): url_type ex. ipsec-tunnels, ike-gateways
+
+    Returns:
+        str: Title formated string ex. Ipsec Tunnels, Ike Gateways
+    """
+    return ' '.join(url_type.title().split('-'))

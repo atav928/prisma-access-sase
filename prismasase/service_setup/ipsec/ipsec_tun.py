@@ -7,15 +7,19 @@ from typing import Any, Dict
 import orjson
 
 from prismasase import return_auth, logger
+from prismasase import config
 from prismasase.configs import Auth
 from prismasase.exceptions import SASEBadRequest, SASEMissingParam
 from prismasase.restapi import prisma_request, retrieve_full_list
-from prismasase.utilities import reformat_exception
+from prismasase.utilities import (reformat_exception, reformat_url_type,
+                                  reformat_to_json, reformat_to_named_dict)
+from prismasase.statics import BASE_LIST_RESPONSE, FOLDER
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
 
 IPSEC_TUN_URL = "ipsec-tunnels"
+IPSEC_TUN_TYPE = reformat_url_type(IPSEC_TUN_URL)
 
 
 def ipsec_tunnel(ipsec_tunnel_name: str,  # pylint: disable=too-many-locals
@@ -138,7 +142,7 @@ def ipsec_tunnel_delete(ipsec_tunnel_id: str, folder: dict, **kwargs) -> dict:
     auth: Auth = return_auth(**kwargs)
     params = folder
     response = prisma_request(token=auth,
-                              url_type='ipsec-tunnels',
+                              url_type=config.REST_API_CALL.format(IPSEC_TUN_URL),
                               method='DELETE',
                               params=params,
                               delete_object=f'/{ipsec_tunnel_id}',
@@ -190,8 +194,9 @@ def ipsec_tun_get_all(folder: str, **kwargs) -> dict:
     response = retrieve_full_list(folder=folder,
                                   url_type=IPSEC_TUN_URL,
                                   auth=auth,
-                                  list_type=IPSEC_TUN_URL)
+                                  list_type=IPSEC_TUN_TYPE)
     return response
+
 
 def ipsec_tunnel_get_name_list(folder: str, **kwargs) -> list:
     """Returns a list of names of IPSec Tunnels provided the Folder
@@ -208,6 +213,7 @@ def ipsec_tunnel_get_name_list(folder: str, **kwargs) -> list:
     for tunnel in ipsec_tunnel_dict['data']:
         ipsec_tunnel_name_list.append(tunnel['name'])
     return ipsec_tunnel_name_list
+
 
 def ipsec_tun_get_dict_folder(folder: str, **kwargs) -> dict:
     """Returns a formated Folder Dictionary of IPSec Tunnels
@@ -226,6 +232,7 @@ def ipsec_tun_get_dict_folder(folder: str, **kwargs) -> dict:
     for tunnel in ipsec_tunnel_dict['data']:
         ipsec_tunnel_dict_by_folder[folder][tunnel['id']] = tunnel
     return ipsec_tunnel_dict_by_folder
+
 
 def ipsec_tun_get_by_name(folder: str, ipsec_tunnel_name: str, **kwargs) -> str:
     """Return the IPsec Tunnel ID for a provided name if exists
@@ -246,3 +253,48 @@ def ipsec_tun_get_by_name(folder: str, ipsec_tunnel_name: str, **kwargs) -> str:
             ipsec_id = tunnel['id']
             break
     return ipsec_id
+
+
+class IPSecTunnels:
+    """_summary_
+
+    Returns:
+        _type_: _description_
+    """
+    _parent_class = None
+    ipsec_tunnels_dict: dict = {}
+    ipsec_tunnels_names: dict = {}
+
+    def get_all(self) -> None:
+        """Gets all IPSec Tunnels in all loctions that one can exists;
+         will throw a warning if unable to retrieve configs for that
+         section and keeps an updated track fo the full list as well
+         as updates the parent.
+
+        Updates:
+            ipsec_tunnels_dict (dict): dictionary of IPSec Tunnel configurations
+            ipsec_tunnels_name (dict): a quick view of the listed names in each folder
+        """
+        full_response: dict = BASE_LIST_RESPONSE
+        folder_list = list(FOLDER)
+
+        for folder in folder_list:
+            response = ipsec_tun_get_all(folder=folder,
+                                         auth=self._parent_class.auth)  # type: ignore
+            if 'error' in response:
+                prisma_logger.warning(
+                    "Folder missing unable to retrieve information for %s", folder)
+                continue
+            full_response['data'] = full_response['data'] + response['data']
+            full_response['total'] = full_response['total'] + response['total']
+        self.ipsec_tunnels_dict = reformat_to_json(data=full_response['data'])
+        self.ipsec_tunnels_names = reformat_to_named_dict(data=self.ipsec_tunnels_dict,
+                                                          data_type='dict')
+        prisma_logger.info(
+            "Received a total of %s %s in %s", str(full_response['total']),
+            IPSEC_TUN_TYPE, ', '.join(list(self.ipsec_tunnels_dict)))
+        self._update_parent()
+
+    def _update_parent(self) -> None:
+        self._parent_class.ipsec_tunnels_dict = self.ipsec_tunnels_dict  # type: ignore
+        self._parent_class.ipsec_tunnels_names = self.ipsec_tunnels_names  # type: ignore

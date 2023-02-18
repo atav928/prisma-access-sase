@@ -17,7 +17,7 @@ from .service_setup.infra.infrastructure import InfrastructureSettings
 from .service_setup.ike.ike_crypto import IKE_CRYPTO_URL
 from .service_setup.ike.ike_gtwy import IKE_GWY_URL
 from .service_setup.ipsec.ipsec_crypto import IPSEC_CRYPTO_URL
-from .service_setup.ipsec.ipsec_tun import IPSEC_TUN_URL
+from .service_setup.ipsec.ipsec_tun import IPSEC_TUN_URL, IPSecTunnels
 
 # Objects
 from .policy_objects.address_grps import AddressGroups
@@ -79,7 +79,8 @@ class API:  # pylint: disable=too-many-instance-attributes
     locations_list: list = []
     regions_list: list = []
     ipsec_crypto: dict = {}
-    ipsec_tunnels: dict = {}
+    ipsec_tunnels_dict: dict = {}
+    ipsec_tunnels_names: dict = {}
     ike_crypto: dict = {}
     ike_gateways: dict = {}
 
@@ -123,6 +124,7 @@ class API:  # pylint: disable=too-many-instance-attributes
         self.infrastructure_settings = subclasses["infrastructure_settings"]()
         self.configuration_management = subclasses["configuration_management"]()
         self.qos_profiles = subclasses["qos_profiles"]()
+        self.ipsec_tunnels = subclasses["ipsec_tunnels"]()
 
     @property
     def folder(self):
@@ -248,5 +250,10 @@ class API:  # pylint: disable=too-many-instance-attributes
             def __init__(self):
                 self._parent_class = _parent_class
         return_object["qos_profiles"] = QoSProfileWrapper
+
+        class IPSecTunnelsWrapper(IPSecTunnels):
+            def __init__(self):
+                self._parent_class = _parent_class
+        return_object["ipsec_tunnels"] = IPSecTunnelsWrapper
 
         return return_object
