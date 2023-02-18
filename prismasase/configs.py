@@ -129,6 +129,7 @@ class Config:
         "url-categories": f"{URL_BASE}/url-categories",
         "url-filtering-categories": f"{URL_BASE}/url-filtering-categories"
     }
+    REST_API_CALL = "https://api.sase.paloaltonetworks.com/sse/config/v1/{}"
     LIMIT: int = int(os.environ.get("LIMIT", "100"))
     OFFSET: int = int(os.environ.get("OFFSET", "0"))
     LOGGING = os.environ.get("PRISMSASE_LOGGING", "DEBUG")

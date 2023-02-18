@@ -193,6 +193,7 @@ class ServiceConnections:
         """Create a Service Connector
 
         Args:
+            # Secondary
             backup_sc, String (255)
             sec_bgp_enabled, String (255)
             sec_bgp_peer, String (255)
@@ -241,9 +242,10 @@ class ServiceConnections:
             ike_local_id, String (255)
             ike_local_id_type, String (255)
 
-            service_connection_name, String (255)
-            nat_pool, String (255)
-            onboarding_type, String (255)
+            # Base
+            service_connection_name, (str|Required): Service Connection Name
+            nat_pool ()
+            onboarding_type (str): Current only supported value is "classic". Defautl "classic"
             bgp_no_export_community, String (255)
             bgp_enabled, String (255)
             bgp_do_not_export_routes, String (255)
@@ -260,28 +262,30 @@ class ServiceConnections:
             region, String (255)
 
             source_nat, String (255)
-            subnets, String (255)
+            subnets (list): Static routes to add to Service Connector
         """
         try:
             backup_sc: str = kwargs.pop("backup_sc") if kwargs.get("backup_sc") else ""
             service_connection_name: str = kwargs.pop('service_connection_name')
             # Check if ipsec_tunnel exists
             ipsec_tunnel: str = kwargs.pop('ipsec_tunnel') if kwargs.get(
-                'ipsec_tunel') else f"ipsec-tunnel-{name}"
+                'ipsec_tunel') else f"ipsec-tunnel-{service_connection_name}"
             region: str = kwargs.pop('region')
+            onboarding_type: str = kwargs.pop('onboarding_type', "classic")
+            subnets: list = kwargs.pop('subnets', [])
         except KeyError as err:
             error = reformat_exception(error=err)
             prisma_logger.error("SASEMissingParam: %s", error)
             raise SASEMissingParam(f"message=\"missing required param\"|param={str(err)}")
-        # Ensure all current configs are updated and verify
-        if name in self.service_connection_names:
-            prisma_logger.error(
-                "SASEObjectExists: Service Connection %s already exists; use update", name)
-            raise SASEObjectExists(f"Service Connection {name} already exists; use update")
+        # Get latest update of service connections
         self.get_all()
+        # Ensure all current configs are updated and verify
+        if service_connection_name in self.service_connection_names:
+            prisma_logger.error(
+                "SASEObjectExists: Service Connection %s already exists; use update", service_connection_name)
+            raise SASEObjectExists(f"Service Connection {service_connection_name} already exists; use update")
         # need to confirm locations are correct
-        if not self._parent_class.locations:  # type: ignore
-            self._parent_class.get_locations()  # type: ignore
+        self._location_check()
 
         # Check for valid region being specified
         if region not in self._parent_class.regions_list:  # type: ignore
