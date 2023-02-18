@@ -1084,6 +1084,7 @@ dict_keys(['Shared', 'Remote Networks'])
     * Locations
 * Fixed bug with Security Rulebase retrieval; need to update process to retrieve entire rules
 * Added IPSec Tunnel functionality into API tool
+* Added IPSec Crypto functionality into API tool
 
 #### version 0.2.8
 

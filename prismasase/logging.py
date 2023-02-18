@@ -20,6 +20,11 @@ LOGVALUE = {
 
 
 class LogValue(Enum):
+    """logging
+
+    Args:
+        Enum (_type_): _description_
+    """
     NOTSET = 0
     DEBUG = 10
     INFO = 20

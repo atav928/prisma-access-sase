@@ -1,4 +1,4 @@
-# pylint: disable=no-member
+# pylint: disable=no-member,too-few-public-methods
 """IPSec Utilities"""
 
 import ipaddress
@@ -256,7 +256,7 @@ def ipsec_tun_get_by_name(folder: str, ipsec_tunnel_name: str, **kwargs) -> str:
 
 
 class IPSecTunnels:
-    """_summary_
+    """IPSec Tunnels Subclass
 
     Returns:
         _type_: _description_
