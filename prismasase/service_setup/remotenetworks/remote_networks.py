@@ -693,7 +693,7 @@ class RemoteNetworks:
         self._update_parent_ike_gateways()
 
     def _update_parent_ike_gateways(self) -> None:
-        self._parent_class.ike_gateways.update(  # type: ignore
+        self._parent_class.ike_gateways_dict.update(  # type: ignore
             {self._remote_network: self.ike_gateways[self._remote_network]})
 
     def get_ike_crypto(self):

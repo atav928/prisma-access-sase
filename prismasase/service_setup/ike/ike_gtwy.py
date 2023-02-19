@@ -9,12 +9,14 @@ from prismasase.configs import Auth
 from prismasase.exceptions import (SASEBadParam, SASEBadRequest, SASEMissingParam)
 from prismasase.restapi import (prisma_request, retrieve_full_list)
 from prismasase.statics import DYNAMIC, FOLDER
-from prismasase.utilities import (reformat_exception, set_bool)
+from prismasase.utilities import (reformat_exception, reformat_to_json,
+                                  reformat_to_named_dict, reformat_url_type, set_bool)
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
 
 IKE_GWY_URL = 'ike-gateways'
+IKE_GWY_TYPE = reformat_url_type(IKE_GWY_URL)
 
 
 def ike_gateway(pre_shared_key: str,
@@ -358,3 +360,48 @@ def ike_gateway_get_by_name(ike_gateway_name: str, folder: str, **kwargs) -> str
             ike_gateway_id = gateway['id']
             prisma_logger.info("Found %s in %s", ike_gateway_name, folder)
     return ike_gateway_id
+
+
+class IKEGateways:
+    """_summary_
+    """
+    _parent_class = None
+    ike_gateways_dict: dict = {}
+    ike_gateway_name: dict = {}
+
+    def get_all(self) -> None:
+        """Gets all IKE Gateway Profiles in all loctions that one can exists;
+         will throw a warning if unable to retrieve configs for that
+         section and keeps an updated track fo the full list as well
+         as updates the parent.
+
+        Updates:
+            ike_crypto_profiles (dict): dictionary of IPSec Crypto Profiles
+            ipsec_crypto_name (dict): a 
+        """
+        full_response: dict = self._parent_class.base_list_response  # type: ignore
+        for folder in self._parent_class.FOLDERS:  # type: ignore
+            response = ike_gateway_list(folder=FOLDER[folder],
+                                        auth=self._parent_class.auth)  # type: ignore
+            if 'error' in response:
+                prisma_logger.warning(
+                    "Folder missing unable to retireve information for %s", folder)
+                continue
+            full_response['data'] = full_response['data'] + response['data']
+            full_response['total'] = full_response['total'] + response['total']
+            prisma_logger.debug("Current full_response=%s", full_response)
+            prisma_logger.debug("Current total %s current folders %s",
+                                full_response['total'], folder)
+        self.ike_gateways_dict = reformat_to_json(data=full_response['data'])
+        prisma_logger.debug("response from refomat to json %s",
+                            ', '.join(list(self.ike_gateways_dict)))
+        self.ike_gateway_name = reformat_to_named_dict(data=self.ike_gateways_dict,
+                                                       data_type='dict')
+        prisma_logger.info(
+            "Received a total of %s %s in %s", str(full_response['total']),
+            IKE_GWY_TYPE, ', '.join(list(self.ike_gateways_dict)))
+        self._update_parent()
+
+    def _update_parent(self) -> None:
+        self._parent_class.ike_gateways_dict = self.ike_gateways_dict  # type: ignore
+        self._parent_class.ike_gateway_names = self.ike_gateway_name  # type: ignore

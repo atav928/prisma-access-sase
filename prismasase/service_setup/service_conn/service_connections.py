@@ -346,7 +346,7 @@ class ServiceConnections:
         self._update_parent_ike_gateways()
 
     def _update_parent_ike_gateways(self):
-        self._parent_class.ike_gateways.update(  # type: ignore
+        self._parent_class.ike_gateways_dict.update(  # type: ignore
             {self._service_connections: self.ike_gateways[self._service_connections]})
 
     def get_ike_crypto(self):

@@ -16,7 +16,7 @@ from .service_setup.remotenetworks.remote_networks import RemoteNetworks
 from .service_setup.service_conn.service_connections import ServiceConnections
 from .service_setup.infra.infrastructure import InfrastructureSettings
 from .service_setup.ike.ike_crypto import IKE_CRYPTO_URL, IKECryptoProfiles
-from .service_setup.ike.ike_gtwy import IKE_GWY_URL
+from .service_setup.ike.ike_gtwy import IKE_GWY_URL, IKEGateways
 from .service_setup.ipsec.ipsec_crypto import (IPSEC_CRYPTO_URL, IPSecCryptoProfiles)
 from .service_setup.ipsec.ipsec_tun import (IPSEC_TUN_URL, IPSecTunnels)
 
@@ -85,7 +85,8 @@ class API:  # pylint: disable=too-many-instance-attributes
     ipsec_tunnels_dict: dict = {}
     ipsec_tunnels_names: dict = {}
     ike_crypto: dict = {}
-    ike_gateways: dict = {}
+    ike_gateways_dict: dict = {}
+    ike_gateway_names: dict = {}
     """Special Configuration Parameters"""
 
     address_obj: dict = {}
@@ -126,6 +127,7 @@ class API:  # pylint: disable=too-many-instance-attributes
         self.ipsec_tunnels = subclasses["ipsec_tunnels"]()
         self.ipsec_crypto_profiles = subclasses["ipsec_crypto_profiles"]()
         self.ike_crypto_profiles = subclasses["ike_crypto_profiles"]()
+        self.ike_gateways = subclasses["ike_gateways"]()
 
     @property
     def folder(self):
@@ -197,7 +199,7 @@ class API:  # pylint: disable=too-many-instance-attributes
         self._folder = kwargs["folder"] if kwargs.get("folder") else self._folder
         self._position = kwargs["position"] if kwargs.get("position") else self._position
 
-    def _subclass_container(self):
+    def _subclass_container(self):  # pylint: disable=too-many-locals
         """
         Call subclasses via function to allow passing parent namespace to subclasses.
 
@@ -266,5 +268,10 @@ class API:  # pylint: disable=too-many-instance-attributes
             def __init__(self):
                 self._parent_class = _parent_class
         return_object["ike_crypto_profiles"] = IKECryptoProfilesWrapper
+
+        class IKEGatewaysWrapper(IKEGateways):
+            def __init__(self):
+                self._parent_class = _parent_class
+        return_object["ike_gateways"] = IKEGatewaysWrapper
 
         return return_object
