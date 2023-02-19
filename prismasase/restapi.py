@@ -230,4 +230,4 @@ def infra_request(payload: dict, token: str, ) -> dict:
                                 headers=headers,
                                 data=json.dumps(payload),
                                 timeout=120)
-    return response
+    return response.json()
