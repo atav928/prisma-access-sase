@@ -1036,6 +1036,7 @@ dict_keys(['Shared', 'Remote Networks'])
 | **0.2.7** | **hotfix** | missing url_type in remote networks delete |
 | **0.2.8** | **final** | adjusted requirements due to some confilicts in ohter projects |
 | **0.2.10** | **a9** | adding ipsec tunnel to help build connectors into api |
+| **0.2.10** | **a10** | added ike functinality into api and found bug filed with PA see below |
 
 ### Known Bugs/Futue Features
 
@@ -1085,6 +1086,8 @@ dict_keys(['Shared', 'Remote Networks'])
 * Fixed bug with Security Rulebase retrieval; need to update process to retrieve entire rules
 * Added IPSec Tunnel functionality into API tool
 * Added IPSec Crypto functionality into API tool
+* Bug in IKE Crypto Profile that is returning incorrect issue. Filed the issue with Palo Alto [github bug 274](https://github.com/PaloAltoNetworks/pan.dev/issues/274)
+* Added IKE Crypt functionality into API tool
 
 #### version 0.2.8
 

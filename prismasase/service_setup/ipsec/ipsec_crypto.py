@@ -46,6 +46,7 @@ def ipsec_crypto_profiles_get_all(folder: str, **kwargs) -> dict:
     auth: Auth = return_auth(**kwargs)
     response = retrieve_full_list(folder=folder,
                                   url_type=IPSEC_CRYPTO_URL,
+                                  list_type=IPSEC_CRYPTO_TYPE,
                                   auth=auth)
     return response
 

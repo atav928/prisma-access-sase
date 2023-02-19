@@ -1,8 +1,11 @@
 """Utilities"""
 import secrets
+from collections.abc import Callable
+from prismasase.configs import Auth
+
 
 from prismasase.exceptions import SASEIncorrectParam
-from prismasase.statics import FOLDER
+from prismasase.statics import BASE_LIST_RESPONSE, FOLDER
 
 
 def gen_pre_shared_key(length: int = 24) -> str:

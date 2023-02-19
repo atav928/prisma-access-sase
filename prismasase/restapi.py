@@ -160,12 +160,7 @@ def retrieve_full_list(folder: str, url_type: str, **kwargs) -> dict:
         params.update({'position': kwargs['position']})
     data = []
     count = 0
-    response = {
-        "data": [],
-        "offset": 0,
-        "total": 0,
-        "limit": 0
-    }
+    response = BASE_LIST_RESPONSE
     prisma_logger.info("Retrieving a list of all %s from folder %s", list_type, folder)
     while (len(data) < response["total"]) or count == 0:
         try:
@@ -177,15 +172,40 @@ def retrieve_full_list(folder: str, url_type: str, **kwargs) -> dict:
             data = data + response["data"]
             params = {**params, **{"offset": params["offset"] + params["limit"]}}
             count += 1
-            prisma_logger.debug("Retrieved count=%s with data of %s", count, response['data'])
+            prisma_logger.debug("Retrieving total=%s on count=%s with data of %s",
+                                response['total'], count, response['data'])
         except Exception as err:
             error = reformat_exception(error=err)
             prisma_logger.error("Unable to get %s data error=%s", list_type, error)
             return {'error': error}
-    response['data'] = data
+    # due to bug need to make sure the folder is correct before passing response
+    response['data'] = bug_274_fix_ensure_folder(folder=folder, data=data)
     prisma_logger.info("Retrieved List of all %s in Folder=%s total=%s",
                        list_type, folder, response["total"])
     return response
+
+
+def bug_274_fix_ensure_folder(folder: str, data: list) -> list:
+    """See https://github.com/PaloAltoNetworks/pan.dev/issues/274 pushing
+     response through verification to ensure that the folder is
+      correct otherwise it causes issues down the line if you don't get
+       the correct response. Pending resolution of issue or explaintion.
+        Till then pass the response through this to ensure consistency.
+
+    Args:
+        folder (str): folder location
+        data (list): List of dictionary data response from API call
+
+    Returns:
+        list: _description_
+    """
+    for _ in data:
+        if _['folder'] != folder:
+            prisma_logger.error(
+                "Palo Alto SASE returning incorrect folder location; expected %s, recieved %s",
+                folder, _['folder'])
+            _['folder'] = folder
+    return data
 
 
 def infra_request(payload: dict, token: str, ) -> dict:
@@ -208,5 +228,6 @@ def infra_request(payload: dict, token: str, ) -> dict:
     response = requests.request(method="POST",
                                 url=url,
                                 headers=headers,
-                                data=json.dumps(payload))
+                                data=json.dumps(payload),
+                                timeout=120)
     return response

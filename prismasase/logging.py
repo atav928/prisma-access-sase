@@ -75,11 +75,11 @@ class RotatingLog:
 
     def __init__(self, name: str,
                  logName: str = 'sample.log',
-                 logDir: str= None,
+                 logDir: str= '',
                  maxBytes: int = 5242990,
                  backupCount: int = 5,
                  mode: str = 'a',
-                 level: str = 'INFO',
+                 level: str = "INFO",
                  stream: bool = True):
         """ Creates an instance for each new Rotating Logger"""
         logDir = logDir if logDir else set_logdir()
