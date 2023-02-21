@@ -203,8 +203,15 @@ class IKECryptoProfiles:
         """Create IKE Crypto
 
         Args:
-            folder (str): _description_
-            ike_crypto_name (str): _description_
+            folder (str): Folder location
+            ike_crypto_name (str): Name of Crypto Profile
+            authentication_multiple (int):
+            dh_group (list): Possible values ["group1", "group2",
+                "group5", "group14", "group19", "group20"]
+            encryption (list): Possible values ["des", "3des", "aes-128-cbc",
+                "aes-192-cbc", "aes-256-cbc", "aes-128-gcm", "aes-256-gcm"]
+            ike_hash (list): Possible Values ["md5", "sha1", "sha256", "sha384", "sha512"]
+            lifetime (Dict[str,int]): Defaults {"hours": 8}
 
         Raises:
             SASEObjectExists: _description_
@@ -225,11 +232,51 @@ class IKECryptoProfiles:
                                   params=params,
                                   verify=self._parent_class.auth.verify)  # type: ignore
         if '_errors' in response:
-            prisma_logger.error("SASEBadRequest: %s", orjson.dumps( # pylint: disable=no-member
+            prisma_logger.error("SASEBadRequest: %s", orjson.dumps(  # pylint: disable=no-member
                 response).decode('utf-8'))
             raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
         prisma_logger.info("Created IKE Crypto Profile %s",
                            ike_crypto_name)
+        self.get_all()
+
+    def update(self, folder: str, ike_crypto_id: str, **kwargs) -> None:
+        """Updates IKE Crypto Profile
+
+        Args:
+            folder (str): Location of IKE Crypto to update
+            ike_crypto_id (str): ID of IKE Crypto to Update
+            authentication_multiple (int):
+            dh_group (list): Possible values ["group1", "group2",
+                "group5", "group14", "group19", "group20"]
+            encryption (list): Possible values ["des", "3des", "aes-128-cbc",
+                "aes-192-cbc", "aes-256-cbc", "aes-128-gcm", "aes-256-gcm"]
+            ike_hash (list): Possible Values ["md5", "sha1", "sha256", "sha384", "sha512"]
+            lifetime (Dict[str,int]): Defaults {"hours": 8}
+        Raises:
+            SASEBadParam: _description_
+            SASEBadRequest: _description_
+        """
+        # verify ike_crypto_id exists
+        self.get_all()
+        if ike_crypto_id not in self.ike_crypto_profiles.get(folder, []):
+            prisma_logger.error("Invalid IKE Crypto ID %s", ike_crypto_id)
+            raise SASEBadParam(f"{ike_crypto_id=} is invalid")
+        data = ike_crypto_payload(
+            ike_crypto_name=self.ike_crypto_profiles[folder][ike_crypto_id]['name'],
+            **kwargs)
+        response = prisma_request(token=self._parent_class.auth,  # type: ignore
+                                  url_type=IKE_CRYPTO_URL,
+                                  method="PUT",
+                                  put_object=f"/{ike_crypto_id}",
+                                  params=FOLDER[folder],
+                                  data=json.dumps(data),
+                                  verify=self._parent_class.auth.verify)  # type: ignore
+        if '_errors' in response:
+            prisma_logger.error("SASEBadRequest: %s", orjson.dumps(  # pylint: disable=no-member
+                response).decode('utf-8'))
+            raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
+        prisma_logger.info("Updated IKE Crypto Profile %s",
+                           ike_crypto_id)
         self.get_all()
 
     def _update_parent(self) -> None:

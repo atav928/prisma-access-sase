@@ -1037,7 +1037,8 @@ dict_keys(['Shared', 'Remote Networks'])
 | **0.2.8** | **final** | adjusted requirements due to some confilicts in ohter projects |
 | **0.2.10** | **a9** | adding ipsec tunnel to help build connectors into api |
 | **0.2.10** | **a10** | added ike functinality into api and found bug filed with PA see below |
-| **0.2.11** | **a11** | added api functionality to gather ike gateway information |
+| **0.2.10** | **a11** | added api functionality to gather ike gateway information |
+| **0.2.1** | **a12** | updated configuration management api to support rollback directly; updates to IKE to allow creation and manipulation of IKE Crypto and IKE Gateways |
 
 ### Known Bugs/Futue Features
 
@@ -1089,7 +1090,7 @@ dict_keys(['Shared', 'Remote Networks'])
 * Added IPSec Crypto functionality into API tool
 * Bug in IKE Crypto Profile that is returning incorrect issue. Filed the issue with Palo Alto [github bug 274](https://github.com/PaloAltoNetworks/pan.dev/issues/274)
 * Added IKE Crypt Profile functionality into API tool
-* Added IKE Gateway functionality into api toold
+* Added IKE Gateway functionality into api tool
 
 #### version 0.2.8
 
