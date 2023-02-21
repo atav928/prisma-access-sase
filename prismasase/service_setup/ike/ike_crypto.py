@@ -15,8 +15,8 @@ from prismasase.utilities import (reformat_to_json, reformat_to_named_dict, refo
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
 
-IKE_CRYPTO_URL = 'ike-crypto-profiles'
-IKE_CRYPTO_TYPE = reformat_url_type(IKE_CRYPTO_URL)
+IKE_CRYPTO_URL: str = 'ike-crypto-profiles'
+IKE_CRYPTO_TYPE: str = reformat_url_type(IKE_CRYPTO_URL)
 IKE_DH_GROUPS: list = ["group1", "group2", "group5", "group14", "group19", "group20"]
 IKE_ENCRYPT_VALUES: list = ["des", "3des", "aes-128-cbc",
                             "aes-192-cbc", "aes-256-cbc", "aes-128-gcm", "aes-256-gcm"]
