@@ -12,7 +12,6 @@ from prismasase import return_auth, logger
 from prismasase.configs import Auth
 from prismasase.exceptions import SASEBadParam, SASECommitError
 from prismasase.restapi import prisma_request, retrieve_full_list
-from prismasase.statics import FOLDER
 from prismasase.utilities import check_items_in_list
 
 logger.addLogger(__name__)
