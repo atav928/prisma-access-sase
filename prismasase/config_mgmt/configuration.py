@@ -46,11 +46,13 @@ def config_manage_rollback(**kwargs) -> dict:
         _type_: _description_
     """
     auth: Auth = return_auth(**kwargs)
+    prisma_logger.info("Rolling back cadidate configuration to runnning config")
     response = prisma_request(token=auth,
                               method='DELETE',
                               url_type='config-versions',
                               delete_object='/candidate',
                               verify=auth.verify)
+    prisma_logger.debug("Response=%s", orjson.dumps(response).decode('utf-8'))
     return response
 
 
@@ -357,7 +359,7 @@ class ConfigurationManagment:
     commit_response: dict = {}
     current_version: dict = {}
     version_info: list = []
-    running_config: dict = {}
+    running_config: list = []
     version_list: list = []
 
     def commit(self, folders: list, description: str) -> dict:
@@ -378,19 +380,26 @@ class ConfigurationManagment:
         self.version_info = response['version_info']
         return response
 
-    def show_run(self) -> dict:
+    def show_run(self) -> None:
         """_summary_
 
         Returns:
             dict: _description_
         """
         response = config_manage_show_run(auth=self._parent_class.auth)  # type: ignore
-        self.running_config = response
-        return response
+        self.running_config = response['data']
+        prisma_logger.info("Current Running configurations %s", self.running_config)
 
     def list_all_versions(self) -> None:
-        """_summary_
+        """List all versions and set current version to the last one in the array
         """
         response = config_manage_list_versions(auth=self._parent_class.auth) # type: ignore
         self.version_list = response['data']
+        self.current_version = response['data'][-1]
         prisma_logger.info("Retrieved a list of %s historical versions", str(response['total']))
+
+    def rollback(self) -> None:
+        """Rollback Cadidate configuration
+        """
+        response = config_manage_rollback(auth=self._parent_class.auth) # type: ignore
+        prisma_logger.info("Rolled back config %s", response)
