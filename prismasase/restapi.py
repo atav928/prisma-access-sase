@@ -200,10 +200,10 @@ def bug_274_fix_ensure_folder(folder: str, data: list) -> list:
         list: _description_
     """
     for _ in data:
-        if _['folder'] != folder:
+        if _.get('folder', "") != folder:
             prisma_logger.error(
                 "Palo Alto SASE returning incorrect folder location; expected %s, recieved %s",
-                folder, _['folder'])
+                folder, _.get('folder', "empty"))
             _['folder'] = folder
     return data
 
