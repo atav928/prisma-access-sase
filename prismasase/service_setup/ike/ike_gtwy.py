@@ -6,15 +6,18 @@ import orjson
 
 from prismasase import return_auth, logger
 from prismasase.configs import Auth
-from prismasase.exceptions import (SASEBadParam, SASEBadRequest, SASEMissingParam)
+from prismasase.exceptions import (SASEBadParam, SASEBadRequest,
+                                   SASEMissingIkeOrIpsecProfile, SASEMissingParam, SASEObjectExists)
 from prismasase.restapi import (prisma_request, retrieve_full_list)
 from prismasase.statics import DYNAMIC, FOLDER
-from prismasase.utilities import (reformat_exception, set_bool)
+from prismasase.utilities import (reformat_exception, reformat_to_json,
+                                  reformat_to_named_dict, reformat_url_type, set_bool)
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
 
 IKE_GWY_URL = 'ike-gateways'
+IKE_GWY_TYPE = reformat_url_type(IKE_GWY_URL)
 
 
 def ike_gateway(pre_shared_key: str,
@@ -113,17 +116,14 @@ def ike_gateway_update(ike_gateway_id: str, folder: dict, **kwargs) -> dict:
             prisma_logger.error("Missing needed value error=%s", error)
             raise SASEMissingParam(f"message=\"missing IKE parameter\"|{error=}")
     prisma_logger.info("Updating IKE Gateway: %s", data['name'])
-    # print(f"INFO: Updating IKE Gateway: {data['name']}")
-    # print(f"DEBUG: Updating IKE Gateway Using data={json.dumps(data)}")
     params = folder
     response = prisma_request(token=auth,
                               method='PUT',
-                              url_type='ike-gateways',
+                              url_type=IKE_GWY_URL,
                               data=json.dumps(data),
                               params=params,
                               verify=auth.verify,
                               put_object=f'/{ike_gateway_id}')
-    # print(f"DEBUG: response={response}")
     if '_errors' in response:
         prisma_logger.error("SASEBadRequest: %s", orjson.dumps(response).decode('utf-8'))
         raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
@@ -131,19 +131,35 @@ def ike_gateway_update(ike_gateway_id: str, folder: dict, **kwargs) -> dict:
 
 
 def ike_gateway_create(folder: dict, **kwargs) -> dict:
-    """_summary_
+    """Create new IKE Gateway in specified Folder location.
+    Please use format "ike-gw-<remote_network_name>" or "ike-gw-<sc-name>" to help identify.
+    Otherwise the default is a random gateway name that may be confusing.
 
     Args:
-        data (dict): ike configuration payload
-        folder (dict) : folder location for creating IKE Gatewa
-        pre_shared_key (str): pre-shared-key used for IKE Gateway
-        ike_crypto_profile (str): name for IKE Crypto Profile
-        local_id_value (str): _description_
-        peer_id_value (str): _description_
-
+        data (dict): full json data of all the configurations passed directly
+        folder (dict) : folder location for creating IKE Gateway
+        ike_gateway_name (str): Required must be <= 63 characters
+        auth (Auth): Optional; send Authorization to Tenant directly.
+        peer_address_type (str): Peer Address type. Possible Values: ['dynamic', 'ip', 'fqdn'].
+            Default 'dynamic'
+        peer_address (str): Required if peer_address_type not set to 'dynamic'.
+            Requires a valid IP address or FQDN if not set to dynamic.
+        pre_shared_key (str): pre-shared-key; Currently required until Certificate Auth supported
+        local_id_type (str): Type of local ID Possible values: ['ipaddr', 'keyid', 'fqdn', 'ufqdn'].
+            Default 'ufqdn'
+        local_id_value (str): Value for local ID; if type not defined a ufqdn expected
+        peer_id_type (str): Type of peer id Possible values: ['ipaddr', 'keyid', 'fqdn', 'ufqdn'].
+            Default 'ufqdn'
+        peer_id_value (str): Peer ID value if type not specfiied a ufqdn expected
+        ike_crypto_profile (str): IKE Crypto Profile to use; must exist
+        passive_mode (bool): Enable Passive Mode. Default True
+        fragmentation (bool): Enable Fragmentation. Default True
+        nat_traversal (bool): Enable NAT Traversal. Default True
+        ike_protocol_version (str): Possible values: ['ikev2-preferred', 'ikev2', 'ikev1'].
+            Default 'ikev2-preferred'
 
     Raises:
-        SASEBadRequest: _description_
+        SASEBadRequest: Missing information or bad request tried to be sent
     """
     auth: Auth = return_auth(**kwargs)
     try:
@@ -162,12 +178,12 @@ def ike_gateway_create(folder: dict, **kwargs) -> dict:
         prisma_logger.error("SASEMissingParam: %s", error)
         raise SASEMissingParam(f"message=\"missing IKE parameter\"|{error=}")
     prisma_logger.info("Creating IKE Gateway: %s", data['name'])
-    # print(f"INFO: Creating IKE Gateway: {data['name']}")
-    # print(f"DEBUG: Creating IKE Gateway Using data={json.dumps(data)}")
+    prisma_logger.debug(
+        "Createing IKE Gateway with paylod %s", orjson.dumps(data).decode('utf-8'))
     params = folder
     response = prisma_request(token=auth,
                               method='POST',
-                              url_type='ike-gateways',
+                              url_type=IKE_GWY_URL,
                               data=json.dumps(data),
                               params=params,
                               verify=auth.verify)
@@ -183,14 +199,28 @@ def create_ike_gateway_payload(pre_shared_key: str,  # pylint: disable=too-many-
                                ike_gateway_name,
                                **kwargs) -> dict:
     """Creates IKE Gateway Payload used to create an IKE Gateway.
-    Uses format "ike-gw-<remote_network_name>"
+    Please use format "ike-gw-<remote_network_name>" or "ike-gw-<sc-name>" to help identify.
+    Otherwise the default is a random gateway name that may be confusing.
 
     Args:
-        pre_shared_key (str): _description_
-        local_fqdn (str): _description_
-        peer_fqdn (str): _description_
-        ike_crypto_profile (str): _description_
-
+        ike_gateway_name (str): Required must be <= 63 characters
+        peer_address_type (str): Peer Address type. Possible Values: ['dynamic', 'ip', 'fqdn'].
+            Default 'dynamic'
+        peer_address (str): Required if peer_address_type not set to 'dynamic'.
+            Requires a valid IP address or FQDN if not set to dynamic.
+        pre_shared_key (str): pre-shared-key; Currently required until Certificate Auth supported
+        local_id_type (str): Type of local ID Possible values: ['ipaddr', 'keyid', 'fqdn', 'ufqdn'].
+            Default 'ufqdn'
+        local_id_value (str): Value for local ID; if type not defined a ufqdn expected
+        peer_id_type (str): Type of peer id Possible values: ['ipaddr', 'keyid', 'fqdn', 'ufqdn'].
+            Default 'ufqdn'
+        peer_id_value (str): Peer ID value if type not specfiied a ufqdn expected
+        ike_crypto_profile (str): IKE Crypto Profile to use; must exist
+        passive_mode (bool): Enable Passive Mode. Default True
+        fragmentation (bool): Enable Fragmentation. Default True
+        nat_traversal (bool): Enable NAT Traversal. Default True
+        ike_protocol_version (str): Possible values: ['ikev2-preferred', 'ikev2', 'ikev1'].
+            Default 'ikev2-preferred'
     Returns:
         dict: data payload
     """
@@ -359,3 +389,187 @@ def ike_gateway_get_by_name(ike_gateway_name: str, folder: str, **kwargs) -> str
             ike_gateway_id = gateway['id']
             prisma_logger.info("Found %s in %s", ike_gateway_name, folder)
     return ike_gateway_id
+
+
+class IKEGateways:
+    """IKE Gateway Class ot manage IKE Gateway configurations
+    """
+    _parent_class = None
+    ike_gateways_dict: dict = {}
+    ike_gateway_name: dict = {}
+
+    def get(self) -> None:
+        """Gets all IKE Gateway Profiles in all loctions that one can exists;
+         will throw a warning if unable to retrieve configs for that
+         section and keeps an updated track fo the full list as well
+         as updates the parent.
+
+        Updates:
+            ike_crypto_profiles (dict): dictionary of IPSec Crypto Profiles
+            ipsec_crypto_name (dict): a 
+        """
+        full_response: dict = self._parent_class.base_list_response  # type: ignore
+        for folder in self._parent_class.FOLDERS:  # type: ignore
+            response = ike_gateway_list(folder=FOLDER[folder],
+                                        auth=self._parent_class.auth)  # type: ignore
+            if 'error' in response:
+                prisma_logger.warning(
+                    "Folder missing unable to retireve information for %s", folder)
+                continue
+            full_response['data'] = full_response['data'] + response['data']
+            full_response['total'] = full_response['total'] + response['total']
+            prisma_logger.debug("Current full_response=%s", full_response)
+            prisma_logger.debug("Current total %s current folders %s",
+                                full_response['total'], folder)
+        self.ike_gateways_dict = reformat_to_json(data=full_response['data'])
+        prisma_logger.debug("response from refomat to json %s",
+                            ', '.join(list(self.ike_gateways_dict)))
+        self.ike_gateway_name = reformat_to_named_dict(data=self.ike_gateways_dict,
+                                                       data_type='dict')
+        prisma_logger.info(
+            "Received a total of %s %s in %s", str(full_response['total']),
+            IKE_GWY_TYPE, ', '.join(list(self.ike_gateways_dict)))
+        self._update_parent()
+
+    def get_by_name(self, folder: str, ike_gateway_name: str) -> dict:
+        """Get IKE Gateway by Name
+
+        Args:
+            folder (str): _description_
+            ike_gateway_name (str): _description_
+
+        Raises:
+            SASEMissingParam: _description_
+
+        Returns:
+            dict: _description_
+        """
+        self.get()
+        gtwy_dict = {}
+        if ike_gateway_name in self.ike_gateway_name.get(folder, []):
+            for gateway in self.ike_gateways_dict[folder].values():
+                if ike_gateway_name == gateway['name']:
+                    gtwy_dict = gateway
+                    prisma_logger.info("Found IKE Gwy %s", ike_gateway_name)
+                    break
+        else:
+            prisma_logger.error("Unable to find IKE Gtwy %s", ike_gateway_name)
+            raise SASEMissingParam(f"Unable to find {ike_gateway_name=}")
+        return gtwy_dict
+
+    def delete(self, folder: str, ike_gateway_id: str = '', **kwargs) -> dict:
+        """Delete IKE Gateway
+
+        Args:
+            ike_gateway_id (str): _description_
+
+        Returns:
+            dict: _description_
+        """
+        ike_gateway_name: str = kwargs.pop('ike_gateway_name', '')
+        if ike_gateway_name:
+            ike_gateway_id = self.get_by_name(folder=folder, ike_gateway_name=ike_gateway_name)['id']
+            prisma_logger.info("Found IKE Gwy Name %s with ID: %s", ike_gateway_name, ike_gateway_id)
+        ike_gtwy_delete_response = ike_gateway_delete(
+            ike_gateway_id=ike_gateway_id,
+            folder=FOLDER[folder],
+            auth=self._parent_class.auth)  # type: ignore
+        prisma_logger.info("Deleted IKE Gateway ID %s in %s", ike_gateway_id, folder)
+        prisma_logger.debug("Deleted IKE Gateway %s", orjson.dumps(  # pylint: disable=no-member
+            ike_gtwy_delete_response).decode('utf-8'))
+        self.get()
+        return ike_gtwy_delete_response
+
+    def create(self, folder: str, pre_shared_key: str, ike_gateway_name: str,
+               ike_crypto_profile: str, **kwargs) -> dict:
+        """Create new IKE Gateway in specified Folder location.
+        Please use format "ike-gw-<remote_network_name>" or "ike-gw-<sc-name>" to help identify.
+        Otherwise the default is a random gateway name that may be confusing.
+
+        Args:
+            folder (dict) : folder location for creating IKE Gateway
+            ike_gateway_name (str): Required must be <= 63 characters
+            auth (Auth): Optional; send Authorization to Tenant directly.
+            peer_address_type (str): Peer Address type. Possible Values: ['dynamic', 'ip', 'fqdn'].
+                Default 'dynamic'
+            peer_address (str): Required if peer_address_type not set to 'dynamic'.
+                Requires a valid IP address or FQDN if not set to dynamic.
+            pre_shared_key (str): pre-shared-key; Currently required until Certificate Auth supported
+            local_id_type (str): Type of local ID Possible values: ['ipaddr', 'keyid', 'fqdn', 'ufqdn'].
+                Default 'ufqdn'
+            local_id_value (str): Value for local ID; if type not defined a ufqdn expected
+            peer_id_type (str): Type of peer id Possible values: ['ipaddr', 'keyid', 'fqdn', 'ufqdn'].
+                Default 'ufqdn'
+            peer_id_value (str): Peer ID value if type not specfiied a ufqdn expected
+            ike_crypto_profile (str): IKE Crypto Profile to use; must exist
+            passive_mode (bool): Enable Passive Mode. Default True
+            fragmentation (bool): Enable Fragmentation. Default True
+            nat_traversal (bool): Enable NAT Traversal. Default True
+            ike_protocol_version (str): Possible values: ['ikev2-preferred', 'ikev2', 'ikev1'].
+                Default 'ikev2-preferred'
+
+        Raises:
+            SASEBadRequest: Missing information or bad request tried to be sent
+        """
+        # check if already exists
+        self.get()
+        if ike_gateway_name in self._parent_class.ike_gateway_names.get(folder, []):  # type: ignore
+            prisma_logger.error(
+                "SASEObjectExists: IKE Gateway %s Exists in folder %s. Please use update",
+                ike_gateway_name, folder)
+            raise SASEObjectExists(f"{ike_gateway_name=} exists")
+        # check if crypto profile exists
+        self._parent_class.ike_crypto_profiles.get()  # type: ignore
+        if ike_crypto_profile not in self._parent_class.ike_crypto_names.get.get(  # type: ignore
+                folder, []):
+            prisma_logger.error(
+                "SASEMissingIkeOrIpsecProfile: IKE Crypo Profile %s does not exist please create profile",
+                ike_crypto_profile)
+            raise SASEMissingIkeOrIpsecProfile(f"missing {ike_crypto_profile=}")
+        # does not support direct passage of data that can be for later
+        response = ike_gateway_create(folder=FOLDER[folder],
+                                      ike_gateway_name=ike_gateway_name,
+                                      pre_shared_key=pre_shared_key,
+                                      ike_crypto_profile=ike_crypto_profile,
+                                      auth=self._parent_class.auth,  # type: ignore
+                                      **kwargs)
+        prisma_logger.info("Successfully created %s in location %s", ike_gateway_name, folder)
+        prisma_logger.debug("Full response from POST: %s", orjson.dumps(response).decode('utf-8'))
+        # update with new IKE Gateway
+        self.get()
+        return response
+
+    def update(self, ike_gateway_id: str, folder: str, **kwargs) -> dict:
+        """Updates an existing IKE Gateway based on the ID
+
+        Args:
+            ike_gateway_id (str): _description_
+            auth (Auth): if provided used otherwise new one created
+            data (dict): ike configuration payload
+            folder (str) : folder location for creating IKE Gateway
+            pre_shared_key (str): pre-shared-key used for IKE Gateway
+            ike_crypto_profile (str): name for IKE Crypto Profile
+            local_id_value (str): _description_
+            peer_id_value (str): _description_
+
+        Raises:
+            SASEBadRequest: Bad request created
+        """
+        # check if id is valid
+        self.get()
+        if ike_gateway_id not in list(self.ike_gateways_dict.get(folder, [])):
+            prisma_logger.error("IKE Gateway ID %s does not exist", ike_gateway_id)
+            raise SASEBadParam(f"unkown {ike_gateway_id=}")
+        response = ike_gateway_update(ike_gateway_id=ike_gateway_id,
+                                      folder=FOLDER[folder],
+                                      auth=self._parent_class.auth,  # type: ignore
+                                      **kwargs)
+        prisma_logger.info("Updated IKE Gateway ID: %s", ike_gateway_id)
+        prisma_logger.debug("Updated IKE Gateway ID %s with: %s", ike_gateway_id,
+                            orjson.dumps(response).decode('utf-8'))
+        self.get()
+        return response
+
+    def _update_parent(self) -> None:
+        self._parent_class.ike_gateways_dict = self.ike_gateways_dict  # type: ignore
+        self._parent_class.ike_gateway_names = self.ike_gateway_name  # type: ignore

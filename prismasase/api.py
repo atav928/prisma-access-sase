@@ -5,6 +5,7 @@ from prismasase import logger, return_auth
 from prismasase.config_mgmt.configuration import ConfigurationManagment
 from prismasase.policy_objects.tags import Tags
 from prismasase.service_setup.qos_profile import QoSProfiles
+from prismasase.statics import BASE_LIST_RESPONSE
 
 from .utilities import default_params
 from ._version import __version__
@@ -14,10 +15,10 @@ from .service_setup import locations
 from .service_setup.remotenetworks.remote_networks import RemoteNetworks
 from .service_setup.service_conn.service_connections import ServiceConnections
 from .service_setup.infra.infrastructure import InfrastructureSettings
-from .service_setup.ike.ike_crypto import IKE_CRYPTO_URL
-from .service_setup.ike.ike_gtwy import IKE_GWY_URL
-from .service_setup.ipsec.ipsec_crypto import IPSEC_CRYPTO_URL
-from .service_setup.ipsec.ipsec_tun import IPSEC_TUN_URL
+from .service_setup.ike.ike_crypto import IKE_CRYPTO_URL, IKECryptoProfiles
+from .service_setup.ike.ike_gtwy import IKE_GWY_URL, IKEGateways
+from .service_setup.ipsec.ipsec_crypto import (IPSEC_CRYPTO_URL, IPSecCryptoProfiles)
+from .service_setup.ipsec.ipsec_tun import (IPSEC_TUN_URL, IPSecTunnels)
 
 # Objects
 from .policy_objects.address_grps import AddressGroups
@@ -66,30 +67,35 @@ class API:  # pylint: disable=too-many-instance-attributes
     version = None
     """Version string for use once Constructor created."""
 
-    params = None
-    """URL Types"""
     ike_gateways_url_type: str = IKE_GWY_URL
     ike_crypto_url_type: str = IKE_CRYPTO_URL
     ipsec_tunnel_url_type: str = IPSEC_TUN_URL
     ipsec_crypto_url_type: str = IPSEC_CRYPTO_URL
-    """Default Parameters"""
+    """URL Types"""
 
+    params = None
     base_list_response: dict = {}
     locations: dict = {}
     locations_list: list = []
     regions_list: list = []
-    ipsec_crypto: dict = {}
-    ipsec_tunnels: dict = {}
-    ike_crypto: dict = {}
-    ike_gateways: dict = {}
+    """Default Parameters"""
 
-    """Object Configurations"""
+    ipsec_crypto: dict = {}
+    ipsec_crypto_names: dict = {}
+    ipsec_tunnels_dict: dict = {}
+    ipsec_tunnels_names: dict = {}
+    ike_crypto: dict = {}
+    ike_gateways_dict: dict = {}
+    ike_gateway_names: dict = {}
+    """Special Configuration Parameters"""
+
     address_obj: dict = {}
     address_groups_obj: dict = {}
     tag_obj: dict = {}
+    """Object Configurations"""
 
-    """Policy"""
     security_rulebase: dict = {}
+    """Policy"""
 
     def __init__(self, **kwargs):
 
@@ -106,12 +112,7 @@ class API:  # pylint: disable=too-many-instance-attributes
         self._position = 'pre' if not kwargs.get('position') and not isinstance(
             kwargs.get('position'), str) else kwargs['position']
 
-        self.base_list_response = {
-            'data': [],
-            'offset': 0,
-            'total': 0,
-            'limit': 0
-        }
+        self.base_list_response = BASE_LIST_RESPONSE
         # Bind API method classes to this object
         subclasses = self._subclass_container()
         self.security_rules = subclasses["security_rules"]()
@@ -123,6 +124,10 @@ class API:  # pylint: disable=too-many-instance-attributes
         self.infrastructure_settings = subclasses["infrastructure_settings"]()
         self.configuration_management = subclasses["configuration_management"]()
         self.qos_profiles = subclasses["qos_profiles"]()
+        self.ipsec_tunnels = subclasses["ipsec_tunnels"]()
+        self.ipsec_crypto_profiles = subclasses["ipsec_crypto_profiles"]()
+        self.ike_crypto_profiles = subclasses["ike_crypto_profiles"]()
+        self.ike_gateways = subclasses["ike_gateways"]()
 
     @property
     def folder(self):
@@ -194,7 +199,7 @@ class API:  # pylint: disable=too-many-instance-attributes
         self._folder = kwargs["folder"] if kwargs.get("folder") else self._folder
         self._position = kwargs["position"] if kwargs.get("position") else self._position
 
-    def _subclass_container(self):
+    def _subclass_container(self):  # pylint: disable=too-many-locals
         """
         Call subclasses via function to allow passing parent namespace to subclasses.
 
@@ -248,5 +253,25 @@ class API:  # pylint: disable=too-many-instance-attributes
             def __init__(self):
                 self._parent_class = _parent_class
         return_object["qos_profiles"] = QoSProfileWrapper
+
+        class IPSecTunnelsWrapper(IPSecTunnels):
+            def __init__(self):
+                self._parent_class = _parent_class
+        return_object["ipsec_tunnels"] = IPSecTunnelsWrapper
+
+        class IPSecCryptoProfileWrapper(IPSecCryptoProfiles):
+            def __init__(self):
+                self._parent_class = _parent_class
+        return_object["ipsec_crypto_profiles"] = IPSecCryptoProfileWrapper
+
+        class IKECryptoProfilesWrapper(IKECryptoProfiles):
+            def __init__(self):
+                self._parent_class = _parent_class
+        return_object["ike_crypto_profiles"] = IKECryptoProfilesWrapper
+
+        class IKEGatewaysWrapper(IKEGateways):
+            def __init__(self):
+                self._parent_class = _parent_class
+        return_object["ike_gateways"] = IKEGatewaysWrapper
 
         return return_object

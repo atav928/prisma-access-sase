@@ -3,24 +3,26 @@
 import orjson
 
 from prismasase import return_auth, logger
-from prismasase.exceptions import SASEIncorrectParam, SASEMissingParam, SASEObjectExists
-from prismasase.service_setup.ike.ike_crypto import ike_crypto_get_dict_folder, ike_crypto_get_name_list, ike_crypto_profiles_get_all
+from prismasase.exceptions import (SASEIncorrectParam, SASEMissingParam, SASEObjectExists)
+from prismasase.service_setup.ike.ike_crypto import (
+    ike_crypto_get_name_list)
 from prismasase.service_setup.ike.ike_gtwy import (
     ike_gateway_delete, ike_gateway_get_by_name, ike_gateway_list)
-from prismasase.service_setup.ipsec.ipsec_crypto import ipsec_crypto_get_dict_folder, ipsec_crypto_get_name_list, ipsec_crypto_profiles_get_all
+from prismasase.service_setup.ipsec.ipsec_crypto import (
+    ipsec_crypto_get_name_list)
 from prismasase.service_setup.ipsec.ipsec_tun import (
-    ipsec_tun_get_all, ipsec_tun_get_by_name, ipsec_tun_get_dict_folder, ipsec_tunnel_delete,
-    ipsec_tunnel_get_name_list)
+    ipsec_tun_get_by_name, ipsec_tunnel_delete)
 from prismasase.statics import FOLDER, SERVICE_FOLDER
 from prismasase.configs import Auth
 from prismasase.restapi import (prisma_request, retrieve_full_list)
-from prismasase.utilities import reformat_exception, reformat_to_json, reformat_to_named_dict, remove_dups_from_list
-
-SERVICE_CONNECTION_URL = "service-connections"
-SERVICE_CONNECTION = "Service Connections"
+from prismasase.utilities import (reformat_exception, reformat_to_json,
+                                  reformat_url_type, remove_dups_from_list)
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
+
+SERVICE_CONNECTION_URL: str = "service-connections"
+SERVICE_CONNECTION_TYPE: str = reformat_url_type(SERVICE_CONNECTION_URL)
 
 
 class ServiceConnections:
@@ -31,13 +33,13 @@ class ServiceConnections:
     """
     _parent_class = None
 
-    _service_connections = SERVICE_CONNECTION
+    _service_connections = SERVICE_CONNECTION_TYPE
 
     url_type: str = SERVICE_CONNECTION_URL
     # required to be Shared so will always override parent
     svc_conn_folder_dict: dict = SERVICE_FOLDER
     service_connections: dict = {
-        SERVICE_CONNECTION: {}
+        SERVICE_CONNECTION_TYPE: {}
     }
     service_connection_names: list = []
     ipsec_crypto: dict = {}
@@ -47,21 +49,34 @@ class ServiceConnections:
     ike_crypto: dict = {}
     ike_crypto_names: list = []
     ike_gateways: dict = {}
-    ike_crypt_names: list = []
+    ike_gateway_name: list = []
 
-    def get_all(self) -> None:
-        """Gets all configurations associated with Service Connection
+    def _sync_ike_and_ipsec(self) -> None:
+        """Gets all configurations associated with Service Connection for
+         IKE Gateways, IKE Crypto Profiles, IPSec Tunnels, and IPSec Crypto Profiles
 
         Returns:
             None: updates internal Service Connection, IKE and IPSec Dicts
         """
-        self.get()
-        self.get_ike_crypto()
-        self.get_ike_gateways()
-        self.get_ipsec_crypto()
-        self.get_ipsec_tunnels()
+        # Get IKE & IPSec configurations
+        self._parent_class.ipsec_crypto_profiles.get()  # type: ignore
+        self._parent_class.ike_crypto_profiles.get()  # type: ignore
+        self._parent_class.ipsec_tunnels.get()  # type: ignore
+        self._parent_class.ike_gateways.get()  # type: ignore
+        self.ike_crypto[self._service_connections] = self._parent_class.ike_gateways_dict.get(  # type: ignore
+            self._service_connections, {})
+        self.ike_crypto_names = self._parent_class.ike_gateway_names.get(  # type: ignore
+            self._service_connections, [])
+        self.ipsec_crypto[self._service_connections] = self._parent_class.ipsec_crypto.get(  # type: ignore
+            self._service_connections, {})
+        self.ipsec_crypto_names = self._parent_class.ipsec_crypto_names.get(  # type: ignore
+            self._service_connections, [])  # type:ignore
+        self.ike_gateways = self._parent_class.ike_gateways_dict.get(  # type: ignore
+            self._service_connections, {})
+        self.ike_gateway_name = self._parent_class.ike_gateway_names.get(  # type: ignore
+            self._service_connections, [])
 
-    def get(self, return_values: bool = False):  # pylint: disable=inconsistent-return-statements
+    def get(self) -> None:
         """Get Service Connections
 
         Args:
@@ -70,12 +85,8 @@ class ServiceConnections:
             _type_: _description_
         """
         response = svc_connection_get(auth=self._parent_class.auth)  # type: ignore
-        # self.service_connections = reformat_to_json(data=response['data'])
+        # refresh IKE and IPSec configurations
         self._svc_conn_refresh(service_conn_list=response['data'])
-        # service_name_list = reformat_to_named_dict(data=response['data'], data_type='list')
-        # self.service_connection_names = service_name_list[self._service_connections]
-        if return_values:
-            return response
 
     def get_by_id(self, service_conn_id: str) -> dict:
         """Get Service Connection By ID
@@ -137,8 +148,9 @@ class ServiceConnections:
             auth=self._parent_class.auth)  # type: ignore
         prisma_logger.info("Deleted IKE Gateway %s", orjson.dumps(  # pylint: disable=no-member
             ike_gtwy_delete_response).decode('utf-8'))
-        self.get_ike_gateways()
-        self._update_parent_ike_gateways
+        # self.get_ike_gateways()
+        # self._update_parent_ike_gateways
+        self._sync_ike_and_ipsec()
 
     def delete_ipsec_tunnel(self, ipsec_tunnel_name) -> dict:
         """Delete Service Connector IPSec Tunnel by Name
@@ -157,62 +169,111 @@ class ServiceConnections:
             response = ipsec_tunnel_delete(
                 ipsec_tunnel_id=ipsec_tunnel_id, folder=self.svc_conn_folder_dict,
                 auth=self._parent_class.auth)  # type: ignore
-            self.get_ipsec_tunnels()
+            #self.get_ipsec_tunnels()
         # update current configs
-        self.get_ipsec_tunnels()
+        # self.get_ipsec_tunnels()
+        self._sync_ike_and_ipsec()
         return response
 
-    def get_ipsec_crypto(self):
-        """Get all Remote Network IPSec Crypto Profiles
-        """
-        prisma_logger.info("Gathering all IPSec Crypto Profiles in %s", self._service_connections)
-        self.ipsec_crypto = ipsec_crypto_get_dict_folder(
-            folder=self._service_connections, auth=self._parent_class.auth)  # type: ignore
-        self.ipsec_crypto_names = ipsec_crypto_get_name_list(
-            folder=self._service_connections, auth=self._parent_class.auth)  # type: ignore
-
-    def _update_parent_ipsec_crypt(self) -> None:
-        self._parent_class.ipsec_crypto.update(  # type: ignore
-            {self._service_connections: self.ipsec_crypto[self._service_connections]})
-
-    def get_ipsec_tunnels(self):
-        """Get a list of all IPSec Tunnels in Remote Network
-        """
-        prisma_logger.info("Gathering all IPsec Tunnels in %s", self._service_connections)
-        self.ipsec_tunnels = ipsec_tun_get_dict_folder(
-            folder=self._service_connections, auth=self._parent_class.auth)  # type: ignore
-        self.ipsec_tunnels_names = ipsec_tunnel_get_name_list(
-            folder=self._service_connections, auth=self._parent_class.auth)  # type: ignore
-        self._update_parent_ipsec_tunnels()
-
-    def _update_parent_ipsec_tunnels(self) -> None:
-        self._parent_class.ipsec_tunnels.update(  # type: ignore
-            {self._service_connections: self.ipsec_tunnels[self._service_connections]})
-
     def create(self, **kwargs):
-        """
-        Testing creation
+        """Create a Service Connector
+
+        Args:
+            # Secondary
+            backup_sc, String (255)
+            sec_bgp_enabled, String (255)
+            sec_bgp_peer, String (255)
+            sec_local_ip_address, String (255)
+            sec_local_ipv6_address, String (255)
+            sec_peer_ip_address, String (255)
+            sec_peer_ipv6_address, String (255)
+            same_as_primary, String (255)
+            sec_bgp_secret, String (255)
+            secondary_ipsec_tunnel_name, String (255)
+            sec_ike_gateway_name, String (255)
+            sec_ipsec_tunnel_name, String (255)
+            sec_ipsec_anti_replay, String (255)
+            sec_ipsec_crypto_profile, String (255)
+            sec_ike_gateway_name, String (255)
+            sec_monitor_ip, String (255)
+            sec_ipsec_copy_tos, String (255)
+            sec_ipsec_enable_gre_encapsulation, String (255)
+            sec_monitor_ip, String (255)
+            sec_ipsec_copy_tos, String (255)
+            sec_ipsec_enable_gre_encapsulation, String (255)
+            sec_ike_gateway_name, String (255)
+            sec_ike_authentication_pre_shared_key, String (255)
+            sec_ike_authentication_cert_allow_id_payload_mismatch, String (255)
+            sec_ike_authentication_cert_certificate_profile, String (255)
+            sec_ike_authentication_cert_local_certificate_name, String (255)
+            sec_ike_authentication_cert_strict_validation_revocation, String (255)
+            sec_ike_authentication_cert_use_management_as_source, String (255)
+            sec_ike_local_id, String (255)
+            sec_ike_local_id_type, String (255)
+
+            # Primary
+            ipsec_tunnel_name, String (255)
+            ipsec_anti_replay, String (255)
+            ipsec_crypto_profile, String (255)
+            monitor_ip, String (255)
+            ipsec_copy_tos, String (255)
+            ipsec_enable_gre_encapsulation, String (255)
+            ike_gateway_name, String (255)
+            ike_authentication_pre_shared_key, String (255)
+            ike_authentication_cert_allow_id_payload_mismatch, String (255)
+            ike_authentication_cert_certificate_profile, String (255)
+            ike_authentication_cert_local_certificate_name, String (255)
+            ike_authentication_cert_strict_validation_revocation, String (255)
+            ike_authentication_cert_use_management_as_source, String (255)
+            ike_local_id, String (255)
+            ike_local_id_type, String (255)
+
+            # Base
+            service_connection_name, (str|Required): Service Connection Name
+            nat_pool ()
+            onboarding_type (str): Current only supported value is "classic". Defautl "classic"
+            bgp_no_export_community, String (255)
+            bgp_enabled, String (255)
+            bgp_do_not_export_routes, String (255)
+            bgp_fast_failover, String (255)
+            bgp_local_ip_address, String (255)
+            bgp_originate_default_route, String (255)
+            bgp_peer_as, String (255)
+            bgp_peer_ip_address, String (255)
+            bgp_secret, String (255)
+            bgp_summarize_mobile_user_routes": True
+
+            qos_enable, String (255)
+            qos_profile, String (255)
+            region, String (255)
+
+            source_nat, String (255)
+            subnets (list): Static routes to add to Service Connector
         """
         try:
             backup_sc: str = kwargs.pop("backup_sc") if kwargs.get("backup_sc") else ""
-            name: str = kwargs.pop('name')
+            service_connection_name: str = kwargs.pop('service_connection_name')
             # Check if ipsec_tunnel exists
             ipsec_tunnel: str = kwargs.pop('ipsec_tunnel') if kwargs.get(
-                'ipsec_tunel') else f"ipsec-tunnel-{name}"
+                'ipsec_tunel') else f"ipsec-tunnel-{service_connection_name}"
             region: str = kwargs.pop('region')
+            onboarding_type: str = kwargs.pop('onboarding_type', "classic")
+            subnets: list = kwargs.pop('subnets', [])
         except KeyError as err:
             error = reformat_exception(error=err)
             prisma_logger.error("SASEMissingParam: %s", error)
             raise SASEMissingParam(f"message=\"missing required param\"|param={str(err)}")
+        # Get latest update of service connections
+        self.get()
         # Ensure all current configs are updated and verify
-        if name in self.service_connection_names:
+        if service_connection_name in self.service_connection_names:
             prisma_logger.error(
-                "SASEObjectExists: Service Connection %s already exists; use update", name)
-            raise SASEObjectExists(f"Service Connection {name} already exists; use update")
-        self.get_all()
+                "SASEObjectExists: Service Connection %s already exists; use update",
+                service_connection_name)
+            raise SASEObjectExists(
+                f"Service Connection {service_connection_name} already exists; use update")
         # need to confirm locations are correct
-        if not self._parent_class.locations:  # type: ignore
-            self._parent_class.get_locations()  # type: ignore
+        self._location_check()
 
         # Check for valid region being specified
         if region not in self._parent_class.regions_list:  # type: ignore
@@ -263,35 +324,6 @@ class ServiceConnections:
         self.service_connection_names = remove_dups_from_list(
             current_list=self.service_connection_names)
 
-    def get_ike_gateways(self):
-        """Get a list of all IPSec Tunnels in Remote Network
-        """
-        response = ike_gateway_list(folder=self.svc_conn_folder_dict,
-                                    auth=self._parent_class.auth)  # type: ignore
-        prisma_logger.info("Gathering all IKE Tunnels in %s", self._service_connections)
-        self.ike_gateways = reformat_to_json(data=response['data'])
-        self._update_parent_ike_gateways()
-
-    def _update_parent_ike_gateways(self):
-        self._parent_class.ike_gateways.update(  # type: ignore
-            {self._service_connections: self.ike_gateways[self._service_connections]})
-
-    def get_ike_crypto(self):
-        """Get all Remote Network IPSec Crypto Profiles
-        """
-        prisma_logger.info("Gathering all IKE Crypto Profiles in %s", self._service_connections)
-        self.ike_crypt_names = ike_crypto_get_name_list(
-            folder=self._service_connections, auth=self._parent_class.auth)  # type: ignore
-        self.ike_crypto = ike_crypto_get_dict_folder(
-            folder=self._service_connections, auth=self._parent_class.auth)  # type: ignore
-        prisma_logger.info("Found %s IKE Crypto Profiles in %s", len(
-            self.ike_crypt_names), self._service_connections)
-        self._update_parent_ike_crypto()
-
-    def _update_parent_ike_crypto(self) -> None:
-        self._parent_class.ike_crypto.update(  # type: ignore
-            {self._service_connections: self.ike_crypto[self._service_connections]})
-
 
 def svc_connection_get(**kwargs) -> dict:
     """Retrieves Service Connection Configurations
@@ -300,9 +332,9 @@ def svc_connection_get(**kwargs) -> dict:
         dict: _description_
     """
     auth: Auth = return_auth(**kwargs)
-    response = retrieve_full_list(folder="Service Connections",
-                                  url_type="service-connections",
-                                  list_type="Service Connections",
+    response = retrieve_full_list(folder=SERVICE_CONNECTION_TYPE,
+                                  url_type=SERVICE_CONNECTION_URL,
+                                  list_type=SERVICE_CONNECTION_TYPE,
                                   auth=auth)
     prisma_logger.info("Retrieved TSG=%s Infrastructure Configurations", auth.tsg_id)
     return response
@@ -322,13 +354,13 @@ def svc_connection_get_by_id(service_conn_id: str, **kwargs):
                               method="GET",
                               get_object=f"/{service_conn_id}",
                               url_type=SERVICE_CONNECTION_URL,
-                              params=FOLDER["Service Connections"],
+                              params=FOLDER[SERVICE_CONNECTION_TYPE],
                               verify=auth.verify)
     prisma_logger.info("Retrieved Service Connection ID %s", service_conn_id)
     return response
 
 
-def svc_connection_payload():
+def svc_connection_payload(**kwargs):
     """_summary_
 
     Sample Body:

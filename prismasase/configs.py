@@ -94,6 +94,7 @@ class Config:
     TSG = os.environ.get("TSG", "")
     CLIENT_ID = os.environ.get("CLIENT_ID", "")
     CLIENT_SECRET = os.environ.get("CLIENT_SECRET", "")
+    EGRESS_API_URL = "https://api.prod.datapath.prismaaccess.com/getPrismaAccessIP/v2"
     REST_API = {
         # Service Setup
         "bandwidth-allocations": f"{URL_BASE}/bandwidth-allocations",
@@ -128,6 +129,7 @@ class Config:
         "url-categories": f"{URL_BASE}/url-categories",
         "url-filtering-categories": f"{URL_BASE}/url-filtering-categories"
     }
+    REST_API_CALL = "https://api.sase.paloaltonetworks.com/sse/config/v1/{}"
     LIMIT: int = int(os.environ.get("LIMIT", "100"))
     OFFSET: int = int(os.environ.get("OFFSET", "0"))
     LOGGING = os.environ.get("PRISMSASE_LOGGING", "DEBUG")
@@ -135,6 +137,7 @@ class Config:
     LOGNAME = os.environ.get("PRISMASASE_LOGNAME", "prismasase.log")
     LOGSTREAM = os.environ.get("PRISMASASE_LOGSTREAM", True)
     LOGLOCATION = os.environ.get("PRISMASASE_LOGLOCATION", "")
+    EGRESS_API = os.environ.get("PRISMASASE_EGRESS_API", "")
 
     def to_dict(self) -> dict:
         """returns configs as a dict

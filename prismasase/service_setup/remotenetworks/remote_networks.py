@@ -14,7 +14,8 @@ from prismasase.exceptions import (
     SASENoBandwidthAllocation)
 from prismasase.restapi import (prisma_request, retrieve_full_list)
 from prismasase.statics import FOLDER, REMOTE_FOLDER
-from prismasase.utilities import (reformat_to_json, reformat_to_named_dict, set_bool)
+from prismasase.utilities import (reformat_exception, reformat_to_json,
+                                  reformat_to_named_dict, set_bool)
 from ..ipsec.ipsec_tun import (ipsec_tunnel, ipsec_tunnel_delete)
 from ..ipsec.ipsec_crypto import (ipsec_crypto_profiles_get)
 from ..ike.ike_crypto import ike_crypto_profiles_get
@@ -64,7 +65,8 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
         static_enabled (str|bool): Sets Static routing enabled or disabled use string 'true' or 'false' Defaults 'false'
         tunnel_monitor (str|bool): Sets Tunnel Monitoring to enabled or disabled use string 'true' or 'false' Defaults 'false'
         sec_wan_enabled (str|bool): Sets a Secondary WAN circuit; Cannot use if ECMP enabled. Defaults "False"
-        sec_tunnel_namesec_gateway_name (str): Sec Tunnel Name. Required if sec_wan_enabled set to "True"
+        sec_tunnel_name (str): (str): Sec Gateway Name. Required if sec_wan_enabled set to "True"
+        sec_gateway_name (str): Sec Tunnel Name. Required if sec_wan_enabled set to "True"
         sec_peer_ip_address: (str): Peer IP on Secondary Peer. Required if sec_wan_enabled set to "True"
         sec_local_id_type (str): Local ID Type. Required if sec_wan_enabled set to "True"
         sec_local_id_value (str): Local ID Value. Required if sec_wan_enabled set to "True"
@@ -154,6 +156,8 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
             folder: dict = FOLDER[kwargs.pop('folder_name')]
         else:
             folder: dict = kwargs.pop('folder') if kwargs.get('folder') else REMOTE_FOLDER
+        # Check if Secondary WAN is set up
+        sec_wan_enabled: bool = set_bool(value=kwargs.pop('sec_wan_enabled', False))
     except KeyError as err:
         prisma_logger.error("SASEMissingParam: %s", str(err))
         raise SASEMissingParam(f"message=\"missing required parameter\"|param={str(err)}")
@@ -188,6 +192,7 @@ def create_remote_network(**kwargs) -> Dict[str, Any]:  # pylint: disable=too-ma
                                                 pre_shared_key=pre_shared_key,
                                                 spn_name=spn_name,
                                                 region=region,
+                                                sec_wan_enabled=sec_wan_enabled,
                                                 auth=auth,
                                                 **kwargs)
         response = {**response, **tunnel_respnse}
@@ -209,6 +214,7 @@ def _create_remote_network(remote_network_name: str,
                            spn_name: str,
                            ike_crypto_profile: str,
                            pre_shared_key: str,
+                           sec_wan_enabled: bool,
                            **kwargs) -> dict:
     # Set up standard tunnel
     # TODO: setup suport for Secondary Tunnel
@@ -673,7 +679,7 @@ class RemoteNetworks:
         self._update_parent_ipsec_tunnels()
 
     def _update_parent_ipsec_tunnels(self) -> None:
-        self._parent_class.ipsec_tunnels.update(  # type: ignore
+        self._parent_class.ipsec_tunnels_dict.update(  # type: ignore
             {self._remote_network: self.ipsec_tunnels[self._remote_network]})
 
     def get_ike_gateways(self):
@@ -688,7 +694,7 @@ class RemoteNetworks:
         self._update_parent_ike_gateways()
 
     def _update_parent_ike_gateways(self) -> None:
-        self._parent_class.ike_gateways.update(  # type: ignore
+        self._parent_class.ike_gateways_dict.update(  # type: ignore
             {self._remote_network: self.ike_gateways[self._remote_network]})
 
     def get_ike_crypto(self):
@@ -836,49 +842,80 @@ class RemoteNetworks:
             "ipsec_tunnel_deleted": [],
             "ike_gateway_deleted": []
         }
+        ipsec_tunnels: List[Dict[str, Any]] = []
+        ipsec_tunnels_deleted: List[Dict[str, Any]] = []
+        ike_gwy_profiles: List[Dict[str, Any]] = []
+        ike_gtwy_profiles_deleted: list = []
         remote_network_name: str = kwargs.pop(
             'remote_network_name') if kwargs.get('remote_network_name') else ""
         remote_network_id: str = kwargs.pop(
             'remote_network_id') if kwargs.get('remote_network_id') else ""
+        remote_network_dict: dict = {}
         if not remote_network_id and not remote_network_name:
             prisma_logger.error("Missing remote_network_id or remote_network_name")
             raise SASEMissingParam("requires either remote_network_name or remote_network_id")
+        self.get()
         if remote_network_name and not remote_network_id:
-            self.get()
             prisma_logger.info("Looking for Remote Network ID using %s", remote_network_name)
             for value in self.remote_networks[self._remote_network].values():
                 if value['name'] == remote_network_name:
                     remote_network_id = value['id']
+                    remote_network_dict = value
                     prisma_logger.info("Found Remote Network %s ID is %s",
                                        remote_network_name, remote_network_id)
+                    prisma_logger.debug("Full Remote Network Response: %s", orjson.dumps(
+                        remote_network_dict).decode('utf-8'))
                     break
-            if not remote_network_id:
-                prisma_logger.error("Cannot find Remote Network %s by name", remote_network_name)
-                raise SASEBadParam(f"Invalid Remote Network Name: {remote_network_name}")
+        # ensure you have the full orig dict
+        if not remote_network_dict and remote_network_id:
+            prisma_logger.info(
+                "Getting original remote network json using remote network id %s", remote_network_id)
+            remote_network_dict = self.remote_networks[self._remote_network].get(remote_network_id, {})
+        if remote_network_dict:
+            remote_network_name = remote_network_dict['name']
+        if not remote_network_dict:
+            prisma_logger.error("Cannot find Remote Network %s by name or ID %s",
+                                remote_network_name, remote_network_id)
+            raise SASEBadParam(
+                f"Invalid Remote Network: {remote_network_name=}, {remote_network_id=}")
         prisma_logger.info("Removing Remote Network ID: %s", remote_network_id)
         # Update Response
         response['remote_network_deleted'] = remote_network_delete(
             remote_network_id=remote_network_id, folder=self._remote_network_dict,
             auth=self._parent_class.auth)  # type: ignore
-        # Check if ECMP is enabled or disabled
-        self.get_all()
+        prisma_logger.info("Removed Network ID: %s Name: %s", remote_network_id,
+                           response['remote_network_deleted']['name'])
+        prisma_logger.debug("Response: %s", orjson.dumps(response).decode('utf-8'))
         # Delete non ECMP
-        if response['remote_network_deleted']['ecmp_load_balncing'] == "disabled":
-            response["ipsec_tunnel_deleted"] = self._delete_tunnels(
-                remote_network_dict=response['remote_network_deleted'])
+        if remote_network_dict['ecmp_load_balancing'] == "disable":
+            ipsec_tunnels.append(remote_network_dict['ipsec_tunnel'])
         # Delete ECMP tunnels
-        else:
-            response["ipsec_tunnel_deleted"] = self._delete_ecmp_tunnels(
-                remote_network_dict=response["remote_network_deleted"])
+        if remote_network_dict['ecmp_load_balancing'] == "enable":
+            for tunnel in remote_network_dict['ecmp_tunnels']:
+                ipsec_tunnels.append(tunnel['ipsec_tunnel'])
+        # Delete all Tunnels:
+        for tunnel in ipsec_tunnels:
+            tun_response = self._parent_class.ipsec_tunnels.delete(  # type: ignore
+                folder=self._remote_network, ipsec_tunnel_name=tunnel)
+            ipsec_tunnels_deleted.append(tun_response)
+            prisma_logger.info("Remote Network deleted Tunnel %s", tunnel)
+        response['ipsec_tunnel_deleted'] = ipsec_tunnels_deleted
         # Delete IKE Gateways assocated to tunnels
-        response["ike_gateway_deleted"] = self._delete_ike_gateways(
-            ipsec_tunnel_list=response["ipsec_tunnel_deleted"])
+        # TODO: build delete IKE Gateways from Tunnel Info
+        for tunnel in ipsec_tunnels_deleted:
+            try:
+                for gateway in tunnel['auto_key']['ike_gateway']:
+                    ike_gwy_profiles.append(gateway['name'])
+            except KeyError as err:
+                error = reformat_exception(error=err)
+                prisma_logger.warning("Missing IKE Gwy in IPsec tunn message=%s, tunnel=%s",
+                                    error, orjson.dumps(tunnel).decode('utf-8'))
+        for gateway in ike_gwy_profiles:
+            ike_gtwy_profiles_deleted.append(self._parent_class.ike_gateways.delete(  # type: ignore
+                folder=self._remote_network, ike_gateway_name=gateway))
+        response["ike_gateway_deleted"] = ike_gtwy_profiles_deleted
         prisma_logger.info("Updating Remote Network information")
-        self.get_all()
-        return response
-
-    def _delete_ecmp_tunnels(self, remote_network_dict: dict) -> list:
-        response = []
+        self.get()
         return response
 
     def _delete_tunnels(self, remote_network_dict: dict) -> list:

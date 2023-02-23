@@ -2,10 +2,11 @@
 
 import orjson
 
-from prismasase import return_auth, logger
-from prismasase.restapi import prisma_request
+from prismasase import (return_auth, logger, config)
+from prismasase.exceptions import SASEBadParam
+from prismasase.restapi import (prisma_request, infra_request)
 from prismasase.configs import Auth
-from prismasase.statics import FOLDER
+from prismasase.statics import (FOLDER, INFRA_ADDR_TYPE, INFRA_LOCATION, INFRA_SERVICE_TYPE)
 
 INFRA_URL = "infrastructure-settings"
 
@@ -14,6 +15,8 @@ prisma_logger = logger.getLogger(__name__)
 
 
 class InfrastructureSettings:
+    """Instrastructure Settings
+    """
     _parent_class = None
 
     url_type = INFRA_URL
@@ -26,10 +29,27 @@ class InfrastructureSettings:
         response = infra_get(auth=self._parent_class.auth)  # type: ignore
         self._infra_update(infra_dict=response)
         prisma_logger.info("Retrieved Infrastructure Settings %s", orjson.dumps(  # pylint: disable=no-member
-                    response).decode('utf-8'))
+            response).decode('utf-8'))
 
     def _infra_update(self, infra_dict: dict):
         self.current_infrastracture_settings = infra_dict
+
+    def get_prisma_access_ip(
+            self, service_type: str, addr_type: str, location: str, egress_api: str = None) -> dict:
+        """Get Prisma Access Infra IP's
+
+        Args:
+            service_type (str): _description_
+            addr_type (str): _description_
+            location (str): _description_
+            egress_api (str, optional): _description_. Defaults to None.
+
+        Returns:
+            dict: _description_
+        """
+        response = infra_get_ip(service_type=service_type, addr_type=addr_type,
+                                location=location, egress_api=egress_api)
+        return response
 
 
 def infra_get(**kwargs) -> dict:
@@ -45,3 +65,40 @@ def infra_get(**kwargs) -> dict:
                               params=FOLDER['Shared'],
                               verify=auth.verify)
     return response
+
+
+def infra_get_ip(service_type: str, addr_type: str, location: str, egress_api: str = "") -> dict:
+    """Infrastucture get Egress IP.
+
+    Args:
+        service_type (str): _description_
+        addr_type (str): _description_
+        location (str): _description_
+        egress_api (str, optional): _description_. Defaults to "".
+
+    Raises:
+        SASEBadParam: _description_
+        SASEBadParam: _description_
+        SASEBadParam: _description_
+
+    Returns:
+        dict: _description_
+    """
+    if not egress_api:
+        egress_api = config.EGRESS_API
+    if service_type not in INFRA_SERVICE_TYPE:
+        prisma_logger.error("SASEBadParam: Incorrect ServiceType=%s", service_type)
+        raise SASEBadParam(f"Incorrect ServiceType={service_type}")
+    if addr_type not in INFRA_ADDR_TYPE:
+        prisma_logger.error("SASEBadParam: Incorrect addrType=%s", addr_type)
+        raise SASEBadParam(f"Incorrect addrType={addr_type}")
+    if location not in INFRA_LOCATION:
+        prisma_logger.error("SASEBadParam: Incorrect Location=%s", location)
+        raise SASEBadParam(f"Incorrect location={location}")
+    payload = {
+        "serviceType": service_type,
+        "addrType": addr_type,
+        "location": location
+    }
+    response = infra_request(token=egress_api, payload=payload)
+    return response.json()
