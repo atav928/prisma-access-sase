@@ -95,7 +95,7 @@ class IPSecCryptoProfiles:
     ipsec_crypto_dict: dict = {}
     ipsec_crypto_names: dict = {}
 
-    def get_all(self):
+    def get(self):
         """Gets all IPSec Crypto Profiles in all loctions that one can exists;
          will throw a warning if unable to retrieve configs for that
          section and keeps an updated track fo the full list as well

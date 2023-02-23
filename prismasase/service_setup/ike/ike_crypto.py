@@ -166,7 +166,7 @@ class IKECryptoProfiles:
     ike_crypto_profiles: dict = {}
     ike_crypto_profile_names: dict = {}
 
-    def get_all(self) -> None:
+    def get(self) -> None:
         """Gets all IKE Crytpo Profiles in all loctions that one can exists;
          will throw a warning if unable to retrieve configs for that
          section and keeps an updated track fo the full list as well
@@ -217,7 +217,7 @@ class IKECryptoProfiles:
             SASEObjectExists: _description_
             SASEBadRequest: _description_
         """
-        self.get_all()
+        self.get()
         if ike_crypto_name in self.ike_crypto_profile_names.get(folder, []):
             prisma_logger.error(
                 "SASEObjectExists: IKE Crypto Name %s already exists in folder %s", ike_crypto_name,
@@ -237,7 +237,7 @@ class IKECryptoProfiles:
             raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
         prisma_logger.info("Created IKE Crypto Profile %s",
                            ike_crypto_name)
-        self.get_all()
+        self.get()
 
     def update(self, folder: str, ike_crypto_id: str, **kwargs) -> None:
         """Updates IKE Crypto Profile
@@ -257,7 +257,7 @@ class IKECryptoProfiles:
             SASEBadRequest: _description_
         """
         # verify ike_crypto_id exists
-        self.get_all()
+        self.get()
         if ike_crypto_id not in self.ike_crypto_profiles.get(folder, []):
             prisma_logger.error("Invalid IKE Crypto ID %s", ike_crypto_id)
             raise SASEBadParam(f"{ike_crypto_id=} is invalid")
@@ -277,7 +277,7 @@ class IKECryptoProfiles:
             raise SASEBadRequest(orjson.dumps(response).decode('utf-8'))  # pylint: disable=no-member
         prisma_logger.info("Updated IKE Crypto Profile %s",
                            ike_crypto_id)
-        self.get_all()
+        self.get()
 
     def _update_parent(self) -> None:
         self._parent_class.ike_crypto = self.ike_crypto_profiles  # type: ignore

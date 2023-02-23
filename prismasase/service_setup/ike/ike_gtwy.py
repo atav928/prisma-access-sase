@@ -398,7 +398,7 @@ class IKEGateways:
     ike_gateways_dict: dict = {}
     ike_gateway_name: dict = {}
 
-    def get_all(self) -> None:
+    def get(self) -> None:
         """Gets all IKE Gateway Profiles in all loctions that one can exists;
          will throw a warning if unable to retrieve configs for that
          section and keeps an updated track fo the full list as well
@@ -431,7 +431,33 @@ class IKEGateways:
             IKE_GWY_TYPE, ', '.join(list(self.ike_gateways_dict)))
         self._update_parent()
 
-    def delete(self, ike_gateway_id: str, folder: str):
+    def get_by_name(self, folder: str, ike_gateway_name: str) -> dict:
+        """Get IKE Gateway by Name
+
+        Args:
+            folder (str): _description_
+            ike_gateway_name (str): _description_
+
+        Raises:
+            SASEMissingParam: _description_
+
+        Returns:
+            dict: _description_
+        """
+        self.get()
+        gtwy_dict = {}
+        if ike_gateway_name in self.ike_gateway_name.get(folder, []):
+            for gateway in self.ike_gateways_dict[folder].values():
+                if ike_gateway_name == gateway['name']:
+                    gtwy_dict = gateway
+                    prisma_logger.info("Found IKE Gwy %s", ike_gateway_name)
+                    break
+        else:
+            prisma_logger.error("Unable to find IKE Gtwy %s", ike_gateway_name)
+            raise SASEMissingParam(f"Unable to find {ike_gateway_name=}")
+        return gtwy_dict
+
+    def delete(self, folder: str, ike_gateway_id: str = '', **kwargs) -> dict:
         """Delete IKE Gateway
 
         Args:
@@ -440,6 +466,10 @@ class IKEGateways:
         Returns:
             dict: _description_
         """
+        ike_gateway_name: str = kwargs.pop('ike_gateway_name', '')
+        if ike_gateway_name:
+            ike_gateway_id = self.get_by_name(folder=folder, ike_gateway_name=ike_gateway_name)['id']
+            prisma_logger.info("Found IKE Gwy Name %s with ID: %s", ike_gateway_name, ike_gateway_id)
         ike_gtwy_delete_response = ike_gateway_delete(
             ike_gateway_id=ike_gateway_id,
             folder=FOLDER[folder],
@@ -447,10 +477,11 @@ class IKEGateways:
         prisma_logger.info("Deleted IKE Gateway ID %s in %s", ike_gateway_id, folder)
         prisma_logger.debug("Deleted IKE Gateway %s", orjson.dumps(  # pylint: disable=no-member
             ike_gtwy_delete_response).decode('utf-8'))
-        self.get_all()
+        self.get()
+        return ike_gtwy_delete_response
 
     def create(self, folder: str, pre_shared_key: str, ike_gateway_name: str,
-               ike_crypto_profile: str, **kwargs) -> None:
+               ike_crypto_profile: str, **kwargs) -> dict:
         """Create new IKE Gateway in specified Folder location.
         Please use format "ike-gw-<remote_network_name>" or "ike-gw-<sc-name>" to help identify.
         Otherwise the default is a random gateway name that may be confusing.
@@ -481,14 +512,14 @@ class IKEGateways:
             SASEBadRequest: Missing information or bad request tried to be sent
         """
         # check if already exists
-        self.get_all()
+        self.get()
         if ike_gateway_name in self._parent_class.ike_gateway_names.get(folder, []):  # type: ignore
             prisma_logger.error(
                 "SASEObjectExists: IKE Gateway %s Exists in folder %s. Please use update",
                 ike_gateway_name, folder)
             raise SASEObjectExists(f"{ike_gateway_name=} exists")
         # check if crypto profile exists
-        self._parent_class.ike_crypto_profiles.get_all()  # type: ignore
+        self._parent_class.ike_crypto_profiles.get()  # type: ignore
         if ike_crypto_profile not in self._parent_class.ike_crypto_names.get.get(  # type: ignore
                 folder, []):
             prisma_logger.error(
@@ -505,9 +536,10 @@ class IKEGateways:
         prisma_logger.info("Successfully created %s in location %s", ike_gateway_name, folder)
         prisma_logger.debug("Full response from POST: %s", orjson.dumps(response).decode('utf-8'))
         # update with new IKE Gateway
-        self.get_all()
+        self.get()
+        return response
 
-    def update(self, ike_gateway_id: str, folder: str, **kwargs):
+    def update(self, ike_gateway_id: str, folder: str, **kwargs) -> dict:
         """Updates an existing IKE Gateway based on the ID
 
         Args:
@@ -524,7 +556,7 @@ class IKEGateways:
             SASEBadRequest: Bad request created
         """
         # check if id is valid
-        self.get_all()
+        self.get()
         if ike_gateway_id not in list(self.ike_gateways_dict.get(folder, [])):
             prisma_logger.error("IKE Gateway ID %s does not exist", ike_gateway_id)
             raise SASEBadParam(f"unkown {ike_gateway_id=}")
@@ -535,7 +567,8 @@ class IKEGateways:
         prisma_logger.info("Updated IKE Gateway ID: %s", ike_gateway_id)
         prisma_logger.debug("Updated IKE Gateway ID %s with: %s", ike_gateway_id,
                             orjson.dumps(response).decode('utf-8'))
-        self.get_all()
+        self.get()
+        return response
 
     def _update_parent(self) -> None:
         self._parent_class.ike_gateways_dict = self.ike_gateways_dict  # type: ignore

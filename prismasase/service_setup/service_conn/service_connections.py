@@ -5,14 +5,13 @@ import orjson
 from prismasase import return_auth, logger
 from prismasase.exceptions import (SASEIncorrectParam, SASEMissingParam, SASEObjectExists)
 from prismasase.service_setup.ike.ike_crypto import (
-    ike_crypto_get_dict_folder, ike_crypto_get_name_list)
+    ike_crypto_get_name_list)
 from prismasase.service_setup.ike.ike_gtwy import (
     ike_gateway_delete, ike_gateway_get_by_name, ike_gateway_list)
 from prismasase.service_setup.ipsec.ipsec_crypto import (
-    ipsec_crypto_get_dict_folder, ipsec_crypto_get_name_list)
+    ipsec_crypto_get_name_list)
 from prismasase.service_setup.ipsec.ipsec_tun import (
-    ipsec_tun_get_by_name, ipsec_tun_get_dict_folder, ipsec_tunnel_delete,
-    ipsec_tunnel_get_name_list)
+    ipsec_tun_get_by_name, ipsec_tunnel_delete)
 from prismasase.statics import FOLDER, SERVICE_FOLDER
 from prismasase.configs import Auth
 from prismasase.restapi import (prisma_request, retrieve_full_list)
@@ -22,8 +21,8 @@ from prismasase.utilities import (reformat_exception, reformat_to_json,
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
 
-SERVICE_CONNECTION_URL = "service-connections"
-SERVICE_CONNECTION_TYPE = reformat_url_type(SERVICE_CONNECTION_URL)
+SERVICE_CONNECTION_URL: str = "service-connections"
+SERVICE_CONNECTION_TYPE: str = reformat_url_type(SERVICE_CONNECTION_URL)
 
 
 class ServiceConnections:
@@ -60,10 +59,10 @@ class ServiceConnections:
             None: updates internal Service Connection, IKE and IPSec Dicts
         """
         # Get IKE & IPSec configurations
-        self._parent_class.ipsec_crypto_profiles.get_all()  # type: ignore
-        self._parent_class.ike_crypto_profiles.get_all()  # type: ignore
-        self._parent_class.ipsec_tunnels.get_all()  # type: ignore
-        self._parent_class.ike_gateways.get_all()  # type: ignore
+        self._parent_class.ipsec_crypto_profiles.get()  # type: ignore
+        self._parent_class.ike_crypto_profiles.get()  # type: ignore
+        self._parent_class.ipsec_tunnels.get()  # type: ignore
+        self._parent_class.ike_gateways.get()  # type: ignore
         self.ike_crypto[self._service_connections] = self._parent_class.ike_gateways_dict.get(  # type: ignore
             self._service_connections, {})
         self.ike_crypto_names = self._parent_class.ike_gateway_names.get(  # type: ignore
@@ -333,9 +332,9 @@ def svc_connection_get(**kwargs) -> dict:
         dict: _description_
     """
     auth: Auth = return_auth(**kwargs)
-    response = retrieve_full_list(folder="Service Connections",
-                                  url_type="service-connections",
-                                  list_type="Service Connections",
+    response = retrieve_full_list(folder=SERVICE_CONNECTION_TYPE,
+                                  url_type=SERVICE_CONNECTION_URL,
+                                  list_type=SERVICE_CONNECTION_TYPE,
                                   auth=auth)
     prisma_logger.info("Retrieved TSG=%s Infrastructure Configurations", auth.tsg_id)
     return response
@@ -355,13 +354,13 @@ def svc_connection_get_by_id(service_conn_id: str, **kwargs):
                               method="GET",
                               get_object=f"/{service_conn_id}",
                               url_type=SERVICE_CONNECTION_URL,
-                              params=FOLDER["Service Connections"],
+                              params=FOLDER[SERVICE_CONNECTION_TYPE],
                               verify=auth.verify)
     prisma_logger.info("Retrieved Service Connection ID %s", service_conn_id)
     return response
 
 
-def svc_connection_payload():
+def svc_connection_payload(**kwargs):
     """_summary_
 
     Sample Body:
