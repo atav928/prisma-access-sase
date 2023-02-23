@@ -249,7 +249,6 @@ def config_check_job_id(job_id: str, timeout: int = 2700, interval: int = 30, **
             response['job_id'][str(job_id)] = config_job_check['data'][0]
             delta = datetime.datetime.now() - start_time
             response['job_id'][str(job_id)]['total_time'] = str(delta.seconds)
-            # print(f"DEBUG: response={orjson.dumps(config_job_check['data'][0]).decode('utf-8')}")
             break
         prisma_logger.debug("response=%s",
                             orjson.dumps(config_job_check['data'][0]).decode('utf-8'))
@@ -299,7 +298,6 @@ def config_commit(folders: list,  # pylint: disable=too-many-locals
         # Check original push appends it to response
         response_config_check_job = config_check_job_id(job_id=job_id, timeout=timeout, auth=auth)
         response = {**response, **response_config_check_job}
-        # print(f"DEBUG: Current Response {orjson.dumps(response).decode('utf-8')}")
         if response['status'] not in ['success']:
             raise SASECommitError(
                 f"Intial Push failure message=\"{orjson.dumps(response).decode('utf-8')}\"")
@@ -318,7 +316,6 @@ def config_commit(folders: list,  # pylint: disable=too-many-locals
         while response['status'] == 'success' and count > 0:
             for job in config_job_subs:
                 prisma_logger.info("Checking on job_id %s", (job))
-                # print(f"INFO: Checking on job_id {job}")
                 # uses this to append each job id to the existing job to keep all info
                 response_config_check_job = config_check_job_id(
                     job_id=job, timeout=timeout, auth=auth)
@@ -330,7 +327,6 @@ def config_commit(folders: list,  # pylint: disable=too-many-locals
                         response['message'] + f", jobid {str(job)}: " +
                         f"{response_config_check_job['job_id'][str(job)]['details']}")
                 response['job_id'] = response_jobs
-                # print(f"DEBUG: Current Response {orjson.dumps(response).decode('utf-8')}")
                 count -= 1
     prisma_logger.info("Gathering Current Commit version for tenant %s", (auth.tsg_id))
     # print(f"INFO: Gathering Current Commit version for tenant {auth.tsg_id}")

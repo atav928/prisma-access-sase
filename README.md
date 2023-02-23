@@ -21,7 +21,7 @@ GNU
  python -m pip install .
  ```
 
- * pip install prisma-access-sase
+* pip install prisma-access-sase
 
 ### Setup
 
@@ -478,7 +478,7 @@ This command will just gather all information from Remote Networks
 ```bash
 >>> from prismasase.api import API
 >>> api = API(folder='Shared')
->>> api.remote_networks.get_all()
+>>> api.remote_networks.get()
 INFO    : Retrieving a list of all Remote Networks from folder Remote Networks
 INFO    : Retrieved List of all Remote Networks in Folder=Remote Networks total=6
 INFO    : Retrieved 6 Remote Networks
@@ -496,11 +496,13 @@ INFO    : Retrieved List of all IPSec Tunnels in Folder=Remote Networks total=9
 INFO    : Gathering all IPsec Tunnels in Remote Networks
 ```
 
-You can than view your configurations or make changes just like onboarding above, but instead using the api command instead
+You can use the following to view what was returned:
 
-```bash
->>> api.remote_networks.remote_networks
+```python
+api.remote_networks.remote_networks
 ```
+
+**Example Return:**
 
 ```json
 {
@@ -533,9 +535,9 @@ You can than view your configurations or make changes just like onboarding above
     },
     "2e6f9968-c04d-4132-98a0-27e2503186bd": {
       "id": "2e6f9968-c04d-4132-98a0-27e2503186bd",
-      "name": "guest-55a",
+      "name": "guest-chicago-01",
       "folder": "Remote Networks",
-      "ipsec_tunnel": "ipsec-tunnel-guest-55a",
+      "ipsec_tunnel": "ipsec-tunnel-guest-chicago-01",
       "license_type": "FWAAS-AGGREGATE",
       "region": "us-west-201",
       "spn_name": "us-southwest-boxwood",
@@ -595,6 +597,106 @@ You can than view your configurations or make changes just like onboarding above
 ```
 
 **NOTE:** I continue to make the Gateways and Tunnels corralate with one another so it makes it easier to troubleshoot. Still building out ECMP and ironing out issues with BGP and the service connection
+
+#### Delete A Remote Network via API
+
+Deleting a Remote Network via API tool will parse through all the connected Tunnels and Gateways and delete those as well if they are not in use. The return statement will provide a detail account of all that was associated and deleted with it.
+
+```python
+api.remote_networks.delete(remote_network_id='2e6f9968-c04d-4132-98a0-27e250a186bd')
+```
+
+**Example Return:**
+
+```json
+{
+    "status": "success",
+    "remote_network_deleted": {
+        "id": "2e6f9968-c04d-4132-98a0-27e250a186bd",
+        "name": "guest-chicago-01",
+        "folder": "Remote Networks",
+        "ipsec_tunnel": "ipsec-tunnel-guest-chicago-01",
+        "license_type": "FWAAS-AGGREGATE",
+        "region": "us-west-201",
+        "spn_name": "us-southwest-boxwood",
+        "subnets": [
+            "192.168.0.0/24"
+        ],
+        "ecmp_load_balancing": "disable"
+    },
+    "ipsec_tunnel_deleted": [
+        {
+            "id": "a434e4a7-f2b1-411d-98f1-d68cbcebc641",
+            "name": "ipsec-tunnel-guest-chicago-01",
+            "folder": "Remote Networks",
+            "anti_replay": true,
+            "auto_key": {
+                "ike_gateway": [
+                    {
+                        "name": "ike-gwy-guest-chicago01"
+                    }
+                ],
+                "ipsec_crypto_profile": "rjf-ipsec-crypto-prof-stand"
+            },
+            "copy_tos": false,
+            "enable_gre_encapsulation": false,
+            "tunnel_interface": "tunnel"
+        }
+    ],
+    "ike_gateway_deleted": [
+        {
+            "id": "bebaccab-01e5-4d95-85a6-c326522cf89a",
+            "name": "ike-gwy-guest-chicago01",
+            "folder": "Remote Networks",
+            "authentication": {
+                "pre_shared_key": {
+                    "key": "-AQ==7+3dhZ9ZJJEoNcam5Xjkk8NjW/0=hBWO2n56I7DGgwTZNEg7lN8WadL9rLZKLz3lvuJL1zJypAWg"
+                }
+            },
+            "local_id": {
+                "type": "ufqdn",
+                "id": "sase@prisma.com"
+            },
+            "peer_address": {
+                "dynamic": {}
+            },
+            "peer_id": {
+                "type": "ufqdn",
+                "id": "chicago01@sample.com"
+            },
+            "protocol": {
+                "ikev1": {
+                    "ike_crypto_profile": "rjf-ike-crypto-profile-standard",
+                    "dpd": {
+                        "enable": true
+                    }
+                },
+                "ikev2": {
+                    "ike_crypto_profile": "rjf-ike-crypto-profile-standard",
+                    "dpd": {
+                        "enable": true
+                    }
+                },
+                "version": "ikev2-preferred"
+            },
+            "protocol_common": {
+                "fragmentation": {
+                    "enable": false
+                },
+                "nat_traversal": {
+                    "enable": true
+                },
+                "passive_mode": true
+            },
+            "local_address": {
+                "interface": "vlan"
+            }
+        }
+    ]
+}
+```
+
+The API tool will always pull in the updated Remote Networks, so it stays current for searchability.
 
 ### Service Connections
 
@@ -759,6 +861,14 @@ You can use **config_manage_rollback()** to roll back all current pending config
 ```shell
 >>> configuration.config_manage_rollback()
 {'success': True, 'message': 'There are no changes to revert.'}
+```
+
+or leverage the API to manage your commit or rollback as so:
+
+```bash
+>>> api.configuration_management.rollback()
+INFO    : Rolling back cadidate configuration to runnning config
+INFO    : Rolled back config {'success': True, 'message': 'All changes were reverted from configuration'}
 ```
 
 #### Commit
