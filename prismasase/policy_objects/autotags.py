@@ -2,7 +2,7 @@
 
 import json
 
-from prismasase import return_auth, logger
+from prismasase import return_auth, logger, config
 from prismasase.configs import Auth
 from prismasase.exceptions import (SASEAutoTagError, SASEAutoTagExists,
                                    SASEAutoTagTooLong, SASEBadParam, SASEMissingParam)
@@ -14,7 +14,8 @@ from .tags import tags_get
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
-
+if not config.SET_LOG:
+    prisma_logger.disabled = True
 
 class AutoTags:
     # placeholder for parent class namespace

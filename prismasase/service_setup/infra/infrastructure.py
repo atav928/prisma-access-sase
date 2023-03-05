@@ -12,7 +12,8 @@ INFRA_URL = "infrastructure-settings"
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
-
+if not config.SET_LOG:
+    prisma_logger.disabled = True
 
 class InfrastructureSettings:
     """Instrastructure Settings
@@ -101,4 +102,4 @@ def infra_get_ip(service_type: str, addr_type: str, location: str, egress_api: s
         "location": location
     }
     response = infra_request(token=egress_api, payload=payload)
-    return response.json()
+    return response

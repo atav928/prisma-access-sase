@@ -1,7 +1,7 @@
 # pylint: disable=too-few-public-methods
 """IPSec Crypto Configurations"""
 
-from prismasase import return_auth, logger
+from prismasase import return_auth, logger, config
 from prismasase.configs import Auth
 from prismasase.restapi import retrieve_full_list
 from prismasase.utilities import (reformat_url_type, reformat_to_named_dict, reformat_to_json)
@@ -9,6 +9,8 @@ from prismasase.statics import BASE_LIST_RESPONSE, FOLDER
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
+if not config.SET_LOG:
+    prisma_logger.disabled = True
 
 IPSEC_CRYPTO_URL = 'ipsec-crypto-profiles'
 IPSEC_CRYPTO_TYPE = reformat_url_type(IPSEC_CRYPTO_URL)

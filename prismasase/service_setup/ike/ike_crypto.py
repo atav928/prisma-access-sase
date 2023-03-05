@@ -4,7 +4,7 @@ from typing import Dict
 
 import orjson
 
-from prismasase import return_auth, logger
+from prismasase import return_auth, logger, config
 from prismasase.configs import Auth
 from prismasase.exceptions import (SASEBadParam, SASEBadRequest, SASEObjectExists)
 from prismasase.restapi import (prisma_request, retrieve_full_list)
@@ -14,6 +14,8 @@ from prismasase.utilities import (reformat_to_json, reformat_to_named_dict, refo
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
+if not config.SET_LOG:
+    prisma_logger.disabled = True
 
 IKE_CRYPTO_URL: str = 'ike-crypto-profiles'
 IKE_CRYPTO_TYPE: str = reformat_url_type(IKE_CRYPTO_URL)

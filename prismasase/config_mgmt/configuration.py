@@ -7,7 +7,7 @@ import time
 
 import orjson
 
-from prismasase import return_auth, logger
+from prismasase import return_auth, logger, config
 
 from prismasase.configs import Auth
 from prismasase.exceptions import SASEBadParam, SASECommitError
@@ -16,6 +16,8 @@ from prismasase.utilities import check_items_in_list
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
+if not config.SET_LOG:
+    prisma_logger.disabled = True
 
 CONFIG_URL = 'config-versions'
 LIST_TYPE = "Configuration Management"

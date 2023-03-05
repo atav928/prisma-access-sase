@@ -6,7 +6,7 @@ import json
 
 from requests.exceptions import HTTPError
 
-from prismasase import return_auth, logger
+from prismasase import return_auth, logger, config
 from prismasase.configs import Auth
 from prismasase.policy_objects.addresses import addresses_list
 from prismasase.policy_objects.tags import tags_exist
@@ -20,7 +20,8 @@ from prismasase.exceptions import (
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
-
+if not config.SET_LOG:
+    prisma_logger.disabled = True
 
 class AddressGroups:
     """_summary_

@@ -2,7 +2,7 @@
 
 import orjson
 
-from prismasase import return_auth, logger
+from prismasase import return_auth, logger, config
 from prismasase.exceptions import (SASEIncorrectParam, SASEMissingParam, SASEObjectExists)
 from prismasase.service_setup.ike.ike_crypto import (
     ike_crypto_get_name_list)
@@ -20,6 +20,8 @@ from prismasase.utilities import (reformat_exception, reformat_to_json,
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
+if not config.SET_LOG:
+    prisma_logger.disabled = True
 
 SERVICE_CONNECTION_URL: str = "service-connections"
 SERVICE_CONNECTION_TYPE: str = reformat_url_type(SERVICE_CONNECTION_URL)
