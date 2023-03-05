@@ -19,7 +19,7 @@ if exists(filename):
     config.CLIENT_SECRET = yaml_config['CLIENT_SECRET']
     config.TSG = yaml_config['TSG']
     config.CERT = yaml_config.get('CERT', False)
-    config.LOGGING = yaml_config.get("PRISMSASE_LOGGING", "INFO")
+    config.LOGGING = yaml_config.get("PRISMASASE_LOGGING", "INFO")
     config.SET_LOG = yaml_config.get("PRISMASASE_SET_LOG", True)
     config.LOGNAME = yaml_config.get("PRISMASASE_LOGNAME", "prismasase.log")
     config.LOGSTREAM = yaml_config.get("PRISMASASE_LOGSTREAM", True)

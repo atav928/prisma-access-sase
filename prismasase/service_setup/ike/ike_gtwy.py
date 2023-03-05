@@ -4,7 +4,7 @@
 import json
 import orjson
 
-from prismasase import return_auth, logger
+from prismasase import return_auth, logger, config
 from prismasase.configs import Auth
 from prismasase.exceptions import (SASEBadParam, SASEBadRequest,
                                    SASEMissingIkeOrIpsecProfile, SASEMissingParam, SASEObjectExists)
@@ -15,6 +15,8 @@ from prismasase.utilities import (reformat_exception, reformat_to_json,
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
+if not config.SET_LOG:
+    prisma_logger.disabled = True
 
 IKE_GWY_URL = 'ike-gateways'
 IKE_GWY_TYPE = reformat_url_type(IKE_GWY_URL)

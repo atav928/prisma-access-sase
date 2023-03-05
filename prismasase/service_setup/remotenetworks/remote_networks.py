@@ -6,7 +6,7 @@ import ipaddress
 import json
 import orjson
 
-from prismasase import return_auth, logger
+from prismasase import return_auth, logger, config
 
 from prismasase.configs import Auth
 from prismasase.exceptions import (
@@ -23,7 +23,8 @@ from ..ike.ike_gtwy import ike_gateway, ike_gateway_delete
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
-
+if not config.SET_LOG:
+    prisma_logger.disabled = True
 
 def bulk_import_remote_networks(remote_sites: list):
     """_summary_

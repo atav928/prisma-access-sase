@@ -15,6 +15,8 @@ from prismasase.exceptions import SASEBadRequest, SASEMissingParam
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
+if not config.SET_LOG:
+    prisma_logger.disabled = True
 
 
 @refresh_token

@@ -1,5 +1,5 @@
 """QoS Policy Rules"""
-from prismasase import return_auth, logger
+from prismasase import return_auth, logger, config
 from prismasase.configs import Auth
 from prismasase.exceptions import SASEBadParam
 from prismasase.restapi import (prisma_request, retrieve_full_list)
@@ -7,6 +7,8 @@ from prismasase.utilities import (reformat_to_json, reformat_to_named_dict, set_
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
+if not config.SET_LOG:
+    prisma_logger.disabled = True
 
 QOS_POLICY_URL = "qos-policy-rules"
 VALID_FOLDERS = ['Remote Networks', "Service Connections", "Shared"]

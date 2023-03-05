@@ -6,7 +6,7 @@ import json
 from typing import Any, Dict
 import orjson
 
-from prismasase import return_auth, logger
+from prismasase import return_auth, logger, config
 from prismasase import config
 from prismasase.configs import Auth
 from prismasase.exceptions import SASEBadParam, SASEBadRequest, SASEMissingParam
@@ -17,6 +17,8 @@ from prismasase.statics import BASE_LIST_RESPONSE, FOLDER
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
+if not config.SET_LOG:
+    prisma_logger.disabled = True
 
 IPSEC_TUN_URL = "ipsec-tunnels"
 IPSEC_TUN_TYPE = reformat_url_type(IPSEC_TUN_URL)

@@ -2,7 +2,7 @@
 """Address Objects"""
 import json
 
-from prismasase import return_auth, logger
+from prismasase import return_auth, logger, config
 from prismasase.configs import Auth
 from prismasase.exceptions import (SASEBadParam, SASEBadRequest,
                                    SASEIncorrectParam, SASEMissingParam, SASEObjectExists)
@@ -14,6 +14,8 @@ from .tags import tags_exist
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
+if not config.SET_LOG:
+    prisma_logger.disabled = True
 
 
 class Addresses:
@@ -205,6 +207,15 @@ def addresses_list(folder: str, **kwargs) -> dict:
 
 
 def addresses_listed_by_dict_names(folder: str, **kwargs) -> tuple:
+    """Get Addresses in the specific Folder
+      and return as a Dictionary by Folder.
+
+    Args:
+        folder (str): _description_
+
+    Returns:
+        tuple: _description_
+    """
     auth: Auth = return_auth(**kwargs)
     response = addresses_list(folder=folder, auth=auth)
     addresses_by_dict: dict = {

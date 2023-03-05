@@ -1,4 +1,4 @@
-# pylint: disable=invalid-name,too-many-arguments
+# pylint: disable=invalid-name,too-many-arguments,missing-class-docstring
 """Logger"""
 
 import logging

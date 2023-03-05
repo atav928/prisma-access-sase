@@ -1,7 +1,7 @@
 # pylint: disable=missing-docstring,too-few-public-methods
 """API"""
 
-from prismasase import logger, return_auth
+from prismasase import config, logger, return_auth
 from prismasase.config_mgmt.configuration import ConfigurationManagment
 from prismasase.policy_objects.tags import Tags
 from prismasase.service_setup.qos_profile import QoSProfiles
@@ -30,7 +30,8 @@ from .security_policies.security_rules import SecurityRules
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
-
+if not config.SET_LOG:
+    prisma_logger.disabled = True
 
 class API:  # pylint: disable=too-many-instance-attributes
     """

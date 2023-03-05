@@ -28,6 +28,7 @@ GNU
 Requires configuraitons to be on the system to work properly. You can define them via one of 3 methods
 
 1. Requires the following manditory ENV Variables:
+
 _Required:_
 
 ```bash
@@ -39,10 +40,29 @@ CLIENT_SECRET="CLIENT SECRET"
 _Optional:_
 
 ```bash
-CERT: "true"
+PRISMASASE_EGRESS_API='Egress API'
+PRISMSASE_LOGGING='DEBUG'
+PRISMASASE_LOGLOCATION=''
+PRISMASASE_LOGSTREAM=true
+PRISMASASE_LOGNAME='sase.log'
+PRISMASASE_SET_LOG=true
+CERT=true
 ```
 
 2. Through a YAML config file located here ~/.confg/.prismasase
+
+```yaml
+TGS: "TGS VALUE"
+CLIENT_ID: "CLIENT ID"
+CLIENT_SECRET: "CLIENT SECRET"
+PRISMASASE_EGRESS_API: 'Egress API'
+PRISMSASE_LOGGING: 'DEBUG'
+PRISMASASE_LOGLOCATION: ''
+PRISMASASE_LOGSTREAM: true
+PRISMASASE_LOGNAME: 'sase.log'
+PRISMASASE_SET_LOG: true
+CERT: true
+```
 
 * this can be run via using the prisma_yaml_script script that comes with the installation:
 

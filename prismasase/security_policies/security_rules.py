@@ -5,7 +5,7 @@
 from copy import copy
 import json
 
-from prismasase import logger
+from prismasase import logger, config
 from prismasase.restapi import (prisma_request, retrieve_full_list)
 from prismasase.statics import FOLDER
 from prismasase.utilities import (reformat_to_json, reformat_exception)
@@ -13,6 +13,8 @@ from prismasase.exceptions import SASEMissingParam, SASEBadParam
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
+if not config.SET_LOG:
+    prisma_logger.disabled = True
 
 SECURITY_RULE_URL = 'security-rules'
 SECURITY_LIST_TYPE = ' '.join(SECURITY_RULE_URL.title().split('-'))

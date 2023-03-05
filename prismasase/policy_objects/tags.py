@@ -3,7 +3,7 @@
 
 import json
 
-from prismasase import return_auth, logger
+from prismasase import return_auth, logger, config
 from prismasase.configs import Auth
 from prismasase.exceptions import (SASEError, SASEMissingParam,
                                    SASEObjectExists, SASEIncorrectParam)
@@ -14,7 +14,8 @@ from prismasase.utilities import (default_params, reformat_exception,
 
 logger.addLogger(__name__)
 prisma_logger = logger.getLogger(__name__)
-
+if not config.SET_LOG:
+    prisma_logger.disabled = True
 
 class Tags:
     """Tag Subclass Moudule
